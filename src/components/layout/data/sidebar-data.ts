@@ -15,7 +15,6 @@ import {
   ClipboardList,
   Megaphone,
   Package,
-  Zap,
   Shield,
   DollarSign,
 } from 'lucide-react'

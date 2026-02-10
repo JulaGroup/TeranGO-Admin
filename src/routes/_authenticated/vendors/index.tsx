@@ -984,7 +984,6 @@ function EditVendorDialog({
     fullName: '',
     email: '',
     phone: '',
-    waveNumber: '',
   })
 
   useEffect(() => {
@@ -993,7 +992,6 @@ function EditVendorDialog({
         fullName: vendor.user?.fullName || '',
         email: vendor.user?.email || '',
         phone: vendor.user?.phone || '',
-        waveNumber: vendor.waveNumber || '',
       })
     }
   }, [vendor])
@@ -1045,17 +1043,6 @@ function EditVendorDialog({
                 setFormData({ ...formData, phone: e.target.value })
               }
               placeholder='+220 123 4567'
-            />
-          </div>
-          <div className='space-y-2'>
-            <Label htmlFor='waveNumber'>Wave Number</Label>
-            <Input
-              id='waveNumber'
-              value={formData.waveNumber}
-              onChange={(e) =>
-                setFormData({ ...formData, waveNumber: e.target.value })
-              }
-              placeholder='Wave payment number'
             />
           </div>
           <DialogFooter>

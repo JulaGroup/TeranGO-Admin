@@ -1,6 +1,7 @@
 import { useEffect, useRef, useCallback, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
-import { io, Socket } from 'socket.io-client'
+import { io } from 'socket.io-client'
+import type { Socket } from 'socket.io-client'
 import { toast } from 'sonner'
 
 const SOCKET_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080'
@@ -10,7 +11,7 @@ interface OrderNotification {
   customerName: string
   totalAmount: number
   itemCount: number
-  order?: any
+  order?: unknown
 }
 
 interface UseOrderNotificationsOptions {
@@ -18,6 +19,14 @@ interface UseOrderNotificationsOptions {
   adminMode?: boolean // Add admin mode flag
   enabled?: boolean
   onNewOrder?: (order: OrderNotification) => void
+}
+
+type OrderCreatedPayload = {
+  orderId: string
+  customerName?: string
+  totalAmount?: number
+  itemCount?: number
+  order?: unknown
 }
 
 export function useOrderNotifications({
@@ -75,7 +84,7 @@ export function useOrderNotifications({
             await Notification.requestPermission()
           }
         }
-      } catch (e) {
+      } catch (_e) {
         // ignore
       }
     }
@@ -83,14 +92,16 @@ export function useOrderNotifications({
     const showBrowserNotification = (
       title: string,
       body: string,
-      data?: any
+      data?: Record<string, unknown>
     ) => {
       try {
         if (typeof window === 'undefined' || !('Notification' in window)) return
         if (Notification.permission !== 'granted') return
         const n = new Notification(title, {
           body,
-          tag: data?.tag || undefined,
+          tag:
+            ((data as Record<string, unknown>)?.tag as string | undefined) ||
+            undefined,
           data,
         })
         n.onclick = () => {
@@ -98,8 +109,8 @@ export function useOrderNotifications({
           n.close()
         }
         setTimeout(() => n.close(), 6000)
-      } catch (e) {
-        console.warn('Browser notification failed', e)
+      } catch {
+        // Ignore notification errors silently
       }
     }
 
@@ -120,15 +131,10 @@ export function useOrderNotifications({
         // Join admin room for global notifications
         socket.emit('join_admin_room')
         // Request browser notification permission for admins
-        requestBrowserNotificationPermission().then(() => {
-          console.log(
-            '🔌 Connected to admin room and notification permission requested'
-          )
-        })
+        void requestBrowserNotificationPermission()
       } else if (vendorId) {
         // Join vendor room (match server event name)
         socket.emit('join_vendor_room', vendorId)
-        console.log(`🔌 Connected to vendor room: ${vendorId}`)
       }
     })
 
@@ -155,6 +161,15 @@ export function useOrderNotifications({
           `Order from ${orderData.customerName} • ${orderData.itemCount} items • D${orderData.totalAmount.toFixed(2)}`,
           { orderId: orderData.id, type: 'new_order' }
         )
+
+        // Add notification to store (non-blocking)
+        import('@/stores/notification-store').then((m) =>
+          m.useNotificationStore.getState().addNotification({
+            title: `New Order: ${orderData.customerName}`,
+            body: `Order ${orderData.id.slice(-6).toUpperCase()} • D${orderData.totalAmount.toFixed(2)}`,
+            data: orderData,
+          })
+        )
       }
 
       // Invalidate orders query to refresh the list
@@ -167,7 +182,7 @@ export function useOrderNotifications({
 
     socket.on('new_order', handleNewOrder)
     socket.on('new-order', handleNewOrder) // support server hyphenated event
-    socket.on('orderCreated', (data: any) =>
+    socket.on('orderCreated', (data: OrderCreatedPayload) =>
       handleNewOrder({
         id: data.orderId,
         customerName: data.customerName || 'Customer',
@@ -194,55 +209,56 @@ export function useOrderNotifications({
       if (adminMode && orderData.orderId) {
         showBrowserNotification(
           'Order status updated',
-          `Order #${orderData.orderId.slice(-6).toUpperCase()} is now ${orderData.status}`,
+          `Order #${orderData.orderId!.slice(-6).toUpperCase()} is now ${orderData.status}`,
           { orderId: orderData.orderId, status: orderData.status }
+        )
+
+        // Add to notification store
+        import('@/stores/notification-store').then((m) =>
+          m.useNotificationStore.getState().addNotification({
+            title: `Order ${orderData.orderId!.slice(-6).toUpperCase()} ${orderData.status}`,
+            body: `Order ${orderData.orderId!.slice(-6).toUpperCase()} is now ${orderData.status}`,
+            data: orderData,
+          })
         )
       }
     }
 
     socket.on('order_status_changed', handleStatusChange)
     socket.on('order-status-changed', handleStatusChange) // support alternate naming
-    socket.on('new_order_update', (orderData: any) => {
-      // Play notification sound
-      playNotificationSound()
-
-      // Show toast
-      toast.success('Order Updated', {
-        description: `${orderData.customerName}'s order is now ${orderData.status}`,
-        duration: 5000,
-      })
-
-      // Browser notification for admins
-      if (adminMode) {
-        showBrowserNotification(
-          'Order Updated',
-          `${orderData.customerName}'s order is now ${orderData.status}`,
-          { orderId: orderData.orderId, status: orderData.status }
-        )
-      }
-
-      // Refresh queries
-      queryClient.invalidateQueries({ queryKey: ['terango-store-orders'] })
-      queryClient.invalidateQueries({ queryKey: ['terango-store-dashboard'] })
-    })
-
-    // Listen for new order updates (admin-specific)
     socket.on(
       'new_order_update',
       (orderData: {
-        orderId: string
+        orderId?: string
         status: string
-        customerName: string
-        totalAmount: number
+        customerName?: string
       }) => {
         // Play notification sound
         playNotificationSound()
 
         // Show toast
         toast.success('Order Updated', {
-          description: `${orderData.customerName}'s order is now ${orderData.status}`,
+          description: `${orderData.customerName ?? 'Customer'}'s order is now ${orderData.status}`,
           duration: 5000,
         })
+
+        // Browser notification for admins
+        if (adminMode) {
+          showBrowserNotification(
+            'Order Updated',
+            `${orderData.customerName ?? 'Customer'}'s order is now ${orderData.status}`,
+            { orderId: orderData.orderId, status: orderData.status }
+          )
+
+          // Add to notification store
+          import('@/stores/notification-store').then((m) =>
+            m.useNotificationStore.getState().addNotification({
+              title: `Order ${orderData.orderId?.slice(-6).toUpperCase()} ${orderData.status}`,
+              body: `${orderData.customerName ?? 'Customer'}'s order is now ${orderData.status}`,
+              data: orderData,
+            })
+          )
+        }
 
         // Refresh queries
         queryClient.invalidateQueries({ queryKey: ['terango-store-orders'] })

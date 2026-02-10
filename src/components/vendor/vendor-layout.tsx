@@ -1,5 +1,7 @@
+import React from 'react'
 import { Bell } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import NotificationBell from '@/components/ui/notification-bell'
 import { ThemeSwitch } from '@/components/theme-switch'
 import { VendorSidebar, VendorMobileSidebar } from './vendor-sidebar'
 
@@ -22,10 +24,20 @@ export function VendorLayoutWrapper({ children }: VendorLayoutProps) {
           <VendorMobileSidebar />
 
           <div className='flex flex-1 items-center justify-end gap-4'>
-            <Button variant='ghost' size='icon' className='relative'>
-              <Bell className='h-5 w-5' />
-              <span className='absolute top-1 right-1 h-2 w-2 rounded-full bg-red-500' />
-            </Button>
+            {/* Notification Bell (shows unread count and dropdown) */}
+            <div className='relative'>
+              {/* Lazy load component to avoid initial bundle weight */}
+              <React.Suspense
+                fallback={
+                  <Button variant='ghost' size='icon' className='relative'>
+                    <Bell className='h-5 w-5' />
+                  </Button>
+                }
+              >
+                {/* @ts-ignore - dynamic import to keep initial bundle small */}
+                <NotificationBell />
+              </React.Suspense>
+            </div>
             <ThemeSwitch />
           </div>
         </header>

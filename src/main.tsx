@@ -22,8 +22,35 @@ import { routeTree } from './routeTree.gen'
 import './styles/index.css'
 
 function OrderNotifications() {
-  // Initialize admin socket notifications
-  useOrderNotifications({ adminMode: true, enabled: true })
+  // Initialize admin socket notifications and bridge to notifications store
+  const addNotification = (payload: any) => {
+    // Create a readable title/body depending on payload
+    const title = payload.customerName
+      ? `New Order: ${payload.customerName}`
+      : payload.type === 'payment_success'
+        ? 'Payment Successful'
+        : 'Order Notification'
+
+    const body = payload.totalAmount
+      ? `Order ${payload.orderId?.slice(-6).toUpperCase()} • D${payload.totalAmount.toFixed(2)}`
+      : payload.message || `Order ${payload.orderId?.slice(-6).toUpperCase()}`
+
+    // Add to store
+    import('./stores/notification-store').then((m) => {
+      m.useNotificationStore.getState().addNotification({
+        title,
+        body,
+        data: payload,
+      })
+    })
+  }
+
+  useOrderNotifications({
+    adminMode: true,
+    enabled: true,
+    onNewOrder: addNotification,
+  })
+
   useEffect(() => {
     // placeholder - could expose connection status for UI later
   }, [])
