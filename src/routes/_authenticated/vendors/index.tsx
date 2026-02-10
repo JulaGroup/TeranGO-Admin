@@ -21,8 +21,19 @@ import {
   Trash2,
   CreditCard,
 } from 'lucide-react'
+import { toast } from 'sonner'
 import { adminApi, api } from '@/lib/api'
 import { Vendor } from '@/lib/types'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -73,17 +84,6 @@ import { TopNav } from '@/components/layout/top-nav'
 import { ProfileDropdown } from '@/components/profile-dropdown'
 import { Search as SearchInput } from '@/components/search'
 import { ThemeSwitch } from '@/components/theme-switch'
-import { toast } from 'sonner'
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog'
 
 const topNav = [
   { title: 'Overview', href: '/', isActive: false },
@@ -108,8 +108,11 @@ interface VendorWithSubscription extends Vendor {
 function VendorsPage() {
   const [searchQuery, setSearchQuery] = useState('')
   const [allVendors, setAllVendors] = useState<VendorWithSubscription[]>([])
-  const [filteredVendors, setFilteredVendors] = useState<VendorWithSubscription[]>([])
-  const [selectedVendor, setSelectedVendor] = useState<VendorWithSubscription | null>(null)
+  const [filteredVendors, setFilteredVendors] = useState<
+    VendorWithSubscription[]
+  >([])
+  const [selectedVendor, setSelectedVendor] =
+    useState<VendorWithSubscription | null>(null)
   const [isDetailsOpen, setIsDetailsOpen] = useState(false)
   const [isEditOpen, setIsEditOpen] = useState(false)
   const [isSubscriptionOpen, setIsSubscriptionOpen] = useState(false)
@@ -212,8 +215,17 @@ function VendorsPage() {
 
   // Toggle vendor active status mutation
   const toggleVendorStatusMutation = useMutation({
-    mutationFn: async ({ vendorId, isActive }: { vendorId: string; isActive: boolean }) => {
-      const response = await api.patch(`/api/admin/vendors/${vendorId}/status`, { isActive })
+    mutationFn: async ({
+      vendorId,
+      isActive,
+    }: {
+      vendorId: string
+      isActive: boolean
+    }) => {
+      const response = await api.patch(
+        `/api/admin/vendors/${vendorId}/status`,
+        { isActive }
+      )
       return response.data
     },
     onSuccess: () => {
@@ -222,7 +234,9 @@ function VendorsPage() {
       setIsDeactivateOpen(false)
     },
     onError: (error: any) => {
-      toast.error(error.response?.data?.message || 'Failed to update vendor status')
+      toast.error(
+        error.response?.data?.message || 'Failed to update vendor status'
+      )
     },
   })
 
@@ -244,7 +258,15 @@ function VendorsPage() {
 
   // Assign subscription mutation
   const assignSubscriptionMutation = useMutation({
-    mutationFn: async ({ vendorId, packageId, durationDays }: { vendorId: string; packageId: string; durationDays: number }) => {
+    mutationFn: async ({
+      vendorId,
+      packageId,
+      durationDays,
+    }: {
+      vendorId: string
+      packageId: string
+      durationDays: number
+    }) => {
       const response = await api.post('/api/subscriptions/admin/activate', {
         vendorId,
         packageId,
@@ -258,7 +280,9 @@ function VendorsPage() {
       setIsSubscriptionOpen(false)
     },
     onError: (error: any) => {
-      toast.error(error.response?.data?.message || 'Failed to assign subscription')
+      toast.error(
+        error.response?.data?.message || 'Failed to assign subscription'
+      )
     },
   })
 
@@ -501,33 +525,44 @@ function VendorsPage() {
                                   {vendor.user?.fullName || 'N/A'}
                                 </p>
                                 <div className='text-muted-foreground space-y-0.5 text-xs'>
-                                  {vendor.restaurants && vendor.restaurants.length > 0 && (
-                                    <div className='flex items-center gap-1'>
-                                      <UtensilsCrossed className='h-3 w-3' />
-                                      <span>{vendor.restaurants[0].name}</span>
-                                      {vendor.restaurants.length > 1 && (
-                                        <span className='text-[10px]'>+{vendor.restaurants.length - 1} more</span>
-                                      )}
-                                    </div>
-                                  )}
+                                  {vendor.restaurants &&
+                                    vendor.restaurants.length > 0 && (
+                                      <div className='flex items-center gap-1'>
+                                        <UtensilsCrossed className='h-3 w-3' />
+                                        <span>
+                                          {vendor.restaurants[0].name}
+                                        </span>
+                                        {vendor.restaurants.length > 1 && (
+                                          <span className='text-[10px]'>
+                                            +{vendor.restaurants.length - 1}{' '}
+                                            more
+                                          </span>
+                                        )}
+                                      </div>
+                                    )}
                                   {vendor.shops && vendor.shops.length > 0 && (
                                     <div className='flex items-center gap-1'>
                                       <Package className='h-3 w-3' />
                                       <span>{vendor.shops[0].name}</span>
                                       {vendor.shops.length > 1 && (
-                                        <span className='text-[10px]'>+{vendor.shops.length - 1} more</span>
+                                        <span className='text-[10px]'>
+                                          +{vendor.shops.length - 1} more
+                                        </span>
                                       )}
                                     </div>
                                   )}
-                                  {vendor.pharmacies && vendor.pharmacies.length > 0 && (
-                                    <div className='flex items-center gap-1'>
-                                      <Pill className='h-3 w-3' />
-                                      <span>{vendor.pharmacies[0].name}</span>
-                                      {vendor.pharmacies.length > 1 && (
-                                        <span className='text-[10px]'>+{vendor.pharmacies.length - 1} more</span>
-                                      )}
-                                    </div>
-                                  )}
+                                  {vendor.pharmacies &&
+                                    vendor.pharmacies.length > 0 && (
+                                      <div className='flex items-center gap-1'>
+                                        <Pill className='h-3 w-3' />
+                                        <span>{vendor.pharmacies[0].name}</span>
+                                        {vendor.pharmacies.length > 1 && (
+                                          <span className='text-[10px]'>
+                                            +{vendor.pharmacies.length - 1} more
+                                          </span>
+                                        )}
+                                      </div>
+                                    )}
                                   {getTotalBusinesses(vendor) === 0 && (
                                     <span>No businesses</span>
                                   )}
@@ -589,20 +624,31 @@ function VendorsPage() {
                                     {vendor.subscription.packageName}
                                   </span>
                                 </div>
-                                <div className='text-xs text-muted-foreground'>
-                                  {vendor.subscription.status === 'TRIAL' && vendor.subscription.isTrial ? (
-                                    <Badge variant='outline' className='text-xs'>
+                                <div className='text-muted-foreground text-xs'>
+                                  {vendor.subscription.status === 'TRIAL' &&
+                                  vendor.subscription.isTrial ? (
+                                    <Badge
+                                      variant='outline'
+                                      className='text-xs'
+                                    >
                                       Trial
                                     </Badge>
-                                  ) : vendor.subscription.status === 'ACTIVE' ? (
-                                    <span className='text-green-600'>Active</span>
+                                  ) : vendor.subscription.status ===
+                                    'ACTIVE' ? (
+                                    <span className='text-green-600'>
+                                      Active
+                                    </span>
                                   ) : (
-                                    <span className='text-gray-500'>{vendor.subscription.status}</span>
+                                    <span className='text-gray-500'>
+                                      {vendor.subscription.status}
+                                    </span>
                                   )}
                                 </div>
                               </div>
                             ) : (
-                              <span className='text-muted-foreground text-xs'>No subscription</span>
+                              <span className='text-muted-foreground text-xs'>
+                                No subscription
+                              </span>
                             )}
                           </TableCell>
                           <TableCell>
@@ -636,7 +682,9 @@ function VendorsPage() {
                                   Edit Vendor
                                 </DropdownMenuItem>
                                 <DropdownMenuItem
-                                  onClick={() => handleManageSubscription(vendor)}
+                                  onClick={() =>
+                                    handleManageSubscription(vendor)
+                                  }
                                 >
                                   <CreditCard className='mr-2 h-4 w-4' />
                                   Manage Subscription
@@ -841,7 +889,10 @@ function VendorsPage() {
             onOpenChange={setIsEditOpen}
             onSave={(data) => {
               if (selectedVendor) {
-                updateVendorMutation.mutate({ vendorId: selectedVendor.id, data })
+                updateVendorMutation.mutate({
+                  vendorId: selectedVendor.id,
+                  data,
+                })
               }
             }}
           />
@@ -864,7 +915,10 @@ function VendorsPage() {
           />
 
           {/* Deactivate/Activate Confirmation */}
-          <AlertDialog open={isDeactivateOpen} onOpenChange={setIsDeactivateOpen}>
+          <AlertDialog
+            open={isDeactivateOpen}
+            onOpenChange={setIsDeactivateOpen}
+          >
             <AlertDialogContent>
               <AlertDialogHeader>
                 <AlertDialogTitle>
@@ -891,8 +945,8 @@ function VendorsPage() {
               <AlertDialogHeader>
                 <AlertDialogTitle>Delete Vendor?</AlertDialogTitle>
                 <AlertDialogDescription>
-                  This action cannot be undone. This will permanently delete the vendor
-                  and all associated data.
+                  This action cannot be undone. This will permanently delete the
+                  vendor and all associated data.
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
@@ -920,7 +974,12 @@ interface EditVendorDialogProps {
   onSave: (data: any) => void
 }
 
-function EditVendorDialog({ vendor, open, onOpenChange, onSave }: EditVendorDialogProps) {
+function EditVendorDialog({
+  vendor,
+  open,
+  onOpenChange,
+  onSave,
+}: EditVendorDialogProps) {
   const [formData, setFormData] = useState({
     fullName: '',
     email: '',
@@ -1000,7 +1059,11 @@ function EditVendorDialog({ vendor, open, onOpenChange, onSave }: EditVendorDial
             />
           </div>
           <DialogFooter>
-            <Button type='button' variant='outline' onClick={() => onOpenChange(false)}>
+            <Button
+              type='button'
+              variant='outline'
+              onClick={() => onOpenChange(false)}
+            >
               Cancel
             </Button>
             <Button type='submit'>Save Changes</Button>
@@ -1046,24 +1109,34 @@ function ManageSubscriptionDialog({
             Assign or update subscription package for {vendor?.user?.fullName}
           </DialogDescription>
         </DialogHeader>
-        
+
         {vendor?.subscription && (
-          <div className='rounded-lg border p-4 mb-4'>
-            <h4 className='font-semibold mb-2'>Current Subscription</h4>
+          <div className='mb-4 rounded-lg border p-4'>
+            <h4 className='mb-2 font-semibold'>Current Subscription</h4>
             <div className='space-y-1 text-sm'>
               <div className='flex justify-between'>
                 <span className='text-muted-foreground'>Package:</span>
-                <span className='font-medium'>{vendor.subscription.packageName}</span>
+                <span className='font-medium'>
+                  {vendor.subscription.packageName}
+                </span>
               </div>
               <div className='flex justify-between'>
                 <span className='text-muted-foreground'>Status:</span>
-                <Badge variant={vendor.subscription.status === 'ACTIVE' ? 'default' : 'secondary'}>
+                <Badge
+                  variant={
+                    vendor.subscription.status === 'ACTIVE'
+                      ? 'default'
+                      : 'secondary'
+                  }
+                >
                   {vendor.subscription.status}
                 </Badge>
               </div>
               <div className='flex justify-between'>
                 <span className='text-muted-foreground'>Expires:</span>
-                <span>{new Date(vendor.subscription.endDate).toLocaleDateString()}</span>
+                <span>
+                  {new Date(vendor.subscription.endDate).toLocaleDateString()}
+                </span>
               </div>
             </div>
           </div>
@@ -1097,7 +1170,11 @@ function ManageSubscriptionDialog({
             />
           </div>
           <DialogFooter>
-            <Button type='button' variant='outline' onClick={() => onOpenChange(false)}>
+            <Button
+              type='button'
+              variant='outline'
+              onClick={() => onOpenChange(false)}
+            >
               Cancel
             </Button>
             <Button type='submit' disabled={!selectedPackage}>

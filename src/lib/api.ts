@@ -159,10 +159,8 @@ export const adminApi = {
   updateDriver: (id: string, data: any) =>
     api.put(`/api/admin/drivers/${id}`, data),
   deleteDriver: (id: string) => api.delete(`/api/admin/drivers/${id}`),
-  approveDriver: (id: string) =>
-    api.patch(`/api/admin/drivers/${id}/approve`),
-  rejectDriver: (id: string) =>
-    api.patch(`/api/admin/drivers/${id}/reject`),
+  approveDriver: (id: string) => api.patch(`/api/admin/drivers/${id}/approve`),
+  rejectDriver: (id: string) => api.patch(`/api/admin/drivers/${id}/reject`),
 
   // Categories
   getCategories: (params?: any) => api.get('/api/admin/categories', { params }),

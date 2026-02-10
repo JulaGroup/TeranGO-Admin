@@ -80,9 +80,13 @@ export function useOrderNotifications({
       }
     }
 
-    const showBrowserNotification = (title: string, body: string, data?: any) => {
+    const showBrowserNotification = (
+      title: string,
+      body: string,
+      data?: any
+    ) => {
       try {
-        if (typeof window === 'undefined' || !("Notification" in window)) return
+        if (typeof window === 'undefined' || !('Notification' in window)) return
         if (Notification.permission !== 'granted') return
         const n = new Notification(title, {
           body,
@@ -117,7 +121,9 @@ export function useOrderNotifications({
         socket.emit('join_admin_room')
         // Request browser notification permission for admins
         requestBrowserNotificationPermission().then(() => {
-          console.log('🔌 Connected to admin room and notification permission requested')
+          console.log(
+            '🔌 Connected to admin room and notification permission requested'
+          )
         })
       } else if (vendorId) {
         // Join vendor room (match server event name)
@@ -147,7 +153,7 @@ export function useOrderNotifications({
         showBrowserNotification(
           '🔔 New Order Received',
           `Order from ${orderData.customerName} • ${orderData.itemCount} items • D${orderData.totalAmount.toFixed(2)}`,
-          { orderId: orderData.id, type: 'new_order' },
+          { orderId: orderData.id, type: 'new_order' }
         )
       }
 
@@ -161,16 +167,21 @@ export function useOrderNotifications({
 
     socket.on('new_order', handleNewOrder)
     socket.on('new-order', handleNewOrder) // support server hyphenated event
-    socket.on('orderCreated', (data: any) => handleNewOrder({
-      id: data.orderId,
-      customerName: data.customerName || 'Customer',
-      totalAmount: data.totalAmount || 0,
-      itemCount: data.itemCount || 0,
-      order: data.order,
-    }))
+    socket.on('orderCreated', (data: any) =>
+      handleNewOrder({
+        id: data.orderId,
+        customerName: data.customerName || 'Customer',
+        totalAmount: data.totalAmount || 0,
+        itemCount: data.itemCount || 0,
+        order: data.order,
+      })
+    )
 
     // Listen for order status changes
-    const handleStatusChange = (orderData: { orderId?: string; status: string }) => {
+    const handleStatusChange = (orderData: {
+      orderId?: string
+      status: string
+    }) => {
       // Refresh orders
       queryClient.invalidateQueries({ queryKey: ['vendor-orders'] })
       queryClient.invalidateQueries({ queryKey: ['terango-store-orders'] })
@@ -184,7 +195,7 @@ export function useOrderNotifications({
         showBrowserNotification(
           'Order status updated',
           `Order #${orderData.orderId.slice(-6).toUpperCase()} is now ${orderData.status}`,
-          { orderId: orderData.orderId, status: orderData.status },
+          { orderId: orderData.orderId, status: orderData.status }
         )
       }
     }
@@ -206,7 +217,7 @@ export function useOrderNotifications({
         showBrowserNotification(
           'Order Updated',
           `${orderData.customerName}'s order is now ${orderData.status}`,
-          { orderId: orderData.orderId, status: orderData.status },
+          { orderId: orderData.orderId, status: orderData.status }
         )
       }
 

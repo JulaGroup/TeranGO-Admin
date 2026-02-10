@@ -1,4 +1,6 @@
 import { StrictMode } from 'react'
+// Order notifications (admin)
+import { useEffect } from 'react'
 import ReactDOM from 'react-dom/client'
 import { AxiosError } from 'axios'
 import {
@@ -13,14 +15,11 @@ import { handleServerError } from '@/lib/handle-server-error'
 import { DirectionProvider } from './context/direction-provider'
 import { FontProvider } from './context/font-provider'
 import { ThemeProvider } from './context/theme-provider'
+import { useOrderNotifications } from './hooks/use-order-notifications'
 // Generated Routes
 import { routeTree } from './routeTree.gen'
 // Styles
 import './styles/index.css'
-
-// Order notifications (admin)
-import { useEffect } from 'react'
-import { useOrderNotifications } from './hooks/use-order-notifications'
 
 function OrderNotifications() {
   // Initialize admin socket notifications
