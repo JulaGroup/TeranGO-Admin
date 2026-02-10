@@ -39,6 +39,7 @@ import { Route as AuthenticatedAdminVendorApplicationsIndexRouteImport } from '.
 import { Route as AuthenticatedAdminTerangoStoreIndexRouteImport } from './routes/_authenticated/admin/terango-store/index'
 import { Route as AuthenticatedAdminTerangoProductsIndexRouteImport } from './routes/_authenticated/admin/terango-products/index'
 import { Route as AuthenticatedAdminSubscriptionsIndexRouteImport } from './routes/_authenticated/admin/subscriptions/index'
+import { Route as AuthenticatedAdminNotificationsIndexRouteImport } from './routes/_authenticated/admin/notifications/index'
 import { Route as AuthenticatedAdminFeaturedIndexRouteImport } from './routes/_authenticated/admin/featured/index'
 import { Route as AuthenticatedAdminBroadcastsIndexRouteImport } from './routes/_authenticated/admin/broadcasts/index'
 import { Route as AuthenticatedAdminAnalyticsIndexRouteImport } from './routes/_authenticated/admin/analytics/index'
@@ -207,6 +208,12 @@ const AuthenticatedAdminSubscriptionsIndexRoute =
     path: '/admin/subscriptions/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedAdminNotificationsIndexRoute =
+  AuthenticatedAdminNotificationsIndexRouteImport.update({
+    id: '/admin/notifications/',
+    path: '/admin/notifications/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedAdminFeaturedIndexRoute =
   AuthenticatedAdminFeaturedIndexRouteImport.update({
     id: '/admin/featured/',
@@ -275,6 +282,7 @@ export interface FileRoutesByFullPath {
   '/admin/analytics': typeof AuthenticatedAdminAnalyticsIndexRoute
   '/admin/broadcasts': typeof AuthenticatedAdminBroadcastsIndexRoute
   '/admin/featured': typeof AuthenticatedAdminFeaturedIndexRoute
+  '/admin/notifications': typeof AuthenticatedAdminNotificationsIndexRoute
   '/admin/subscriptions': typeof AuthenticatedAdminSubscriptionsIndexRoute
   '/admin/terango-products': typeof AuthenticatedAdminTerangoProductsIndexRoute
   '/admin/terango-store': typeof AuthenticatedAdminTerangoStoreIndexRoute
@@ -311,6 +319,7 @@ export interface FileRoutesByTo {
   '/admin/analytics': typeof AuthenticatedAdminAnalyticsIndexRoute
   '/admin/broadcasts': typeof AuthenticatedAdminBroadcastsIndexRoute
   '/admin/featured': typeof AuthenticatedAdminFeaturedIndexRoute
+  '/admin/notifications': typeof AuthenticatedAdminNotificationsIndexRoute
   '/admin/subscriptions': typeof AuthenticatedAdminSubscriptionsIndexRoute
   '/admin/terango-products': typeof AuthenticatedAdminTerangoProductsIndexRoute
   '/admin/terango-store': typeof AuthenticatedAdminTerangoStoreIndexRoute
@@ -350,6 +359,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/analytics/': typeof AuthenticatedAdminAnalyticsIndexRoute
   '/_authenticated/admin/broadcasts/': typeof AuthenticatedAdminBroadcastsIndexRoute
   '/_authenticated/admin/featured/': typeof AuthenticatedAdminFeaturedIndexRoute
+  '/_authenticated/admin/notifications/': typeof AuthenticatedAdminNotificationsIndexRoute
   '/_authenticated/admin/subscriptions/': typeof AuthenticatedAdminSubscriptionsIndexRoute
   '/_authenticated/admin/terango-products/': typeof AuthenticatedAdminTerangoProductsIndexRoute
   '/_authenticated/admin/terango-store/': typeof AuthenticatedAdminTerangoStoreIndexRoute
@@ -388,6 +398,7 @@ export interface FileRouteTypes {
     | '/admin/analytics'
     | '/admin/broadcasts'
     | '/admin/featured'
+    | '/admin/notifications'
     | '/admin/subscriptions'
     | '/admin/terango-products'
     | '/admin/terango-store'
@@ -424,6 +435,7 @@ export interface FileRouteTypes {
     | '/admin/analytics'
     | '/admin/broadcasts'
     | '/admin/featured'
+    | '/admin/notifications'
     | '/admin/subscriptions'
     | '/admin/terango-products'
     | '/admin/terango-store'
@@ -462,6 +474,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/analytics/'
     | '/_authenticated/admin/broadcasts/'
     | '/_authenticated/admin/featured/'
+    | '/_authenticated/admin/notifications/'
     | '/_authenticated/admin/subscriptions/'
     | '/_authenticated/admin/terango-products/'
     | '/_authenticated/admin/terango-store/'
@@ -692,6 +705,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminSubscriptionsIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/admin/notifications/': {
+      id: '/_authenticated/admin/notifications/'
+      path: '/admin/notifications'
+      fullPath: '/admin/notifications'
+      preLoaderRoute: typeof AuthenticatedAdminNotificationsIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/admin/featured/': {
       id: '/_authenticated/admin/featured/'
       path: '/admin/featured'
@@ -754,6 +774,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdminAnalyticsIndexRoute: typeof AuthenticatedAdminAnalyticsIndexRoute
   AuthenticatedAdminBroadcastsIndexRoute: typeof AuthenticatedAdminBroadcastsIndexRoute
   AuthenticatedAdminFeaturedIndexRoute: typeof AuthenticatedAdminFeaturedIndexRoute
+  AuthenticatedAdminNotificationsIndexRoute: typeof AuthenticatedAdminNotificationsIndexRoute
   AuthenticatedAdminSubscriptionsIndexRoute: typeof AuthenticatedAdminSubscriptionsIndexRoute
   AuthenticatedAdminTerangoProductsIndexRoute: typeof AuthenticatedAdminTerangoProductsIndexRoute
   AuthenticatedAdminTerangoStoreIndexRoute: typeof AuthenticatedAdminTerangoStoreIndexRoute
@@ -782,6 +803,8 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAdminBroadcastsIndexRoute:
     AuthenticatedAdminBroadcastsIndexRoute,
   AuthenticatedAdminFeaturedIndexRoute: AuthenticatedAdminFeaturedIndexRoute,
+  AuthenticatedAdminNotificationsIndexRoute:
+    AuthenticatedAdminNotificationsIndexRoute,
   AuthenticatedAdminSubscriptionsIndexRoute:
     AuthenticatedAdminSubscriptionsIndexRoute,
   AuthenticatedAdminTerangoProductsIndexRoute:
