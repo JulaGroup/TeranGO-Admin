@@ -152,6 +152,8 @@ export const adminApi = {
   // Payments
   getPayments: (params?: Record<string, unknown>) =>
     api.get('/api/admin/payments', { params }),
+  getPayouts: (params?: Record<string, unknown>) =>
+    api.get('/api/admin/payouts', { params }),
 
   // Drivers
   getDrivers: (params?: Record<string, unknown>) =>
@@ -233,6 +235,12 @@ export const adminApi = {
   getTerangoStoreDrivers: () =>
     api.get('/api/admin/terango-store/available-drivers'),
   setupTerangoStore: () => api.post('/api/admin/terango-products/setup'),
+}
+
+// Vendor-facing API helpers (for vendor portal pages)
+export const vendorApi = {
+  // payouts for the currently authenticated vendor
+  getPayouts: (params?: Record<string, unknown>) => api.get('/api/vendors/payouts', { params }),
 }
 
 export default api

@@ -24,6 +24,7 @@ import { Route as VendorSubscriptionIndexRouteImport } from './routes/_vendor/su
 import { Route as AuthenticatedVendorsIndexRouteImport } from './routes/_authenticated/vendors/index'
 import { Route as AuthenticatedSubcategoriesIndexRouteImport } from './routes/_authenticated/subcategories/index'
 import { Route as AuthenticatedReportsIndexRouteImport } from './routes/_authenticated/reports/index'
+import { Route as AuthenticatedPaymentsIndexRouteImport } from './routes/_authenticated/payments/index'
 import { Route as AuthenticatedOrdersIndexRouteImport } from './routes/_authenticated/orders/index'
 import { Route as AuthenticatedDriversIndexRouteImport } from './routes/_authenticated/drivers/index'
 import { Route as AuthenticatedCustomersIndexRouteImport } from './routes/_authenticated/customers/index'
@@ -31,6 +32,7 @@ import { Route as AuthenticatedCategoriesIndexRouteImport } from './routes/_auth
 import { Route as AuthenticatedAnalyticsIndexRouteImport } from './routes/_authenticated/analytics/index'
 import { Route as VendorVendorSettingsRouteImport } from './routes/_vendor/vendor/settings'
 import { Route as VendorVendorProfileRouteImport } from './routes/_vendor/vendor/profile'
+import { Route as VendorVendorPayoutsRouteImport } from './routes/_vendor/vendor/payouts'
 import { Route as VendorVendorOrdersRouteImport } from './routes/_vendor/vendor/orders'
 import { Route as VendorVendorMenuRouteImport } from './routes/_vendor/vendor/menu'
 import { Route as VendorVendorDashboardRouteImport } from './routes/_vendor/vendor/dashboard'
@@ -123,6 +125,12 @@ const AuthenticatedReportsIndexRoute =
     path: '/reports/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedPaymentsIndexRoute =
+  AuthenticatedPaymentsIndexRouteImport.update({
+    id: '/payments/',
+    path: '/payments/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedOrdersIndexRoute =
   AuthenticatedOrdersIndexRouteImport.update({
     id: '/orders/',
@@ -161,6 +169,11 @@ const VendorVendorSettingsRoute = VendorVendorSettingsRouteImport.update({
 const VendorVendorProfileRoute = VendorVendorProfileRouteImport.update({
   id: '/vendor/profile',
   path: '/vendor/profile',
+  getParentRoute: () => VendorRoute,
+} as any)
+const VendorVendorPayoutsRoute = VendorVendorPayoutsRouteImport.update({
+  id: '/vendor/payouts',
+  path: '/vendor/payouts',
   getParentRoute: () => VendorRoute,
 } as any)
 const VendorVendorOrdersRoute = VendorVendorOrdersRouteImport.update({
@@ -264,6 +277,7 @@ export interface FileRoutesByFullPath {
   '/vendor/dashboard': typeof VendorVendorDashboardRoute
   '/vendor/menu': typeof VendorVendorMenuRoute
   '/vendor/orders': typeof VendorVendorOrdersRoute
+  '/vendor/payouts': typeof VendorVendorPayoutsRoute
   '/vendor/profile': typeof VendorVendorProfileRoute
   '/vendor/settings': typeof VendorVendorSettingsRoute
   '/analytics': typeof AuthenticatedAnalyticsIndexRoute
@@ -271,6 +285,7 @@ export interface FileRoutesByFullPath {
   '/customers': typeof AuthenticatedCustomersIndexRoute
   '/drivers': typeof AuthenticatedDriversIndexRoute
   '/orders': typeof AuthenticatedOrdersIndexRoute
+  '/payments': typeof AuthenticatedPaymentsIndexRoute
   '/reports': typeof AuthenticatedReportsIndexRoute
   '/subcategories': typeof AuthenticatedSubcategoriesIndexRoute
   '/vendors': typeof AuthenticatedVendorsIndexRoute
@@ -301,6 +316,7 @@ export interface FileRoutesByTo {
   '/vendor/dashboard': typeof VendorVendorDashboardRoute
   '/vendor/menu': typeof VendorVendorMenuRoute
   '/vendor/orders': typeof VendorVendorOrdersRoute
+  '/vendor/payouts': typeof VendorVendorPayoutsRoute
   '/vendor/profile': typeof VendorVendorProfileRoute
   '/vendor/settings': typeof VendorVendorSettingsRoute
   '/analytics': typeof AuthenticatedAnalyticsIndexRoute
@@ -308,6 +324,7 @@ export interface FileRoutesByTo {
   '/customers': typeof AuthenticatedCustomersIndexRoute
   '/drivers': typeof AuthenticatedDriversIndexRoute
   '/orders': typeof AuthenticatedOrdersIndexRoute
+  '/payments': typeof AuthenticatedPaymentsIndexRoute
   '/reports': typeof AuthenticatedReportsIndexRoute
   '/subcategories': typeof AuthenticatedSubcategoriesIndexRoute
   '/vendors': typeof AuthenticatedVendorsIndexRoute
@@ -341,6 +358,7 @@ export interface FileRoutesById {
   '/_vendor/vendor/dashboard': typeof VendorVendorDashboardRoute
   '/_vendor/vendor/menu': typeof VendorVendorMenuRoute
   '/_vendor/vendor/orders': typeof VendorVendorOrdersRoute
+  '/_vendor/vendor/payouts': typeof VendorVendorPayoutsRoute
   '/_vendor/vendor/profile': typeof VendorVendorProfileRoute
   '/_vendor/vendor/settings': typeof VendorVendorSettingsRoute
   '/_authenticated/analytics/': typeof AuthenticatedAnalyticsIndexRoute
@@ -348,6 +366,7 @@ export interface FileRoutesById {
   '/_authenticated/customers/': typeof AuthenticatedCustomersIndexRoute
   '/_authenticated/drivers/': typeof AuthenticatedDriversIndexRoute
   '/_authenticated/orders/': typeof AuthenticatedOrdersIndexRoute
+  '/_authenticated/payments/': typeof AuthenticatedPaymentsIndexRoute
   '/_authenticated/reports/': typeof AuthenticatedReportsIndexRoute
   '/_authenticated/subcategories/': typeof AuthenticatedSubcategoriesIndexRoute
   '/_authenticated/vendors/': typeof AuthenticatedVendorsIndexRoute
@@ -380,6 +399,7 @@ export interface FileRouteTypes {
     | '/vendor/dashboard'
     | '/vendor/menu'
     | '/vendor/orders'
+    | '/vendor/payouts'
     | '/vendor/profile'
     | '/vendor/settings'
     | '/analytics'
@@ -387,6 +407,7 @@ export interface FileRouteTypes {
     | '/customers'
     | '/drivers'
     | '/orders'
+    | '/payments'
     | '/reports'
     | '/subcategories'
     | '/vendors'
@@ -417,6 +438,7 @@ export interface FileRouteTypes {
     | '/vendor/dashboard'
     | '/vendor/menu'
     | '/vendor/orders'
+    | '/vendor/payouts'
     | '/vendor/profile'
     | '/vendor/settings'
     | '/analytics'
@@ -424,6 +446,7 @@ export interface FileRouteTypes {
     | '/customers'
     | '/drivers'
     | '/orders'
+    | '/payments'
     | '/reports'
     | '/subcategories'
     | '/vendors'
@@ -456,6 +479,7 @@ export interface FileRouteTypes {
     | '/_vendor/vendor/dashboard'
     | '/_vendor/vendor/menu'
     | '/_vendor/vendor/orders'
+    | '/_vendor/vendor/payouts'
     | '/_vendor/vendor/profile'
     | '/_vendor/vendor/settings'
     | '/_authenticated/analytics/'
@@ -463,6 +487,7 @@ export interface FileRouteTypes {
     | '/_authenticated/customers/'
     | '/_authenticated/drivers/'
     | '/_authenticated/orders/'
+    | '/_authenticated/payments/'
     | '/_authenticated/reports/'
     | '/_authenticated/subcategories/'
     | '/_authenticated/vendors/'
@@ -600,6 +625,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedReportsIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/payments/': {
+      id: '/_authenticated/payments/'
+      path: '/payments'
+      fullPath: '/payments'
+      preLoaderRoute: typeof AuthenticatedPaymentsIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/orders/': {
       id: '/_authenticated/orders/'
       path: '/orders'
@@ -647,6 +679,13 @@ declare module '@tanstack/react-router' {
       path: '/vendor/profile'
       fullPath: '/vendor/profile'
       preLoaderRoute: typeof VendorVendorProfileRouteImport
+      parentRoute: typeof VendorRoute
+    }
+    '/_vendor/vendor/payouts': {
+      id: '/_vendor/vendor/payouts'
+      path: '/vendor/payouts'
+      fullPath: '/vendor/payouts'
+      preLoaderRoute: typeof VendorVendorPayoutsRouteImport
       parentRoute: typeof VendorRoute
     }
     '/_vendor/vendor/orders': {
@@ -765,6 +804,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedCustomersIndexRoute: typeof AuthenticatedCustomersIndexRoute
   AuthenticatedDriversIndexRoute: typeof AuthenticatedDriversIndexRoute
   AuthenticatedOrdersIndexRoute: typeof AuthenticatedOrdersIndexRoute
+  AuthenticatedPaymentsIndexRoute: typeof AuthenticatedPaymentsIndexRoute
   AuthenticatedReportsIndexRoute: typeof AuthenticatedReportsIndexRoute
   AuthenticatedSubcategoriesIndexRoute: typeof AuthenticatedSubcategoriesIndexRoute
   AuthenticatedVendorsIndexRoute: typeof AuthenticatedVendorsIndexRoute
@@ -790,6 +830,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedCustomersIndexRoute: AuthenticatedCustomersIndexRoute,
   AuthenticatedDriversIndexRoute: AuthenticatedDriversIndexRoute,
   AuthenticatedOrdersIndexRoute: AuthenticatedOrdersIndexRoute,
+  AuthenticatedPaymentsIndexRoute: AuthenticatedPaymentsIndexRoute,
   AuthenticatedReportsIndexRoute: AuthenticatedReportsIndexRoute,
   AuthenticatedSubcategoriesIndexRoute: AuthenticatedSubcategoriesIndexRoute,
   AuthenticatedVendorsIndexRoute: AuthenticatedVendorsIndexRoute,
@@ -822,6 +863,7 @@ interface VendorRouteChildren {
   VendorVendorDashboardRoute: typeof VendorVendorDashboardRoute
   VendorVendorMenuRoute: typeof VendorVendorMenuRoute
   VendorVendorOrdersRoute: typeof VendorVendorOrdersRoute
+  VendorVendorPayoutsRoute: typeof VendorVendorPayoutsRoute
   VendorVendorProfileRoute: typeof VendorVendorProfileRoute
   VendorVendorSettingsRoute: typeof VendorVendorSettingsRoute
   VendorSubscriptionIndexRoute: typeof VendorSubscriptionIndexRoute
@@ -832,6 +874,7 @@ const VendorRouteChildren: VendorRouteChildren = {
   VendorVendorDashboardRoute: VendorVendorDashboardRoute,
   VendorVendorMenuRoute: VendorVendorMenuRoute,
   VendorVendorOrdersRoute: VendorVendorOrdersRoute,
+  VendorVendorPayoutsRoute: VendorVendorPayoutsRoute,
   VendorVendorProfileRoute: VendorVendorProfileRoute,
   VendorVendorSettingsRoute: VendorVendorSettingsRoute,
   VendorSubscriptionIndexRoute: VendorSubscriptionIndexRoute,

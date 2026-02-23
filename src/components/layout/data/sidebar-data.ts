@@ -62,6 +62,11 @@ export const sidebarData: SidebarData = {
           icon: ShoppingCart,
         },
         {
+          title: "Payments",
+          url: "/payments",
+          icon: DollarSign,
+        },
+        {
           title: "Drivers",
           url: "/drivers",
           icon: Truck,
