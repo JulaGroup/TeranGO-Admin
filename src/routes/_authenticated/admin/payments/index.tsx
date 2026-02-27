@@ -101,12 +101,8 @@ function PaymentsPage() {
             onChange={(e) => setQuery(e.target.value)}
             className="max-w-md"
           />
-          <Select
-            value={networkFilter}
-            onValueChange={setNetworkFilter}
-            className="w-40"
-          >
-            <SelectTrigger>
+          <Select value={networkFilter} onValueChange={setNetworkFilter}>
+            <SelectTrigger className="w-40">
               <SelectValue placeholder="Network" />
             </SelectTrigger>
             <SelectContent>
@@ -116,12 +112,8 @@ function PaymentsPage() {
               <SelectItem value="modempay">Modempay</SelectItem>
             </SelectContent>
           </Select>
-          <Select
-            value={statusFilter}
-            onValueChange={setStatusFilter}
-            className="w-40"
-          >
-            <SelectTrigger>
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="w-40">
               <SelectValue placeholder="Status" />
             </SelectTrigger>
             <SelectContent>

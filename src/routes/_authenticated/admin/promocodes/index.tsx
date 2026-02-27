@@ -2,19 +2,17 @@ import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import {
-  Search,
   MoreHorizontal,
   Plus,
   Edit,
   Trash2,
-  RefreshCw,
   CheckCircle,
   XCircle,
 } from "lucide-react";
 import { toast } from "sonner";
 import { api } from "@/lib/api";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -38,9 +36,6 @@ import {
 import { Header } from "@/components/layout/header";
 import { Main } from "@/components/layout/main";
 import { TopNav } from "@/components/layout/top-nav";
-import { ProfileDropdown } from "@/components/profile-dropdown";
-import { Search as SearchInput } from "@/components/search";
-import { ThemeSwitch } from "@/components/theme-switch";
 
 // route
 export const Route = createFileRoute("/_authenticated/admin/promocodes/")({
@@ -60,6 +55,9 @@ interface PromoCode {
   perUserLimit?: number;
   usageCount?: number;
   createdAt?: string;
+  minOrderAmount?: number;
+  maxDiscountAmount?: number;
+  freeDelivery?: boolean;
 }
 
 const topNav = [
@@ -84,7 +82,7 @@ function PromoCodesPage() {
     perUserLimit: "",
   });
 
-  const { data: promoData = { promoCodes: [] }, isLoading } = useQuery({
+  const { data: promoData = { promoCodes: [] } } = useQuery({
     queryKey: ["promocodes"],
     queryFn: async () => {
       const res = await api.get("/api/promocodes");
@@ -226,9 +224,12 @@ function PromoCodesPage() {
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-2xl font-bold">Promo Codes</h2>
           <div className="flex gap-2">
-            <SearchInput
+            <Input
+              placeholder="Search promo codes"
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                setSearchQuery(e.target.value)
+              }
             />
             <Button onClick={openNew} icon={<Plus />}>
               New
