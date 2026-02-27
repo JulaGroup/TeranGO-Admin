@@ -1,36 +1,36 @@
-import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios'
+import axios, { type AxiosError, type InternalAxiosRequestConfig } from "axios";
 
 // API Base URL - always prefer explicit env or fall back to production API
 export const API_BASE_URL =
   (import.meta.env.VITE_API_URL as string) ||
-  'https://monkfish-app-korrv.ondigitalocean.app'
+  "https://monkfish-app-korrv.ondigitalocean.app";
 
 // Create axios instance
 export const api = axios.create({
   baseURL: API_BASE_URL,
   headers: {
-    'Content-Type': 'application/json',
+    "Content-Type": "application/json",
   },
-})
+});
 
 // Request interceptor to add auth token
 api.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
     // Skip for auth-related endpoints
-    if (config.url?.includes('/auth/')) {
-      return config
+    if (config.url?.includes("/auth/")) {
+      return config;
     }
 
-    const token = localStorage.getItem('auth_token')
+    const token = localStorage.getItem("auth_token");
 
     if (token) {
-      config.headers.Authorization = `Bearer ${token}`
+      config.headers.Authorization = `Bearer ${token}`;
     }
 
-    return config
+    return config;
   },
-  (error: unknown) => Promise.reject(error)
-)
+  (error: unknown) => Promise.reject(error),
+);
 
 // Response interceptor for error handling
 api.interceptors.response.use(
@@ -39,81 +39,81 @@ api.interceptors.response.use(
     // Handle network errors
     if (!error.response) {
       return Promise.reject(
-        new Error('Network error. Please check your connection and try again.')
-      )
+        new Error("Network error. Please check your connection and try again."),
+      );
     }
 
     // Handle authentication errors
     if (error.response.status === 401) {
       // Clear auth data and redirect to login
-      localStorage.removeItem('auth_token')
-      localStorage.removeItem('user')
-      window.location.href = '/login'
-      return Promise.reject(new Error('Session expired. Please login again.'))
+      localStorage.removeItem("auth_token");
+      localStorage.removeItem("user");
+      window.location.href = "/login";
+      return Promise.reject(new Error("Session expired. Please login again."));
     }
 
     // Handle forbidden errors
     if (error.response.status === 403) {
       return Promise.reject(
-        new Error('You do not have permission to perform this action.')
-      )
+        new Error("You do not have permission to perform this action."),
+      );
     }
 
     // Handle server errors
     if (error.response.status >= 500) {
-      return Promise.reject(new Error('Server error. Please try again later.'))
+      return Promise.reject(new Error("Server error. Please try again later."));
     }
 
-    return Promise.reject(error)
-  }
-)
+    return Promise.reject(error);
+  },
+);
 
 // Helper function to get auth header
 export const getAuthHeader = () => {
-  const token = localStorage.getItem('auth_token')
-  return token ? { Authorization: `Bearer ${token}` } : {}
-}
+  const token = localStorage.getItem("auth_token");
+  return token ? { Authorization: `Bearer ${token}` } : {};
+};
 
 // Auth API
 export const authApi = {
   // Admin login
   adminLogin: (credentials: { phone: string; password: string }) =>
-    api.post('/auth/login', {
+    api.post("/auth/login", {
       phone: credentials.phone,
       password: credentials.password,
-      role: 'ADMIN',
+      role: "ADMIN",
     }),
 
   // Vendor login
   vendorLogin: (credentials: { phone: string; password: string }) =>
-    api.post('/auth/vendor-login', credentials),
+    api.post("/auth/vendor-login", credentials),
 
   // Generic login (auto-detect role)
   login: (credentials: { phone: string; password: string }) =>
-    api.post('/auth/login', credentials),
+    api.post("/auth/login", credentials),
 
   register: (data: { email: string; password: string; fullName: string }) =>
-    api.post('/auth/register', data),
+    api.post("/auth/register", data),
 
   logout: () => {
-    localStorage.removeItem('auth_token')
-    localStorage.removeItem('user')
-    localStorage.removeItem('vendor')
+    localStorage.removeItem("auth_token");
+    localStorage.removeItem("user");
+    localStorage.removeItem("vendor");
   },
 
-  getCurrentUser: () => api.get('/api/auth/me'),
+  getCurrentUser: () => api.get("/api/auth/me"),
 
-  getVendorProfile: () => api.get('/api/vendor/profile'),
-}
+  getVendorProfile: () => api.get("/api/vendor/profile"),
+};
 
 // Admin API
 export const adminApi = {
   // Dashboard
-  getDashboardStats: () => api.get('/api/admin/dashboard/stats'),
+  getDashboardStats: () => api.get("/api/admin/dashboard/stats"),
 
   // Users
   getUsers: (params?: Record<string, unknown>) =>
-    api.get('/api/admin/users', { params }),
+    api.get("/api/admin/users", { params }),
   getUserById: (id: string) => api.get(`/api/admin/users/${id}`),
   updateUser: (id: string, data: Record<string, unknown>) =>
     api.put(`/api/admin/users/${id}`, data),
@@ -121,7 +121,7 @@ export const adminApi = {
 
   // Vendors
   getVendors: (params?: Record<string, unknown>) =>
-    api.get('/api/admin/vendors', { params }),
+    api.get("/api/admin/vendors", { params }),
   getVendorById: (id: string) => api.get(`/api/admin/vendors/${id}`),
   approveVendor: (id: string) => api.patch(`/api/admin/vendors/${id}/approve`),
   rejectVendor: (id: string, reason: string) =>
@@ -132,7 +132,7 @@ export const adminApi = {
 
   // Vendor Applications
   getVendorApplications: (params?: Record<string, unknown>) =>
-    api.get('/api/admin/vendor-applications', { params }),
+    api.get("/api/admin/vendor-applications", { params }),
   getVendorApplicationById: (id: string) =>
     api.get(`/api/admin/vendor-applications/${id}`),
   approveApplication: (id: string) =>
@@ -142,7 +142,7 @@ export const adminApi = {
 
   // Orders
   getOrders: (params?: Record<string, unknown>) =>
-    api.get('/api/admin/orders', { params }),
+    api.get("/api/admin/orders", { params }),
   getOrderById: (id: string) => api.get(`/api/admin/orders/${id}`),
   updateOrderStatus: (id: string, status: string) =>
     api.patch(`/api/admin/orders/${id}/status`, { status }),
@@ -151,13 +151,13 @@ export const adminApi = {
 
   // Payments
   getPayments: (params?: Record<string, unknown>) =>
-    api.get('/api/admin/payments', { params }),
+    api.get("/api/admin/payments", { params }),
   getPayouts: (params?: Record<string, unknown>) =>
-    api.get('/api/admin/payouts', { params }),
+    api.get("/api/admin/payouts", { params }),
 
   // Drivers
   getDrivers: (params?: Record<string, unknown>) =>
-    api.get('/api/admin/drivers', { params }),
+    api.get("/api/admin/drivers", { params }),
   getDriverById: (id: string) => api.get(`/api/admin/drivers/${id}`),
   updateDriver: (id: string, data: Record<string, unknown>) =>
     api.put(`/api/admin/drivers/${id}`, data),
@@ -167,20 +167,20 @@ export const adminApi = {
 
   // Categories
   getCategories: (params?: Record<string, unknown>) =>
-    api.get('/api/admin/categories', { params }),
+    api.get("/api/admin/categories", { params }),
   getCategoryById: (id: string) => api.get(`/api/admin/categories/${id}`),
   createCategory: (data: Record<string, unknown>) =>
-    api.post('/api/admin/categories', data),
+    api.post("/api/admin/categories", data),
   updateCategory: (id: string, data: Record<string, unknown>) =>
     api.put(`/api/admin/categories/${id}`, data),
   deleteCategory: (id: string) => api.delete(`/api/admin/categories/${id}`),
 
   // Subcategories
   getSubcategories: (params?: Record<string, unknown>) =>
-    api.get('/api/admin/subcategories', { params }),
+    api.get("/api/admin/subcategories", { params }),
   getSubcategoryById: (id: string) => api.get(`/api/admin/subcategories/${id}`),
   createSubcategory: (data: Record<string, unknown>) =>
-    api.post('/api/admin/subcategories', data),
+    api.post("/api/admin/subcategories", data),
   updateSubcategory: (id: string, data: Record<string, unknown>) =>
     api.put(`/api/admin/subcategories/${id}`, data),
   deleteSubcategory: (id: string) =>
@@ -188,42 +188,42 @@ export const adminApi = {
 
   // Promo Codes
   getPromoCodes: (params?: Record<string, unknown>) =>
-    api.get('/api/admin/promocodes', { params }),
+    api.get("/api/admin/promocodes", { params }),
   getPromoCodeById: (id: string) => api.get(`/api/admin/promocodes/${id}`),
   createPromoCode: (data: Record<string, unknown>) =>
-    api.post('/api/admin/promocodes', data),
+    api.post("/api/admin/promocodes", data),
   updatePromoCode: (id: string, data: Record<string, unknown>) =>
     api.put(`/api/admin/promocodes/${id}`, data),
   deletePromoCode: (id: string) => api.delete(`/api/admin/promocodes/${id}`),
 
   // Notifications
   getNotifications: (params?: Record<string, unknown>) =>
-    api.get('/api/admin/notifications', { params }),
+    api.get("/api/admin/notifications", { params }),
   sendNotification: (data: Record<string, unknown>) =>
-    api.post('/api/admin/notifications', data),
+    api.post("/api/admin/notifications", data),
   deleteNotification: (id: string) =>
     api.delete(`/api/admin/notifications/${id}`),
 
   // Analytics
   getAnalytics: (params?: Record<string, unknown>) =>
-    api.get('/api/admin/analytics', { params }),
+    api.get("/api/admin/analytics", { params }),
   getRevenueAnalytics: (params?: Record<string, unknown>) =>
-    api.get('/api/admin/analytics/revenue', { params }),
+    api.get("/api/admin/analytics/revenue", { params }),
   getOrderAnalytics: (params?: Record<string, unknown>) =>
-    api.get('/api/admin/analytics/orders', { params }),
+    api.get("/api/admin/analytics/orders", { params }),
 
   // Reports
   generateReport: (
     type: string,
-    params?: Record<string, unknown> | undefined
-  ) => api.post('/api/admin/reports/generate', { type, ...(params ?? {}) }),
-  getReports: () => api.get('/api/admin/reports'),
+    params?: Record<string, unknown> | undefined,
+  ) => api.post("/api/admin/reports/generate", { type, ...(params ?? {}) }),
+  getReports: () => api.get("/api/admin/reports"),
 
   // TeranGO Official Store
-  getTerangoStore: () => api.get('/api/admin/terango-store'),
-  getTerangoStoreDashboard: () => api.get('/api/admin/terango-store/dashboard'),
+  getTerangoStore: () => api.get("/api/admin/terango-store"),
+  getTerangoStoreDashboard: () => api.get("/api/admin/terango-store/dashboard"),
   getTerangoStoreOrders: (params?: Record<string, unknown>) =>
-    api.get('/api/admin/terango-store/orders', { params }),
+    api.get("/api/admin/terango-store/orders", { params }),
   updateTerangoStoreOrderStatus: (orderId: string, status: string) =>
     api.patch(`/api/admin/terango-store/orders/${orderId}/status`, { status }),
   assignTerangoStoreDriver: (orderId: string, driverId: string) =>
@@ -231,16 +231,17 @@ export const adminApi = {
       driverId,
     }),
   updateTerangoStoreSettings: (data: Record<string, unknown>) =>
-    api.put('/api/admin/terango-store/settings', data),
+    api.put("/api/admin/terango-store/settings", data),
   getTerangoStoreDrivers: () =>
-    api.get('/api/admin/terango-store/available-drivers'),
-  setupTerangoStore: () => api.post('/api/admin/terango-products/setup'),
-}
+    api.get("/api/admin/terango-store/available-drivers"),
+  setupTerangoStore: () => api.post("/api/admin/terango-products/setup"),
+};
 
 // Vendor-facing API helpers (for vendor portal pages)
 export const vendorApi = {
   // payouts for the currently authenticated vendor
-  getPayouts: (params?: Record<string, unknown>) => api.get('/api/vendors/payouts', { params }),
-}
+  getPayouts: (params?: Record<string, unknown>) =>
+    api.get("/api/vendors/payouts", { params }),
+};
 
-export default api
+export default api;

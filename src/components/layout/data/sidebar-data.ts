@@ -33,7 +33,7 @@ export const sidebarData: SidebarData = {
       items: [
         {
           title: "Dashboard",
-          url: "/",
+          url: "/admin",
           icon: LayoutDashboard,
         },
       ],
@@ -43,7 +43,7 @@ export const sidebarData: SidebarData = {
       items: [
         {
           title: "Vendors",
-          url: "/vendors",
+          url: "/admin/vendors",
           icon: Store,
         },
         {
@@ -53,23 +53,28 @@ export const sidebarData: SidebarData = {
         },
         {
           title: "Customers",
-          url: "/customers",
+          url: "/admin/customers",
           icon: Users,
         },
         {
           title: "Orders",
-          url: "/orders",
+          url: "/admin/orders",
           icon: ShoppingCart,
         },
         {
           title: "Payments",
-          url: "/payments",
+          url: "/admin/payments",
           icon: DollarSign,
         },
         {
           title: "Drivers",
           url: "/drivers",
           icon: Truck,
+        },
+        {
+          title: "Promo Codes",
+          url: "/admin/promocodes",
+          icon: Star,
         },
         {
           title: "Subscriptions",
@@ -118,12 +123,12 @@ export const sidebarData: SidebarData = {
       items: [
         {
           title: "Categories",
-          url: "/categories",
+          url: "/admin/categories",
           icon: FolderTree,
         },
         {
           title: "Subcategories",
-          url: "/subcategories",
+          url: "/admin/subcategories",
           icon: Layers,
         },
       ],
@@ -168,7 +173,7 @@ export const sidebarData: SidebarData = {
         },
         {
           title: "Settings",
-          url: "/settings",
+          url: "/admin/settings",
           icon: Settings,
         },
       ],
