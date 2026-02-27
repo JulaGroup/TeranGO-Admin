@@ -5,7 +5,7 @@ import { useNavigate } from "@tanstack/react-router";
 const Redirect = () => {
   const navigate = useNavigate();
   useEffect(() => {
-    navigate("/admin/reports", { replace: true });
+    navigate({ to: "/admin/reports", replace: true });
   }, []);
   return null;
 };
