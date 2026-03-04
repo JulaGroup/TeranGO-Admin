@@ -13,10 +13,14 @@ import {
   XCircle,
   TrendingUp,
   Star,
+  Edit,
+  Upload,
+  Loader2,
+  Save,
+  UserPlus,
 } from "lucide-react";
 import { toast } from "sonner";
 import { adminApi } from "@/lib/api";
-import { Driver } from "@/lib/types";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -58,6 +62,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Label } from "@/components/ui/label";
 import { ConfigDrawer } from "@/components/config-drawer";
 import { Header } from "@/components/layout/header";
 import { Main } from "@/components/layout/main";
@@ -65,6 +70,7 @@ import { TopNav } from "@/components/layout/top-nav";
 import { ProfileDropdown } from "@/components/profile-dropdown";
 import { Search as SearchInput } from "@/components/search";
 import { ThemeSwitch } from "@/components/theme-switch";
+import type { Driver } from "@/lib/types";
 
 const topNav = [
   { title: "Overview", href: "/admin", isActive: false },
@@ -72,6 +78,10 @@ const topNav = [
   { title: "Vendors", href: "/admin/vendors", isActive: false },
   { title: "Settings", href: "#", isActive: false },
 ];
+
+// Cloudinary configuration
+const CLOUDINARY_CLOUD_NAME = "dkpi5ij2t";
+const CLOUDINARY_UPLOAD_PRESET = "unsigned_preset";
 
 export const Route = createFileRoute("/_authenticated/admin/drivers/")({
   component: DriversPage,
@@ -83,6 +93,31 @@ function DriversPage() {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [selectedDriver, setSelectedDriver] = useState<Driver | null>(null);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [editingDriver, setEditingDriver] = useState<Driver | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [isCreateUploading, setIsCreateUploading] = useState(false);
+  const [createForm, setCreateForm] = useState({
+    name: "",
+    email: "",
+    phone: "",
+    vehicleType: "BIKE",
+    vehicleNumber: "",
+    vehicleColor: "",
+    profileImage: "",
+    password: "",
+  });
+  const [editForm, setEditForm] = useState({
+    name: "",
+    email: "",
+    phoneNumber: "",
+    vehicleType: "",
+    vehicleNumber: "",
+    vehicleColor: "",
+    profileImage: "",
+    status: "",
+  });
 
   // Fetch drivers
   const { data: driversData = [], isLoading } = useQuery({
@@ -101,6 +136,35 @@ function DriversPage() {
   });
 
   const drivers = Array.isArray(driversData) ? driversData : [];
+
+  // Create driver mutation
+  const createMutation = useMutation({
+    mutationFn: (data: any) => adminApi.createDriver(data),
+    onSuccess: (response: any) => {
+      const defaultPwd = response?.data?.data?.defaultPassword;
+      toast.success(
+        defaultPwd
+          ? `Driver created! Default password: ${defaultPwd}`
+          : "Driver created successfully",
+        { duration: 8000 },
+      );
+      queryClient.invalidateQueries({ queryKey: ["drivers"] });
+      setIsCreateOpen(false);
+      setCreateForm({
+        name: "",
+        email: "",
+        phone: "",
+        vehicleType: "BIKE",
+        vehicleNumber: "",
+        vehicleColor: "",
+        profileImage: "",
+        password: "",
+      });
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.error || "Failed to create driver");
+    },
+  });
 
   // Approve driver mutation
   const approveMutation = useMutation({
@@ -126,9 +190,119 @@ function DriversPage() {
     },
   });
 
+  // Update driver mutation
+  const updateMutation = useMutation({
+    mutationFn: ({ driverId, data }: { driverId: string; data: any }) =>
+      adminApi.updateDriver(driverId, data),
+    onSuccess: () => {
+      toast.success("Driver updated successfully");
+      queryClient.invalidateQueries({ queryKey: ["drivers"] });
+      setIsEditOpen(false);
+      setEditingDriver(null);
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.message || "Failed to update driver");
+    },
+  });
+
   const handleViewDetails = (driver: Driver) => {
     setSelectedDriver(driver);
     setIsDetailsOpen(true);
+  };
+
+  const handleEditDriver = (driver: Driver) => {
+    setEditingDriver(driver);
+    setEditForm({
+      name: driver.name || driver.user?.fullName || "",
+      email: driver.email || driver.user?.email || "",
+      phoneNumber:
+        driver.phoneNumber || driver.phone || driver.user?.phone || "",
+      vehicleType: driver.vehicleType || "BIKE",
+      vehicleNumber: driver.vehicleNumber || "",
+      vehicleColor: (driver as any).vehicleColor || "",
+      profileImage: driver.profileImage || driver.profileImageUrl || "",
+      status: (driver as any).status || "approved",
+    });
+    setIsEditOpen(true);
+  };
+  const handleCreateImageUpload = async (
+    e: React.ChangeEvent<HTMLInputElement>,
+  ) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setIsCreateUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("upload_preset", CLOUDINARY_UPLOAD_PRESET);
+      const cloudinaryUrl = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`;
+      const uploadResponse = await fetch(cloudinaryUrl, {
+        method: "POST",
+        body: formData,
+      });
+      const uploadData = await uploadResponse.json();
+      if (uploadData.secure_url) {
+        setCreateForm((prev) => ({
+          ...prev,
+          profileImage: uploadData.secure_url,
+        }));
+        toast.success("Image uploaded successfully");
+      } else {
+        throw new Error("Upload failed");
+      }
+    } catch (error) {
+      toast.error("Failed to upload image");
+    } finally {
+      setIsCreateUploading(false);
+    }
+  };
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("upload_preset", CLOUDINARY_UPLOAD_PRESET);
+
+      const cloudinaryUrl = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`;
+
+      const uploadResponse = await fetch(cloudinaryUrl, {
+        method: "POST",
+        body: formData,
+      });
+
+      const uploadData = await uploadResponse.json();
+
+      if (uploadData.secure_url) {
+        setEditForm((prev) => ({
+          ...prev,
+          profileImage: uploadData.secure_url,
+        }));
+        toast.success("Image uploaded successfully");
+      } else {
+        throw new Error("Upload failed");
+      }
+    } catch (error) {
+      console.error("Error uploading image:", error);
+      toast.error("Failed to upload image");
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleUpdateDriver = async () => {
+    if (!editingDriver) return;
+
+    try {
+      await updateMutation.mutateAsync({
+        driverId: (editingDriver.id || editingDriver._id) as string,
+        data: editForm,
+      });
+    } catch (error) {
+      // Error is handled by the mutation
+    }
   };
 
   const getStatusBadge = (status: string) => {
@@ -186,6 +360,13 @@ function DriversPage() {
                 Manage all delivery drivers and applications
               </p>
             </div>
+            <Button
+              onClick={() => setIsCreateOpen(true)}
+              className="flex items-center gap-2"
+            >
+              <UserPlus className="h-4 w-4" />
+              Create Driver
+            </Button>
           </div>
 
           {/* Filters */}
@@ -257,7 +438,9 @@ function DriversPage() {
                           <div className="flex items-center gap-3">
                             <Avatar>
                               <AvatarImage
-                                src={driver.profileImage}
+                                src={
+                                  driver.profileImage || driver.profileImageUrl
+                                }
                                 alt={driver.name || driver.user?.fullName}
                               />
                               <AvatarFallback>
@@ -285,6 +468,7 @@ function DriversPage() {
                             <div className="flex items-center gap-2 text-sm">
                               <Phone className="h-3 w-3" />
                               {driver.phoneNumber ||
+                                driver.phone ||
                                 driver.user?.phone ||
                                 "N/A"}
                             </div>
@@ -296,14 +480,44 @@ function DriversPage() {
                         </TableCell>
                         <TableCell>
                           <div className="text-sm">
-                            <p className="font-medium">
-                              {driver.vehicleType || "N/A"}
-                            </p>
-                            <p className="text-muted-foreground">
-                              {driver.vehicleNumber ||
-                                driver.vehicleNo ||
-                                "N/A"}
-                            </p>
+                            <div className="flex items-center gap-2">
+                              <span className="text-lg">
+                                {(() => {
+                                  const vehicleType =
+                                    driver.vehicleType || "BIKE";
+                                  const vehicleEmojis: {
+                                    [key: string]: string;
+                                  } = {
+                                    BIKE: "🏍️",
+                                    KEKE_CARGO: "🛺",
+                                    CAR: "🚗",
+                                    VAN: "🚐",
+                                    LORRY: "🚚",
+                                  };
+                                  return vehicleEmojis[vehicleType] || "🚛";
+                                })()}
+                              </span>
+                              <div>
+                                <p className="font-medium">
+                                  {(driver.vehicleType || "BIKE").replace(
+                                    "_",
+                                    " ",
+                                  )}
+                                </p>
+                                <p className="text-muted-foreground text-xs">
+                                  {driver.vehicleNo ||
+                                    driver.vehicleNumber ||
+                                    "No plate"}
+                                </p>
+                                {(driver.vehicleColor ||
+                                  driver.vehicle_color) && (
+                                  <p className="text-muted-foreground text-xs">
+                                    {driver.vehicleColor ||
+                                      driver.vehicle_color}
+                                  </p>
+                                )}
+                              </div>
+                            </div>
                           </div>
                         </TableCell>
                         <TableCell>
@@ -352,6 +566,12 @@ function DriversPage() {
                               >
                                 <Eye className="mr-2 h-4 w-4" />
                                 View Details
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() => handleEditDriver(driver)}
+                              >
+                                <Edit className="mr-2 h-4 w-4" />
+                                Edit Driver
                               </DropdownMenuItem>
                               {driver.status === "pending" && (
                                 <>
@@ -408,7 +628,10 @@ function DriversPage() {
                   <div className="flex items-start gap-4">
                     <Avatar className="h-20 w-20">
                       <AvatarImage
-                        src={selectedDriver.profileImage}
+                        src={
+                          selectedDriver.profileImage ||
+                          selectedDriver.profileImageUrl
+                        }
                         alt={
                           selectedDriver.name || selectedDriver.user?.fullName
                         }
@@ -454,6 +677,7 @@ function DriversPage() {
                         <div className="flex items-center gap-2">
                           <Phone className="text-muted-foreground h-4 w-4" />
                           {selectedDriver.phoneNumber ||
+                            (selectedDriver as any).phone ||
                             selectedDriver.user?.phone ||
                             "N/A"}
                         </div>
@@ -599,6 +823,441 @@ function DriversPage() {
                   )}
                 </div>
               )}
+            </DialogContent>
+          </Dialog>
+
+          {/* Edit Driver Dialog */}
+          <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
+            <DialogContent className="max-h-[80vh] max-w-2xl overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>Edit Driver</DialogTitle>
+                <DialogDescription>
+                  Update driver information and profile image
+                </DialogDescription>
+              </DialogHeader>
+              {editingDriver && (
+                <div className="space-y-6">
+                  <div className="space-y-4">
+                    {/* Profile Image Upload */}
+                    <div className="flex flex-col items-center gap-4">
+                      <Avatar className="h-24 w-24">
+                        <AvatarImage
+                          src={editForm.profileImage}
+                          alt={editForm.name}
+                        />
+                        <AvatarFallback>
+                          {editForm.name.substring(0, 2).toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex flex-col items-center gap-2">
+                        <Label
+                          htmlFor="profile-image"
+                          className="cursor-pointer"
+                        >
+                          <div className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors">
+                            {isUploading ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <Upload className="h-4 w-4" />
+                            )}
+                            {isUploading ? "Uploading..." : "Upload Image"}
+                          </div>
+                        </Label>
+                        <Input
+                          id="profile-image"
+                          type="file"
+                          accept="image/*"
+                          onChange={handleImageUpload}
+                          className="hidden"
+                          disabled={isUploading}
+                        />
+                        <p className="text-xs text-muted-foreground text-center">
+                          Upload a profile image (JPG, PNG, GIF)
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Basic Information */}
+                    <div className="grid gap-4 md:grid-cols-2">
+                      <div className="space-y-2">
+                        <Label htmlFor="name">Full Name</Label>
+                        <Input
+                          id="name"
+                          value={editForm.name}
+                          onChange={(e) =>
+                            setEditForm((prev) => ({
+                              ...prev,
+                              name: e.target.value,
+                            }))
+                          }
+                          placeholder="Driver full name"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="email">Email</Label>
+                        <Input
+                          id="email"
+                          type="email"
+                          value={editForm.email}
+                          onChange={(e) =>
+                            setEditForm((prev) => ({
+                              ...prev,
+                              email: e.target.value,
+                            }))
+                          }
+                          placeholder="driver@example.com"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid gap-4 md:grid-cols-2">
+                      <div className="space-y-2">
+                        <Label htmlFor="phone">Phone Number</Label>
+                        <Input
+                          id="phone"
+                          value={editForm.phoneNumber}
+                          onChange={(e) =>
+                            setEditForm((prev) => ({
+                              ...prev,
+                              phoneNumber: e.target.value,
+                            }))
+                          }
+                          placeholder="+1234567890"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="status">Status</Label>
+                        <Select
+                          value={editForm.status}
+                          onValueChange={(value) =>
+                            setEditForm((prev) => ({ ...prev, status: value }))
+                          }
+                        >
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="approved">Approved</SelectItem>
+                            <SelectItem value="pending">Pending</SelectItem>
+                            <SelectItem value="rejected">Rejected</SelectItem>
+                            <SelectItem value="suspended">Suspended</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+
+                    {/* Vehicle Information */}
+                    <div className="space-y-4">
+                      <h4 className="font-semibold">Vehicle Information</h4>
+                      <div className="grid gap-4 md:grid-cols-2">
+                        <div className="space-y-2">
+                          <Label htmlFor="vehicleType">Vehicle Type</Label>
+                          <Select
+                            value={editForm.vehicleType}
+                            onValueChange={(value) =>
+                              setEditForm((prev) => ({
+                                ...prev,
+                                vehicleType: value,
+                              }))
+                            }
+                          >
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="BIKE">🏍️ Motorbike</SelectItem>
+                              <SelectItem value="KEKE_CARGO">
+                                🛺 Keke Cargo
+                              </SelectItem>
+                              <SelectItem value="CAR">🚗 Car</SelectItem>
+                              <SelectItem value="VAN">🚐 Van</SelectItem>
+                              <SelectItem value="LORRY">🚚 Lorry</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="vehicleNumber">Vehicle Number</Label>
+                          <Input
+                            id="vehicleNumber"
+                            value={editForm.vehicleNumber}
+                            onChange={(e) =>
+                              setEditForm((prev) => ({
+                                ...prev,
+                                vehicleNumber: e.target.value,
+                              }))
+                            }
+                            placeholder="ABC-123"
+                          />
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="vehicleColor">Vehicle Color</Label>
+                        <Input
+                          id="vehicleColor"
+                          value={editForm.vehicleColor}
+                          onChange={(e) =>
+                            setEditForm((prev) => ({
+                              ...prev,
+                              vehicleColor: e.target.value,
+                            }))
+                          }
+                          placeholder="Red, Blue, White, etc."
+                        />
+                      </div>
+                    </div>
+
+                    {/* Action Buttons */}
+                    <div className="flex gap-3 border-t pt-4">
+                      <Button
+                        variant="outline"
+                        className="flex-1"
+                        onClick={() => setIsEditOpen(false)}
+                        disabled={updateMutation.isPending}
+                      >
+                        Cancel
+                      </Button>
+                      <Button
+                        className="flex-1"
+                        onClick={handleUpdateDriver}
+                        disabled={updateMutation.isPending || isUploading}
+                      >
+                        {updateMutation.isPending ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Updating...
+                          </>
+                        ) : (
+                          <>
+                            <Save className="mr-2 h-4 w-4" />
+                            Update Driver
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </DialogContent>
+          </Dialog>
+
+          {/* Create Driver Dialog */}
+          <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
+            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2">
+                  <UserPlus className="h-5 w-5" />
+                  Create New Driver
+                </DialogTitle>
+                <DialogDescription>
+                  Add a new driver to the system. Leave password blank to use
+                  default (1234).
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-5 py-2">
+                {/* Profile Image */}
+                <div className="flex flex-col items-center gap-3">
+                  <div className="relative">
+                    <div className="h-24 w-24 rounded-full overflow-hidden border-2 border-border bg-muted flex items-center justify-center">
+                      {createForm.profileImage ? (
+                        <img
+                          src={createForm.profileImage}
+                          alt="Preview"
+                          className="h-full w-full object-cover"
+                        />
+                      ) : (
+                        <UserPlus className="h-10 w-10 text-muted-foreground" />
+                      )}
+                    </div>
+                    <label
+                      htmlFor="create-profile-image"
+                      className="absolute bottom-0 right-0 cursor-pointer bg-primary text-primary-foreground rounded-full p-1.5 shadow"
+                    >
+                      {isCreateUploading ? (
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                      ) : (
+                        <Upload className="h-3 w-3" />
+                      )}
+                    </label>
+                    <input
+                      id="create-profile-image"
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={handleCreateImageUpload}
+                      disabled={isCreateUploading}
+                    />
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Click the upload icon to add profile photo
+                  </p>
+                </div>
+
+                {/* Name + Email */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="create-name">Full Name *</Label>
+                    <Input
+                      id="create-name"
+                      placeholder="John Doe"
+                      value={createForm.name}
+                      onChange={(e) =>
+                        setCreateForm((prev) => ({
+                          ...prev,
+                          name: e.target.value,
+                        }))
+                      }
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="create-email">Email *</Label>
+                    <Input
+                      id="create-email"
+                      type="email"
+                      placeholder="driver@example.com"
+                      value={createForm.email}
+                      onChange={(e) =>
+                        setCreateForm((prev) => ({
+                          ...prev,
+                          email: e.target.value,
+                        }))
+                      }
+                    />
+                  </div>
+                </div>
+
+                {/* Phone + Password */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="create-phone">Phone *</Label>
+                    <Input
+                      id="create-phone"
+                      placeholder="+220 123 4567"
+                      value={createForm.phone}
+                      onChange={(e) =>
+                        setCreateForm((prev) => ({
+                          ...prev,
+                          phone: e.target.value,
+                        }))
+                      }
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="create-password">Password</Label>
+                    <Input
+                      id="create-password"
+                      type="password"
+                      placeholder="Leave blank for default (1234)"
+                      value={createForm.password}
+                      onChange={(e) =>
+                        setCreateForm((prev) => ({
+                          ...prev,
+                          password: e.target.value,
+                        }))
+                      }
+                    />
+                  </div>
+                </div>
+
+                {/* Vehicle Type + Vehicle Number */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="create-vehicleType">Vehicle Type *</Label>
+                    <Select
+                      value={createForm.vehicleType}
+                      onValueChange={(value) =>
+                        setCreateForm((prev) => ({
+                          ...prev,
+                          vehicleType: value,
+                        }))
+                      }
+                    >
+                      <SelectTrigger id="create-vehicleType">
+                        <SelectValue placeholder="Select vehicle type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="BIKE">🏍️ Motorbike</SelectItem>
+                        <SelectItem value="KEKE_CARGO">
+                          🛺 Keke Cargo
+                        </SelectItem>
+                        <SelectItem value="CAR">🚗 Car</SelectItem>
+                        <SelectItem value="VAN">🚐 Van</SelectItem>
+                        <SelectItem value="LORRY">🚛 Lorry</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="create-vehicleNumber">Plate Number</Label>
+                    <Input
+                      id="create-vehicleNumber"
+                      placeholder="ABC-123"
+                      value={createForm.vehicleNumber}
+                      onChange={(e) =>
+                        setCreateForm((prev) => ({
+                          ...prev,
+                          vehicleNumber: e.target.value,
+                        }))
+                      }
+                    />
+                  </div>
+                </div>
+
+                {/* Vehicle Color */}
+                <div className="space-y-2">
+                  <Label htmlFor="create-vehicleColor">Vehicle Color</Label>
+                  <Input
+                    id="create-vehicleColor"
+                    placeholder="Red, Blue, White, etc."
+                    value={createForm.vehicleColor}
+                    onChange={(e) =>
+                      setCreateForm((prev) => ({
+                        ...prev,
+                        vehicleColor: e.target.value,
+                      }))
+                    }
+                  />
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex gap-3 border-t pt-4">
+                  <Button
+                    variant="outline"
+                    className="flex-1"
+                    onClick={() => setIsCreateOpen(false)}
+                    disabled={createMutation.isPending}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    className="flex-1"
+                    onClick={() => {
+                      if (
+                        !createForm.name ||
+                        !createForm.email ||
+                        !createForm.phone
+                      ) {
+                        toast.error("Name, email, and phone are required");
+                        return;
+                      }
+                      const payload: any = { ...createForm };
+                      if (!payload.password) delete payload.password;
+                      createMutation.mutate(payload);
+                    }}
+                    disabled={createMutation.isPending || isCreateUploading}
+                  >
+                    {createMutation.isPending ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Creating...
+                      </>
+                    ) : (
+                      <>
+                        <UserPlus className="mr-2 h-4 w-4" />
+                        Create Driver
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </div>
             </DialogContent>
           </Dialog>
         </div>

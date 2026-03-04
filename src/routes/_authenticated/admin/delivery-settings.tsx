@@ -63,25 +63,23 @@ interface SystemSettings {
   serviceFeePercent: number;
   driverCommissionPercent: number;
 
-  // Vehicle-specific delivery pricing
+  // Vehicle-specific delivery pricing (Base fees)
   bikeDeliveryFee: number;
   kekeCargoDeliveryFee: number;
   carDeliveryFee: number;
   vanDeliveryFee: number;
   lorryDeliveryFee: number;
 
+  // Vehicle-specific per-kilometer pricing
+  bikePerKmFee: number;
+  kekeCargoPerKmFee: number;
+  carPerKmFee: number;
+  vanPerKmFee: number;
+  lorryPerKmFee: number;
+
   // Weight-based pricing configuration
   weightPricingEnabled: boolean;
   distancePricingEnabled: boolean;
-
-  // deliveryFee5to10km: number;
-  // deliveryFee10to20km: number;
-  // deliveryFee20to30km: number;
-  // deliveryFeeAbove30km: number;
-  // freeDeliveryMinAmount: number;
-  // freeDeliveryMaxKm: number;
-  // serviceFeePercent: number;
-  // driverCommissionPercent: number;
 }
 
 function DeliverySettingsPage() {
@@ -128,18 +126,33 @@ function DeliverySettingsPage() {
     updateMutation.mutate(formData);
   };
 
-  const handleInputChange = (field: keyof SystemSettings, value: string) => {
+  const handleInputChange = (
+    field: keyof SystemSettings,
+    value: string | boolean,
+  ) => {
     setFormData((prev) => ({
       ...prev,
-      [field]: parseFloat(value) || 0,
+      [field]:
+        typeof value === "boolean" ? value : parseFloat(value as string) || 0,
     }));
   };
 
-  const getValue = (field: keyof SystemSettings): number => {
+  const getValue = (field: keyof SystemSettings): number | boolean => {
     if (isEditing && formData[field] !== undefined) {
-      return formData[field] as number;
+      return formData[field] as number | boolean;
+    }
+    // Handle boolean fields
+    if (
+      field === "weightPricingEnabled" ||
+      field === "distancePricingEnabled"
+    ) {
+      return Boolean(settings?.[field]) || false;
     }
     return (settings?.[field] as number) || 0;
+  };
+
+  const getNumericValue = (field: keyof SystemSettings): number => {
+    return getValue(field) as number;
   };
 
   if (isLoading) {
@@ -241,7 +254,7 @@ function DeliverySettingsPage() {
                   <span className="text-muted-foreground">D</span>
                   <Input
                     type="number"
-                    value={getValue("giftZone1Fee")}
+                    value={getNumericValue("giftZone1Fee")}
                     onChange={(e) =>
                       handleInputChange("giftZone1Fee", e.target.value)
                     }
@@ -265,7 +278,7 @@ function DeliverySettingsPage() {
                   <span className="text-muted-foreground">D</span>
                   <Input
                     type="number"
-                    value={getValue("giftZone2Fee")}
+                    value={getNumericValue("giftZone2Fee")}
                     onChange={(e) =>
                       handleInputChange("giftZone2Fee", e.target.value)
                     }
@@ -292,7 +305,7 @@ function DeliverySettingsPage() {
                   <span className="text-muted-foreground">D</span>
                   <Input
                     type="number"
-                    value={getValue("giftZone3Fee")}
+                    value={getNumericValue("giftZone3Fee")}
                     onChange={(e) =>
                       handleInputChange("giftZone3Fee", e.target.value)
                     }
@@ -326,7 +339,7 @@ function DeliverySettingsPage() {
                   <span className="text-muted-foreground">D</span>
                   <Input
                     type="number"
-                    value={getValue("deliveryFee0to5km")}
+                    value={getNumericValue("deliveryFee0to5km")}
                     onChange={(e) =>
                       handleInputChange("deliveryFee0to5km", e.target.value)
                     }
@@ -348,7 +361,7 @@ function DeliverySettingsPage() {
                   <span className="text-muted-foreground">D</span>
                   <Input
                     type="number"
-                    value={getValue("deliveryFee5to10km")}
+                    value={getNumericValue("deliveryFee5to10km")}
                     onChange={(e) =>
                       handleInputChange("deliveryFee5to10km", e.target.value)
                     }
@@ -370,7 +383,7 @@ function DeliverySettingsPage() {
                   <span className="text-muted-foreground">D</span>
                   <Input
                     type="number"
-                    value={getValue("deliveryFee10to20km")}
+                    value={getNumericValue("deliveryFee10to20km")}
                     onChange={(e) =>
                       handleInputChange("deliveryFee10to20km", e.target.value)
                     }
@@ -392,7 +405,7 @@ function DeliverySettingsPage() {
                   <span className="text-muted-foreground">D</span>
                   <Input
                     type="number"
-                    value={getValue("deliveryFee20to30km")}
+                    value={getNumericValue("deliveryFee20to30km")}
                     onChange={(e) =>
                       handleInputChange("deliveryFee20to30km", e.target.value)
                     }
@@ -414,7 +427,7 @@ function DeliverySettingsPage() {
                   <span className="text-muted-foreground">D</span>
                   <Input
                     type="number"
-                    value={getValue("deliveryFeeAbove30km")}
+                    value={getNumericValue("deliveryFeeAbove30km")}
                     onChange={(e) =>
                       handleInputChange("deliveryFeeAbove30km", e.target.value)
                     }
@@ -444,7 +457,7 @@ function DeliverySettingsPage() {
                   <span className="text-muted-foreground">D</span>
                   <Input
                     type="number"
-                    value={getValue("freeDeliveryMinAmount")}
+                    value={getNumericValue("freeDeliveryMinAmount")}
                     onChange={(e) =>
                       handleInputChange("freeDeliveryMinAmount", e.target.value)
                     }
@@ -464,7 +477,7 @@ function DeliverySettingsPage() {
                 <div className="flex items-center gap-2">
                   <Input
                     type="number"
-                    value={getValue("freeDeliveryMaxKm")}
+                    value={getNumericValue("freeDeliveryMaxKm")}
                     onChange={(e) =>
                       handleInputChange("freeDeliveryMaxKm", e.target.value)
                     }
@@ -499,7 +512,7 @@ function DeliverySettingsPage() {
                     onChange={(e) =>
                       handleInputChange(
                         "weightPricingEnabled",
-                        e.target.checked ? "1" : "0",
+                        e.target.checked,
                       )
                     }
                     disabled={!isEditing}
@@ -508,15 +521,14 @@ function DeliverySettingsPage() {
                 </div>
               </div>
               <CardDescription>
-                Set delivery fees based on vehicle type required for order
-                weight. Bikes for light items, Keke Cargo for bulk, Vans for
-                heavy freight.
+                Set base fees and per-kilometer rates for each vehicle type.
+                Distance-based pricing: Base Fee + (Distance × Per-km Rate)
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               {/* Bike Pricing */}
-              <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
-                <div className="flex items-center gap-3">
+              <div className="p-4 bg-green-50 rounded-lg">
+                <div className="flex items-center gap-3 mb-3">
                   <div className="text-2xl">🏍️</div>
                   <div>
                     <div className="font-medium">Motorbike</div>
@@ -525,23 +537,39 @@ function DeliverySettingsPage() {
                     </div>
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-muted-foreground">D</span>
-                  <Input
-                    type="number"
-                    value={getValue("bikeDeliveryFee")}
-                    onChange={(e) =>
-                      handleInputChange("bikeDeliveryFee", e.target.value)
-                    }
-                    disabled={!isEditing}
-                    className="w-20"
-                  />
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="flex items-center gap-2">
+                    <label className="text-sm font-medium">Base Fee:</label>
+                    <span className="text-muted-foreground">D</span>
+                    <Input
+                      type="number"
+                      value={getNumericValue("bikeDeliveryFee")}
+                      onChange={(e) =>
+                        handleInputChange("bikeDeliveryFee", e.target.value)
+                      }
+                      disabled={!isEditing}
+                      className="w-20"
+                    />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <label className="text-sm font-medium">Per km:</label>
+                    <span className="text-muted-foreground">D</span>
+                    <Input
+                      type="number"
+                      value={getNumericValue("bikePerKmFee")}
+                      onChange={(e) =>
+                        handleInputChange("bikePerKmFee", e.target.value)
+                      }
+                      disabled={!isEditing}
+                      className="w-20"
+                    />
+                  </div>
                 </div>
               </div>
 
               {/* Keke Cargo Pricing */}
-              <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
-                <div className="flex items-center gap-3">
+              <div className="p-4 bg-blue-50 rounded-lg">
+                <div className="flex items-center gap-3 mb-3">
                   <div className="text-2xl">🛺</div>
                   <div>
                     <div className="font-medium">Keke Cargo</div>
@@ -550,23 +578,42 @@ function DeliverySettingsPage() {
                     </div>
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-muted-foreground">D</span>
-                  <Input
-                    type="number"
-                    value={getValue("kekeCargoDeliveryFee")}
-                    onChange={(e) =>
-                      handleInputChange("kekeCargoDeliveryFee", e.target.value)
-                    }
-                    disabled={!isEditing}
-                    className="w-20"
-                  />
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="flex items-center gap-2">
+                    <label className="text-sm font-medium">Base Fee:</label>
+                    <span className="text-muted-foreground">D</span>
+                    <Input
+                      type="number"
+                      value={getNumericValue("kekeCargoDeliveryFee")}
+                      onChange={(e) =>
+                        handleInputChange(
+                          "kekeCargoDeliveryFee",
+                          e.target.value,
+                        )
+                      }
+                      disabled={!isEditing}
+                      className="w-20"
+                    />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <label className="text-sm font-medium">Per km:</label>
+                    <span className="text-muted-foreground">D</span>
+                    <Input
+                      type="number"
+                      value={getNumericValue("kekeCargoPerKmFee")}
+                      onChange={(e) =>
+                        handleInputChange("kekeCargoPerKmFee", e.target.value)
+                      }
+                      disabled={!isEditing}
+                      className="w-20"
+                    />
+                  </div>
                 </div>
               </div>
 
               {/* Car Pricing */}
-              <div className="flex items-center justify-between p-3 bg-orange-50 rounded-lg">
-                <div className="flex items-center gap-3">
+              <div className="p-4 bg-orange-50 rounded-lg">
+                <div className="flex items-center gap-3 mb-3">
                   <div className="text-2xl">🚗</div>
                   <div>
                     <div className="font-medium">Car</div>
@@ -575,23 +622,39 @@ function DeliverySettingsPage() {
                     </div>
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-muted-foreground">D</span>
-                  <Input
-                    type="number"
-                    value={getValue("carDeliveryFee")}
-                    onChange={(e) =>
-                      handleInputChange("carDeliveryFee", e.target.value)
-                    }
-                    disabled={!isEditing}
-                    className="w-20"
-                  />
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="flex items-center gap-2">
+                    <label className="text-sm font-medium">Base Fee:</label>
+                    <span className="text-muted-foreground">D</span>
+                    <Input
+                      type="number"
+                      value={getNumericValue("carDeliveryFee")}
+                      onChange={(e) =>
+                        handleInputChange("carDeliveryFee", e.target.value)
+                      }
+                      disabled={!isEditing}
+                      className="w-20"
+                    />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <label className="text-sm font-medium">Per km:</label>
+                    <span className="text-muted-foreground">D</span>
+                    <Input
+                      type="number"
+                      value={getNumericValue("carPerKmFee")}
+                      onChange={(e) =>
+                        handleInputChange("carPerKmFee", e.target.value)
+                      }
+                      disabled={!isEditing}
+                      className="w-20"
+                    />
+                  </div>
                 </div>
               </div>
 
               {/* Van Pricing */}
-              <div className="flex items-center justify-between p-3 bg-red-50 rounded-lg">
-                <div className="flex items-center gap-3">
+              <div className="p-4 bg-red-50 rounded-lg">
+                <div className="flex items-center gap-3 mb-3">
                   <div className="text-2xl">🚐</div>
                   <div>
                     <div className="font-medium">Van</div>
@@ -600,23 +663,39 @@ function DeliverySettingsPage() {
                     </div>
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-muted-foreground">D</span>
-                  <Input
-                    type="number"
-                    value={getValue("vanDeliveryFee")}
-                    onChange={(e) =>
-                      handleInputChange("vanDeliveryFee", e.target.value)
-                    }
-                    disabled={!isEditing}
-                    className="w-20"
-                  />
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="flex items-center gap-2">
+                    <label className="text-sm font-medium">Base Fee:</label>
+                    <span className="text-muted-foreground">D</span>
+                    <Input
+                      type="number"
+                      value={getNumericValue("vanDeliveryFee")}
+                      onChange={(e) =>
+                        handleInputChange("vanDeliveryFee", e.target.value)
+                      }
+                      disabled={!isEditing}
+                      className="w-20"
+                    />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <label className="text-sm font-medium">Per km:</label>
+                    <span className="text-muted-foreground">D</span>
+                    <Input
+                      type="number"
+                      value={getNumericValue("vanPerKmFee")}
+                      onChange={(e) =>
+                        handleInputChange("vanPerKmFee", e.target.value)
+                      }
+                      disabled={!isEditing}
+                      className="w-20"
+                    />
+                  </div>
                 </div>
               </div>
 
               {/* Lorry Pricing */}
-              <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                <div className="flex items-center gap-3">
+              <div className="p-4 bg-gray-50 rounded-lg">
+                <div className="flex items-center gap-3 mb-3">
                   <div className="text-2xl">🚚</div>
                   <div>
                     <div className="font-medium">Mini Truck</div>
@@ -625,17 +704,33 @@ function DeliverySettingsPage() {
                     </div>
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-muted-foreground">D</span>
-                  <Input
-                    type="number"
-                    value={getValue("lorryDeliveryFee")}
-                    onChange={(e) =>
-                      handleInputChange("lorryDeliveryFee", e.target.value)
-                    }
-                    disabled={!isEditing}
-                    className="w-20"
-                  />
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="flex items-center gap-2">
+                    <label className="text-sm font-medium">Base Fee:</label>
+                    <span className="text-muted-foreground">D</span>
+                    <Input
+                      type="number"
+                      value={getNumericValue("lorryDeliveryFee")}
+                      onChange={(e) =>
+                        handleInputChange("lorryDeliveryFee", e.target.value)
+                      }
+                      disabled={!isEditing}
+                      className="w-20"
+                    />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <label className="text-sm font-medium">Per km:</label>
+                    <span className="text-muted-foreground">D</span>
+                    <Input
+                      type="number"
+                      value={getNumericValue("lorryPerKmFee")}
+                      onChange={(e) =>
+                        handleInputChange("lorryPerKmFee", e.target.value)
+                      }
+                      disabled={!isEditing}
+                      className="w-20"
+                    />
+                  </div>
                 </div>
               </div>
 
@@ -643,9 +738,9 @@ function DeliverySettingsPage() {
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <Info className="h-4 w-4" />
                   <span>
+                    Total delivery fee = Base Fee + (Distance × Per-km Rate).
                     Vehicle type is automatically selected based on order
-                    weight. Distance multipliers still apply on top of base
-                    vehicle fees.
+                    weight.
                   </span>
                 </div>
               </div>
@@ -669,7 +764,7 @@ function DeliverySettingsPage() {
                 <div className="flex items-center gap-2">
                   <Input
                     type="number"
-                    value={getValue("serviceFeePercent")}
+                    value={getNumericValue("serviceFeePercent")}
                     onChange={(e) =>
                       handleInputChange("serviceFeePercent", e.target.value)
                     }
@@ -694,7 +789,7 @@ function DeliverySettingsPage() {
                 <div className="flex items-center gap-2">
                   <Input
                     type="number"
-                    value={getValue("driverCommissionPercent")}
+                    value={getNumericValue("driverCommissionPercent")}
                     onChange={(e) =>
                       handleInputChange(
                         "driverCommissionPercent",
@@ -727,8 +822,9 @@ function DeliverySettingsPage() {
                   Gift Order Zones
                 </p>
                 <p className="text-lg font-semibold">
-                  D{getValue("giftZone1Fee")} / D{getValue("giftZone2Fee")} / D
-                  {getValue("giftZone3Fee")}
+                  D{getNumericValue("giftZone1Fee")} / D
+                  {getNumericValue("giftZone2Fee")} / D
+                  {getNumericValue("giftZone3Fee")}
                 </p>
                 <p className="text-xs text-muted-foreground">
                   Zone 1 / Zone 2 / Zone 3

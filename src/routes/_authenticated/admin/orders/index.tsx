@@ -23,7 +23,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { adminApi } from "@/lib/api";
-import type { Order } from "@/lib/types";
+import type { Order, Driver } from "@/lib/types";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -158,22 +158,34 @@ function OrdersPage() {
     [ordersResponse?.pagination],
   );
 
-  // Fetch drivers for assignment
+  // Fetch compatible drivers for the selected order
   const { data: driversData = [] } = useQuery({
-    queryKey: ["drivers"],
+    queryKey: ["compatible-drivers", selectedOrder?._id],
     queryFn: async () => {
       try {
-        const response = await adminApi.getDrivers();
-        // Handle both array and object responses
-        const driversList = Array.isArray(response?.data)
-          ? response.data
-          : response?.data?.drivers || [];
+        if (!selectedOrder?._id) {
+          // If no order selected, get all available drivers
+          const response = await adminApi.getAvailableDrivers();
+          return Array.isArray(response?.data) ? response.data : [];
+        }
+
+        // Get drivers compatible with the selected order's vehicle requirements
+        const response = await adminApi.getCompatibleDriversForOrder(
+          selectedOrder._id,
+        );
+        const driversList = Array.isArray(response?.data) ? response.data : [];
         return driversList;
       } catch (_error) {
-        // Silently handle error and return empty array
-        return [];
+        // Fallback to all available drivers if compatible drivers API fails
+        try {
+          const response = await adminApi.getAvailableDrivers();
+          return Array.isArray(response?.data) ? response.data : [];
+        } catch {
+          return [];
+        }
       }
     },
+    enabled: isAssignDriverOpen, // Only fetch when assignment dialog is open
   });
 
   const drivers = Array.isArray(driversData) ? driversData : [];
@@ -1143,139 +1155,174 @@ function OrdersPage() {
                 </DialogDescription>
               </DialogHeader>
 
-              {selectedOrder && (
-                <div className="space-y-4">
-                  {/* Order Info */}
-                  <Card>
-                    <CardContent className="pt-4">
-                      <div className="space-y-2 text-sm">
-                        <div className="flex justify-between">
-                          <span className="text-muted-foreground">
-                            Order ID:
-                          </span>
-                          <code className="font-mono">
-                            #{selectedOrder._id?.substring(0, 8) || "N/A"}
-                          </code>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-muted-foreground">
-                            Customer:
-                          </span>
-                          <span className="font-medium">
-                            {selectedOrder.user?.name}
-                          </span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-muted-foreground">
-                            Address:
-                          </span>
-                          <span className="max-w-[200px] text-right text-xs font-medium">
-                            {typeof selectedOrder.deliveryAddress === "string"
-                              ? selectedOrder.deliveryAddress
-                              : selectedOrder.deliveryAddress?.street}
-                          </span>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  {/* Driver Selection */}
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">
-                      Available Drivers
-                    </label>
-
-                    {drivers.length === 0 ? (
-                      <div className="text-muted-foreground rounded-lg border border-dashed p-4 text-center text-sm">
-                        No drivers are currently available
-                      </div>
-                    ) : (
-                      <Select
-                        value={selectedDriverId}
-                        onValueChange={setSelectedDriverId}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Choose a driver..." />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {drivers.map((driver: any) => {
-                            const driverName =
-                              driver.user?.fullName ||
-                              driver.name ||
-                              driver.fullName ||
-                              "Unknown";
-                            const driverPhone =
-                              driver.user?.phone ||
-                              driver.phoneNumber ||
-                              driver.phone ||
-                              "N/A";
-                            return (
-                              <SelectItem
-                                key={driver._id || driver.id}
-                                value={driver._id || driver.id}
-                              >
-                                <div className="flex items-center gap-2">
-                                  <Avatar className="h-6 w-6">
-                                    <AvatarFallback>
-                                      {driverName.substring(0, 2).toUpperCase()}
-                                    </AvatarFallback>
-                                  </Avatar>
-                                  <div>
-                                    <p className="text-sm font-medium">
-                                      {driverName}
-                                    </p>
-                                    <p className="text-muted-foreground text-xs">
-                                      {driverPhone}
-                                    </p>
-                                  </div>
-                                </div>
-                              </SelectItem>
-                            );
-                          })}
-                        </SelectContent>
-                      </Select>
-                    )}
+              <div className="space-y-4">
+                {selectedOrder && (
+                  <div className="text-sm text-muted-foreground">
+                    Order #{selectedOrder._id?.substring(0, 8) || "N/A"} —{" "}
+                    {selectedOrder.user?.name || selectedOrder.user?.fullName}
                   </div>
+                )}
 
-                  {/* Action Buttons */}
-                  <div className="flex justify-end gap-3 pt-4">
-                    <Button
-                      variant="outline"
-                      onClick={() => setIsAssignDriverOpen(false)}
-                    >
-                      Cancel
-                    </Button>
-                    <Button
-                      onClick={() => {
-                        if (selectedOrder && selectedDriverId) {
-                          const orderId = selectedOrder._id || selectedOrder.id;
-                          if (!orderId) {
-                            toast.error("Order ID is missing");
-                            return;
-                          }
-                          assignDriverMutation.mutate({
-                            orderId,
-                            driverId: selectedDriverId,
-                          });
-                        }
-                      }}
-                      disabled={!selectedDriverId || drivers.length === 0}
-                    >
-                      {assignDriverMutation.isPending ? (
-                        <>
-                          <div className="mr-2 h-4 w-4 animate-spin rounded-full border-b-2 border-white"></div>
-                          Assigning...
-                        </>
-                      ) : (
-                        <>
-                          <Truck className="mr-2 h-4 w-4" />
-                          Assign Driver
-                        </>
+                {/* Required Vehicle Type Banner */}
+                {selectedOrder?.requiredVehicleType && (
+                  <div className="flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2">
+                    <span className="text-lg">
+                      {selectedOrder.requiredVehicleType === "BIKE" && "🏍️"}
+                      {selectedOrder.requiredVehicleType === "KEKE_CARGO" &&
+                        "🛺"}
+                      {selectedOrder.requiredVehicleType === "CAR" && "🚗"}
+                      {selectedOrder.requiredVehicleType === "VAN" && "🚐"}
+                      {selectedOrder.requiredVehicleType === "LORRY" && "🚛"}
+                    </span>
+                    <div className="flex-1">
+                      <p className="text-xs font-semibold text-amber-800">
+                        This order requires:{" "}
+                        {selectedOrder.requiredVehicleType === "BIKE" && "Bike"}
+                        {selectedOrder.requiredVehicleType === "KEKE_CARGO" &&
+                          "Keke Cargo"}
+                        {selectedOrder.requiredVehicleType === "CAR" && "Car"}
+                        {selectedOrder.requiredVehicleType === "VAN" && "Van"}
+                        {selectedOrder.requiredVehicleType === "LORRY" &&
+                          "Lorry"}
+                      </p>
+                      {selectedOrder.totalWeightKg != null && (
+                        <p className="text-xs text-amber-600">
+                          Estimated weight:{" "}
+                          {selectedOrder.totalWeightKg.toFixed(1)} kg
+                        </p>
                       )}
-                    </Button>
+                    </div>
                   </div>
+                )}
+
+                {drivers.length === 0 ? (
+                  <div className="text-muted-foreground rounded-lg border border-dashed p-4 text-center text-sm">
+                    No compatible drivers are currently available for assignment
+                  </div>
+                ) : (
+                  <Select
+                    value={selectedDriverId}
+                    onValueChange={setSelectedDriverId}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Choose a driver..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {drivers.map((driver: Driver) => {
+                        const driverName =
+                          driver.user?.fullName ||
+                          driver.name ||
+                          driver.fullName ||
+                          "Unknown Driver";
+                        const driverVehicle = driver.vehicleType;
+                        const driverPhone =
+                          driver.phoneNumber ||
+                          driver.phone ||
+                          driver.user?.phoneNumber ||
+                          driver.user?.phone;
+                        const isCompatible =
+                          !selectedOrder?.requiredVehicleType ||
+                          driverVehicle === selectedOrder.requiredVehicleType;
+                        const avatarLetter = driverName.charAt(0).toUpperCase();
+                        return (
+                          <SelectItem
+                            key={driver._id || driver.id || ""}
+                            value={driver._id || driver.id || ""}
+                            className="py-2"
+                          >
+                            <div className="flex items-center gap-2 w-full">
+                              {/* Avatar */}
+                              {driver.profileImageUrl ? (
+                                <img
+                                  src={driver.profileImageUrl}
+                                  alt={driverName}
+                                  className="w-8 h-8 rounded-full object-cover border border-gray-200 flex-shrink-0"
+                                />
+                              ) : (
+                                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white font-medium text-xs flex-shrink-0">
+                                  {avatarLetter}
+                                </div>
+                              )}
+                              {/* Info */}
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-1.5 flex-wrap">
+                                  <span className="font-medium text-sm">
+                                    {driverName}
+                                  </span>
+                                  {driverVehicle && (
+                                    <span className="text-xs bg-gray-100 px-1.5 py-0.5 rounded">
+                                      {driverVehicle === "BIKE" && "🏍️ Bike"}
+                                      {driverVehicle === "KEKE_CARGO" &&
+                                        "🛺 Keke"}
+                                      {driverVehicle === "CAR" && "🚗 Car"}
+                                      {driverVehicle === "VAN" && "🚐 Van"}
+                                      {driverVehicle === "LORRY" && "🚛 Lorry"}
+                                    </span>
+                                  )}
+                                  {isCompatible &&
+                                    selectedOrder?.requiredVehicleType && (
+                                      <span className="text-xs text-green-600 font-medium">
+                                        ✓
+                                      </span>
+                                    )}
+                                  {(driver.isAvailable ?? true) && (
+                                    <span
+                                      className="w-2 h-2 bg-green-400 rounded-full flex-shrink-0"
+                                      title="Available"
+                                    />
+                                  )}
+                                </div>
+                                {driverPhone && (
+                                  <div className="text-xs text-muted-foreground truncate">
+                                    {driverPhone}
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </SelectItem>
+                        );
+                      })}
+                    </SelectContent>
+                  </Select>
+                )}
+
+                <div className="flex justify-end gap-3 pt-4">
+                  <Button
+                    variant="outline"
+                    onClick={() => setIsAssignDriverOpen(false)}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    onClick={() => {
+                      if (selectedOrder && selectedDriverId) {
+                        const orderId = selectedOrder._id || selectedOrder.id;
+                        if (!orderId) {
+                          toast.error("Order ID is missing");
+                          return;
+                        }
+                        assignDriverMutation.mutate({
+                          orderId,
+                          driverId: selectedDriverId,
+                        });
+                      }
+                    }}
+                    disabled={!selectedDriverId || drivers.length === 0}
+                  >
+                    {assignDriverMutation.isPending ? (
+                      <>
+                        <div className="mr-2 h-4 w-4 animate-spin rounded-full border-b-2 border-white"></div>
+                        Assigning...
+                      </>
+                    ) : (
+                      <>
+                        <Truck className="mr-2 h-4 w-4" />
+                        Assign Driver
+                      </>
+                    )}
+                  </Button>
                 </div>
-              )}
+              </div>
             </DialogContent>
           </Dialog>
         </div>

@@ -142,6 +142,9 @@ export interface Order {
   driver?: Driver;
   createdAt: string;
   updatedAt?: string;
+  // Weight & Vehicle Requirements
+  totalWeightKg?: number;
+  requiredVehicleType?: string;
   // Gift Order Fields
   isGiftOrder?: boolean;
   recipientName?: string;
@@ -188,6 +191,7 @@ export interface Driver {
   };
   status?: "pending" | "approved" | "rejected" | "suspended";
   profileImage?: string;
+  profileImageUrl?: string;
   orders?: any[];
   address?: {
     street?: string;

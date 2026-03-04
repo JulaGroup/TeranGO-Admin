@@ -159,11 +159,19 @@ export const adminApi = {
   getDrivers: (params?: Record<string, unknown>) =>
     api.get("/api/admin/drivers", { params }),
   getDriverById: (id: string) => api.get(`/api/admin/drivers/${id}`),
+  createDriver: (data: Record<string, unknown>) =>
+    api.post("/api/admin/drivers", data),
   updateDriver: (id: string, data: Record<string, unknown>) =>
     api.put(`/api/admin/drivers/${id}`, data),
   deleteDriver: (id: string) => api.delete(`/api/admin/drivers/${id}`),
   approveDriver: (id: string) => api.patch(`/api/admin/drivers/${id}/approve`),
   rejectDriver: (id: string) => api.patch(`/api/admin/drivers/${id}/reject`),
+  // Vehicle-based driver assignment
+  getAvailableDrivers: () => api.get("/api/drivers/available"),
+  getCompatibleDriversForOrder: (orderId: string) =>
+    api.get(`/api/drivers/compatible/${orderId}`),
+  getDriversByVehicleType: (vehicleType: string) =>
+    api.get(`/api/drivers/vehicle-type/${vehicleType}`),
 
   // Categories
   getCategories: (params?: Record<string, unknown>) =>

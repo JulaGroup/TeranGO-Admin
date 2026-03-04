@@ -216,15 +216,25 @@ function TerangoStoreOrders() {
     },
   });
 
-  // Fetch available drivers
+  // Fetch available drivers (or compatible drivers if an order is selected)
   const { data: driversData } = useQuery({
-    queryKey: ["terango-store-drivers"],
+    queryKey: ["terango-store-drivers", selectedOrder?.id],
     queryFn: async () => {
+      const orderId = selectedOrder?.id;
+      if (orderId) {
+        try {
+          const response = await api.get(`/api/drivers/compatible/${orderId}`);
+          return response.data || [];
+        } catch {
+          // fallback to all available if compatible endpoint fails
+        }
+      }
       const response = await api.get(
         "/api/admin/terango-store/available-drivers",
       );
       return response.data.drivers || [];
     },
+    enabled: assignDriverOpen,
   });
 
   const drivers: Driver[] = driversData || [];
@@ -280,9 +290,34 @@ function TerangoStoreOrders() {
       toast.success("Driver assigned successfully");
       setAssignDriverOpen(false);
       setSelectedDriverId("");
+      // Refresh selected order in details dialog if open
+      if (detailsOpen && selectedOrder) {
+        queryClient.invalidateQueries({ queryKey: ["terango-store-orders"] });
+      }
     },
     onError: () => {
       toast.error("Failed to assign driver");
+    },
+  });
+
+  // Unassign driver mutation
+  const unassignDriverMutation = useMutation({
+    mutationFn: async (orderId: string) => {
+      const response = await api.patch(
+        `/api/admin/terango-store/orders/${orderId}/unassign-driver`,
+      );
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["terango-store-orders"] });
+      toast.success("Driver unassigned successfully");
+      // Update the selected order in the detail dialog so the driver section disappears
+      setSelectedOrder((prev) =>
+        prev ? { ...prev, driver: undefined } : prev,
+      );
+    },
+    onError: () => {
+      toast.error("Failed to unassign driver");
     },
   });
 
@@ -549,9 +584,20 @@ function TerangoStoreOrders() {
                           <TableCell>{getStatusBadge(order.status)}</TableCell>
                           <TableCell>
                             {order.driver ? (
-                              <span className="text-sm">
-                                {order.driver.name}
-                              </span>
+                              <div className="flex items-center gap-1">
+                                <span className="text-sm">
+                                  {order.driver.name}
+                                </span>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-6 px-1 text-xs text-blue-600 hover:text-blue-800"
+                                  onClick={() => handleAssignDriver(order)}
+                                  title="Change driver"
+                                >
+                                  <RefreshCw className="h-3 w-3" />
+                                </Button>
+                              </div>
                             ) : (
                               <Button
                                 variant="ghost"
@@ -807,10 +853,40 @@ function TerangoStoreOrders() {
               {/* Enhanced Driver Profile Display */}
               {selectedOrder.driver && (
                 <div className="border rounded-lg p-4 bg-gradient-to-r from-blue-50 to-indigo-50">
-                  <h4 className="font-semibold mb-3 text-gray-800 flex items-center gap-2">
-                    <Truck className="h-4 w-4 text-blue-600" />
-                    Assigned Driver
-                  </h4>
+                  <div className="flex items-center justify-between mb-3">
+                    <h4 className="font-semibold text-gray-800 flex items-center gap-2">
+                      <Truck className="h-4 w-4 text-blue-600" />
+                      Assigned Driver
+                    </h4>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="text-xs"
+                        onClick={() => {
+                          setDetailsOpen(false);
+                          handleAssignDriver(selectedOrder);
+                        }}
+                      >
+                        <RefreshCw className="mr-1 h-3 w-3" />
+                        Change
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="text-xs text-red-600 border-red-200 hover:bg-red-50"
+                        disabled={unassignDriverMutation.isPending}
+                        onClick={() =>
+                          unassignDriverMutation.mutate(selectedOrder.id)
+                        }
+                      >
+                        <XCircle className="mr-1 h-3 w-3" />
+                        {unassignDriverMutation.isPending
+                          ? "Removing..."
+                          : "Unassign"}
+                      </Button>
+                    </div>
+                  </div>
                   <div className="flex items-center gap-4">
                     {/* Driver Photo */}
                     <div className="relative">
@@ -921,13 +997,47 @@ function TerangoStoreOrders() {
       <Dialog open={assignDriverOpen} onOpenChange={setAssignDriverOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Assign Driver</DialogTitle>
+            <DialogTitle>
+              {selectedOrder?.driver ? "Change Driver" : "Assign Driver"}
+            </DialogTitle>
             <DialogDescription>
-              Select a driver for order #{selectedOrder?.orderNumber}
+              {selectedOrder?.driver
+                ? `Currently assigned: ${selectedOrder.driver.name}. Select a different driver for order #${selectedOrder?.orderNumber}`
+                : `Select a driver for order #${selectedOrder?.orderNumber}`}
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4">
+            {/* Required Vehicle Type Banner */}
+            {selectedOrder?.requiredVehicleType && (
+              <div className="flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2">
+                <span className="text-lg">
+                  {selectedOrder.requiredVehicleType === "BIKE" && "🏍️"}
+                  {selectedOrder.requiredVehicleType === "KEKE_CARGO" && "🛺"}
+                  {selectedOrder.requiredVehicleType === "CAR" && "🚗"}
+                  {selectedOrder.requiredVehicleType === "VAN" && "🚐"}
+                  {selectedOrder.requiredVehicleType === "LORRY" && "🚛"}
+                </span>
+                <div className="flex-1">
+                  <p className="text-xs font-semibold text-amber-800">
+                    This order requires:{" "}
+                    {selectedOrder.requiredVehicleType === "BIKE" && "Bike"}
+                    {selectedOrder.requiredVehicleType === "KEKE_CARGO" &&
+                      "Keke Cargo"}
+                    {selectedOrder.requiredVehicleType === "CAR" && "Car"}
+                    {selectedOrder.requiredVehicleType === "VAN" && "Van"}
+                    {selectedOrder.requiredVehicleType === "LORRY" && "Lorry"}
+                  </p>
+                  {selectedOrder.totalWeightKg != null && (
+                    <p className="text-xs text-amber-600">
+                      Estimated weight: {selectedOrder.totalWeightKg.toFixed(1)}{" "}
+                      kg
+                    </p>
+                  )}
+                </div>
+              </div>
+            )}
+
             <div className="space-y-2">
               <Label>Available Drivers</Label>
               <Select
@@ -938,54 +1048,73 @@ function TerangoStoreOrders() {
                   <SelectValue placeholder="Select a driver" />
                 </SelectTrigger>
                 <SelectContent>
-                  {drivers.map((driver) => (
-                    <SelectItem
-                      key={driver.id}
-                      value={driver.id}
-                      className="py-3"
-                    >
-                      <div className="flex items-center gap-3 w-full">
-                        {/* Driver Photo */}
-                        {driver.profileImageUrl ? (
-                          <img
-                            src={driver.profileImageUrl}
-                            alt={driver.name}
-                            className="w-8 h-8 rounded-full object-cover border border-gray-200"
-                          />
-                        ) : (
-                          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white font-medium text-sm">
-                            {driver.name.charAt(0).toUpperCase()}
-                          </div>
-                        )}
+                  {drivers.map((driver) => {
+                    const driverName =
+                      driver.name ||
+                      driver.user?.fullName ||
+                      driver.user?.name ||
+                      "Unknown";
+                    const isCompatible =
+                      !selectedOrder?.requiredVehicleType ||
+                      driver.vehicleType === selectedOrder?.requiredVehicleType;
+                    return (
+                      <SelectItem
+                        key={driver.id}
+                        value={driver.id}
+                        className="py-3"
+                      >
+                        <div className="flex items-center gap-3 w-full">
+                          {/* Driver Photo */}
+                          {driver.profileImageUrl ? (
+                            <img
+                              src={driver.profileImageUrl}
+                              alt={driverName}
+                              className="w-8 h-8 rounded-full object-cover border border-gray-200"
+                            />
+                          ) : (
+                            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white font-medium text-sm">
+                              {driverName.charAt(0).toUpperCase()}
+                            </div>
+                          )}
 
-                        {/* Driver Info */}
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2">
-                            <span className="font-medium">{driver.name}</span>
-                            {driver.vehicleType && (
-                              <span className="text-xs bg-gray-100 px-2 py-0.5 rounded">
-                                {driver.vehicleType === "BIKE" && "🏍️ Bike"}
-                                {driver.vehicleType === "KEKE_CARGO" &&
-                                  "🛺 Keke"}
-                                {driver.vehicleType === "CAR" && "🚗 Car"}
-                                {driver.vehicleType === "VAN" && "🚐 Van"}
-                                {driver.vehicleType === "LORRY" && "🚛 Lorry"}
-                              </span>
-                            )}
-                            {driver.isAvailable && (
-                              <span
-                                className="w-2 h-2 bg-green-400 rounded-full"
-                                title="Available"
-                              ></span>
-                            )}
-                          </div>
-                          <div className="text-xs text-gray-500">
-                            {driver.phone}
+                          {/* Driver Info */}
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2">
+                              <span className="font-medium">{driverName}</span>
+                              {driver.vehicleType && (
+                                <span className="text-xs bg-gray-100 px-2 py-0.5 rounded">
+                                  {driver.vehicleType === "BIKE" && "🏍️ Bike"}
+                                  {driver.vehicleType === "KEKE_CARGO" &&
+                                    "🛺 Keke"}
+                                  {driver.vehicleType === "CAR" && "🚗 Car"}
+                                  {driver.vehicleType === "VAN" && "🚐 Van"}
+                                  {driver.vehicleType === "LORRY" && "🚛 Lorry"}
+                                </span>
+                              )}
+                              {isCompatible &&
+                                selectedOrder?.requiredVehicleType && (
+                                  <span className="text-xs text-green-600 font-medium">
+                                    ✓
+                                  </span>
+                                )}
+                              {driver.isAvailable && (
+                                <span
+                                  className="w-2 h-2 bg-green-400 rounded-full"
+                                  title="Available"
+                                ></span>
+                              )}
+                            </div>
+                            <div className="text-xs text-gray-500">
+                              {driver.phone ||
+                                driver.user?.phone ||
+                                driver.user?.phoneNumber ||
+                                driver.phoneNumber}
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    </SelectItem>
-                  ))}
+                      </SelectItem>
+                    );
+                  })}
                 </SelectContent>
               </Select>
             </div>
