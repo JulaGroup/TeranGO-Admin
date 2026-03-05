@@ -9,12 +9,15 @@ import {
 } from '@/components/ui/dropdown-menu'
 
 export default function NotificationBell() {
-  const unread = useNotificationStore(
-    (s) => s.notifications.filter((n) => !n.read).length
-  )
-  const notifications = useNotificationStore((s) => s.notifications.slice(0, 6))
+  // Select the raw array reference — stable between renders unless store mutates.
+  // Never call .filter()/.slice() inside the selector: it creates a new array
+  // reference on every call which causes useSyncExternalStore to loop infinitely.
+  const allNotifications = useNotificationStore((s) => s.notifications)
   const markRead = useNotificationStore((s) => s.markRead)
   const markAllRead = useNotificationStore((s) => s.markAllRead)
+
+  const unread = allNotifications.filter((n) => !n.read).length
+  const notifications = allNotifications.slice(0, 6)
   const navigate = useNavigate()
 
   return (
