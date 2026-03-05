@@ -269,6 +269,101 @@ export function useOrderNotifications({
       },
     );
 
+    // Listen for orderStatusUpdate (server uses this event name — also covers DISPATCHED, DELIVERED, PROCESSING)
+    socket.on(
+      "orderStatusUpdate",
+      (data: { orderId?: string; status: string; customerName?: string; driverName?: string; paymentId?: string }) => {
+        queryClient.invalidateQueries({ queryKey: ["terango-store-orders"] });
+        queryClient.invalidateQueries({ queryKey: ["vendor-orders"] });
+
+        if (!adminMode) return;
+
+        const statusEmojis: Record<string, string> = {
+          DELIVERED: "🎉",
+          DISPATCHED: "🚀",
+          PROCESSING: "💳",
+          PREPARING: "👨‍🍳",
+          READY: "📦",
+          CANCELLED: "❌",
+        };
+        const emoji = statusEmojis[data.status] ?? "🔄";
+        const statusLabel = data.status.charAt(0) + data.status.slice(1).toLowerCase();
+
+        playNotificationSound();
+        toast.success(`${emoji} Order ${statusLabel}`, {
+          description: `Order #${data.orderId?.slice(-6).toUpperCase()}${data.customerName ? ` — ${data.customerName}` : ""}${data.driverName ? ` · Driver: ${data.driverName}` : ""}`,
+          duration: 7000,
+        });
+        showBrowserNotification(
+          `${emoji} Order ${statusLabel}`,
+          `Order #${data.orderId?.slice(-6).toUpperCase()}${data.customerName ? ` — ${data.customerName}` : ""}`,
+          { orderId: data.orderId, status: data.status },
+        );
+        import("@/stores/notification-store").then((m) =>
+          m.useNotificationStore.getState().addNotification({
+            title: `${emoji} Order ${statusLabel}${data.status === "DELIVERED" ? " ✔" : ""}`,
+            body: `Order #${data.orderId?.slice(-6).toUpperCase()}${data.customerName ? ` — ${data.customerName}` : ""}`,
+            data: data as unknown as Record<string, unknown>,
+          }),
+        );
+      },
+    );
+
+    // Listen for payment success
+    socket.on(
+      "paymentSuccess",
+      (data: { paymentId?: string; orderId?: string; amount?: number; currency?: string }) => {
+        queryClient.invalidateQueries({ queryKey: ["terango-store-orders"] });
+
+        if (!adminMode) return;
+
+        playNotificationSound();
+        const amountStr = data.amount ? ` · D${data.amount}${data.currency ? ` ${data.currency}` : ""}` : "";
+        toast.success("💳 Payment Received!", {
+          description: `Order #${data.orderId?.slice(-6).toUpperCase() ?? "—"}${amountStr}`,
+          duration: 7000,
+        });
+        showBrowserNotification(
+          "💳 Payment Received",
+          `Order #${data.orderId?.slice(-6).toUpperCase() ?? "—"}${amountStr}`,
+          { orderId: data.orderId, type: "payment_success" },
+        );
+        import("@/stores/notification-store").then((m) =>
+          m.useNotificationStore.getState().addNotification({
+            title: "💳 Payment Received",
+            body: `Order #${data.orderId?.slice(-6).toUpperCase() ?? "—"}${amountStr}`,
+            data: data as unknown as Record<string, unknown>,
+          }),
+        );
+      },
+    );
+
+    // Listen for new user registrations
+    socket.on(
+      "newUserRegistered",
+      (data: { phone?: string; createdAt?: string }) => {
+        if (!adminMode) return;
+
+        playNotificationSound();
+        toast.info("👤 New User Registered", {
+          description: `Phone: ${data.phone ?? "Unknown"}`,
+          duration: 6000,
+        });
+        showBrowserNotification(
+          "👤 New User Registered",
+          `Phone: ${data.phone ?? "Unknown"}`,
+          { type: "new_user" },
+        );
+        import("@/stores/notification-store").then((m) =>
+          m.useNotificationStore.getState().addNotification({
+            title: "👤 New User Registered",
+            body: `Phone: ${data.phone ?? "Unknown"}`,
+            data: data as unknown as Record<string, unknown>,
+          }),
+        );
+      },
+    );
+
     // Cleanup on unmount
     return () => {
       if (adminMode) {
