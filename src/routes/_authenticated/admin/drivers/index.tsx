@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import {
   Search,
   MoreHorizontal,
@@ -18,6 +18,7 @@ import {
   Loader2,
   Save,
   UserPlus,
+  DollarSign,
 } from "lucide-react";
 import { toast } from "sonner";
 import { adminApi } from "@/lib/api";
@@ -88,9 +89,11 @@ export const Route = createFileRoute("/_authenticated/admin/drivers/")({
 });
 
 function DriversPage() {
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [typeFilter, setTypeFilter] = useState<string>("all");
   const [selectedDriver, setSelectedDriver] = useState<Driver | null>(null);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
@@ -121,13 +124,13 @@ function DriversPage() {
 
   // Fetch drivers
   const { data: driversData = [], isLoading } = useQuery({
-    queryKey: ["drivers", statusFilter, searchQuery],
+    queryKey: ["drivers", statusFilter, typeFilter, searchQuery],
     queryFn: async () => {
       const response = await adminApi.getDrivers({
         status: statusFilter === "all" ? undefined : statusFilter,
         search: searchQuery || undefined,
+        driverType: typeFilter === "all" ? undefined : typeFilter,
       });
-      // Handle both array and object responses
       const driversList = Array.isArray(response?.data)
         ? response.data
         : response?.data?.data || response?.data?.drivers || [];
@@ -397,6 +400,16 @@ function DriversPage() {
                     <SelectItem value="suspended">Suspended</SelectItem>
                   </SelectContent>
                 </Select>
+                <Select value={typeFilter} onValueChange={setTypeFilter}>
+                  <SelectTrigger className="w-full md:w-[200px]">
+                    <SelectValue placeholder="Filter by type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Types</SelectItem>
+                    <SelectItem value="SYSTEM">TeranGO (Salaried)</SelectItem>
+                    <SelectItem value="THIRD_PARTY">Third-Party</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </CardContent>
           </Card>
@@ -424,6 +437,7 @@ function DriversPage() {
                       <TableHead>Driver</TableHead>
                       <TableHead>Contact</TableHead>
                       <TableHead>Vehicle</TableHead>
+                      <TableHead>Type</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead>Availability</TableHead>
                       <TableHead>Rating</TableHead>
@@ -524,6 +538,24 @@ function DriversPage() {
                           {getStatusBadge(driver.status || "approved")}
                         </TableCell>
                         <TableCell>
+                          <Badge
+                            variant={
+                              driver.driverType === "THIRD_PARTY"
+                                ? "outline"
+                                : "default"
+                            }
+                            className={
+                              driver.driverType === "THIRD_PARTY"
+                                ? "border-orange-500 text-orange-600"
+                                : "bg-blue-600"
+                            }
+                          >
+                            {driver.driverType === "THIRD_PARTY"
+                              ? "Third-Party"
+                              : "TeranGO"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
                           {getAvailabilityBadge(
                             driver.isAvailable ?? true,
                             driver.isOnline ?? true,
@@ -566,6 +598,19 @@ function DriversPage() {
                               >
                                 <Eye className="mr-2 h-4 w-4" />
                                 View Details
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() =>
+                                  navigate({
+                                    to: "/admin/drivers/$driverId" as any,
+                                    params: {
+                                      driverId: driver._id || driver.id,
+                                    } as any,
+                                  })
+                                }
+                              >
+                                <DollarSign className="mr-2 h-4 w-4" />
+                                Earnings &amp; Ratings
                               </DropdownMenuItem>
                               <DropdownMenuItem
                                 onClick={() => handleEditDriver(driver)}

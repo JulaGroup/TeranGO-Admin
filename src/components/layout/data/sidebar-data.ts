@@ -17,6 +17,7 @@ import {
   Package,
   Shield,
   DollarSign,
+  Wallet,
 } from "lucide-react";
 import { type SidebarData } from "../types";
 
@@ -70,6 +71,11 @@ export const sidebarData: SidebarData = {
           title: "Drivers",
           url: "/drivers",
           icon: Truck,
+        },
+        {
+          title: "Driver Settlements",
+          url: "/admin/settlements",
+          icon: Wallet,
         },
         {
           title: "Promo Codes",

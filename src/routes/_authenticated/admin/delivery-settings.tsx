@@ -80,6 +80,9 @@ interface SystemSettings {
   // Weight-based pricing configuration
   weightPricingEnabled: boolean;
   distancePricingEnabled: boolean;
+
+  // Third-party driver split rate
+  thirdPartyDriverRate: number;
 }
 
 function DeliverySettingsPage() {
@@ -803,8 +806,56 @@ function DeliverySettingsPage() {
                   <span className="text-muted-foreground">%</span>
                 </div>
                 <p className="text-sm text-muted-foreground">
-                  Percentage of delivery fee paid to driver
+                  Percentage of delivery fee paid to driver (legacy field)
                 </p>
+              </div>
+
+              <Separator />
+
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <Users className="h-4 w-4 text-orange-500" />
+                  <Label>Third-Party Driver Split Rate</Label>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Input
+                    type="number"
+                    min="0.1"
+                    max="1"
+                    step="0.05"
+                    value={getNumericValue("thirdPartyDriverRate")}
+                    onChange={(e) =>
+                      handleInputChange("thirdPartyDriverRate", e.target.value)
+                    }
+                    disabled={!isEditing}
+                    className="w-24"
+                  />
+                  <span className="text-muted-foreground text-sm">
+                    (e.g. 0.70 = 70% to driver, 30% to platform)
+                  </span>
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  Default split for all third-party drivers. Can be overridden
+                  per driver.
+                </p>
+                {!isEditing && (
+                  <div className="rounded-md border border-orange-200 bg-orange-50 p-3 text-sm text-orange-800">
+                    Current: Driver gets{" "}
+                    <strong>
+                      {Math.round(
+                        getNumericValue("thirdPartyDriverRate") * 100,
+                      )}
+                      %
+                    </strong>{" "}
+                    · Platform keeps{" "}
+                    <strong>
+                      {Math.round(
+                        (1 - getNumericValue("thirdPartyDriverRate")) * 100,
+                      )}
+                      %
+                    </strong>
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>

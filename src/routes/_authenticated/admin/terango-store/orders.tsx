@@ -117,10 +117,17 @@ interface Driver {
   id: string;
   name: string;
   phone: string;
+  phoneNumber?: string;
   vehicleType?: string;
   isAvailable: boolean;
   profileImageUrl?: string;
   vehicleNumber?: string;
+  user?: {
+    fullName?: string;
+    name?: string;
+    phone?: string;
+    phoneNumber?: string;
+  };
 }
 
 const ORDER_STATUSES = [

@@ -44,6 +44,7 @@ import { Route as AuthenticatedAdminTerangoStoreIndexRouteImport } from './route
 import { Route as AuthenticatedAdminTerangoProductsIndexRouteImport } from './routes/_authenticated/admin/terango-products/index'
 import { Route as AuthenticatedAdminSubscriptionsIndexRouteImport } from './routes/_authenticated/admin/subscriptions/index'
 import { Route as AuthenticatedAdminSubcategoriesIndexRouteImport } from './routes/_authenticated/admin/subcategories/index'
+import { Route as AuthenticatedAdminSettlementsIndexRouteImport } from './routes/_authenticated/admin/settlements/index'
 import { Route as AuthenticatedAdminSettingsIndexRouteImport } from './routes/_authenticated/admin/settings/index'
 import { Route as AuthenticatedAdminReportsIndexRouteImport } from './routes/_authenticated/admin/reports/index'
 import { Route as AuthenticatedAdminPromocodesIndexRouteImport } from './routes/_authenticated/admin/promocodes/index'
@@ -59,6 +60,7 @@ import { Route as AuthenticatedAdminAnalyticsIndexRouteImport } from './routes/_
 import { Route as AuthenticatedAdminAdvertisementsIndexRouteImport } from './routes/_authenticated/admin/advertisements/index'
 import { Route as AuthenticatedAdminTerangoStoreSettingsRouteImport } from './routes/_authenticated/admin/terango-store/settings'
 import { Route as AuthenticatedAdminTerangoStoreOrdersRouteImport } from './routes/_authenticated/admin/terango-store/orders'
+import { Route as AuthenticatedAdminDriversDriverIdRouteImport } from './routes/_authenticated/admin/drivers/$driverId'
 import { Route as AuthenticatedAdminAnalyticsAnalyticsIndexRouteImport } from './routes/_authenticated/admin/analytics/analytics/index'
 
 const VendorRoute = VendorRouteImport.update({
@@ -250,6 +252,12 @@ const AuthenticatedAdminSubcategoriesIndexRoute =
     path: '/admin/subcategories/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedAdminSettlementsIndexRoute =
+  AuthenticatedAdminSettlementsIndexRouteImport.update({
+    id: '/admin/settlements/',
+    path: '/admin/settlements/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedAdminSettingsIndexRoute =
   AuthenticatedAdminSettingsIndexRouteImport.update({
     id: '/admin/settings/',
@@ -340,6 +348,12 @@ const AuthenticatedAdminTerangoStoreOrdersRoute =
     path: '/admin/terango-store/orders',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedAdminDriversDriverIdRoute =
+  AuthenticatedAdminDriversDriverIdRouteImport.update({
+    id: '/admin/drivers/$driverId',
+    path: '/admin/drivers/$driverId',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedAdminAnalyticsAnalyticsIndexRoute =
   AuthenticatedAdminAnalyticsAnalyticsIndexRouteImport.update({
     id: '/admin/analytics/analytics/',
@@ -375,6 +389,7 @@ export interface FileRoutesByFullPath {
   '/vendors': typeof AuthenticatedVendorsIndexRoute
   '/subscription': typeof VendorSubscriptionIndexRoute
   '/vendor': typeof VendorVendorIndexRoute
+  '/admin/drivers/$driverId': typeof AuthenticatedAdminDriversDriverIdRoute
   '/admin/terango-store/orders': typeof AuthenticatedAdminTerangoStoreOrdersRoute
   '/admin/terango-store/settings': typeof AuthenticatedAdminTerangoStoreSettingsRoute
   '/admin/advertisements': typeof AuthenticatedAdminAdvertisementsIndexRoute
@@ -390,6 +405,7 @@ export interface FileRoutesByFullPath {
   '/admin/promocodes': typeof AuthenticatedAdminPromocodesIndexRoute
   '/admin/reports': typeof AuthenticatedAdminReportsIndexRoute
   '/admin/settings': typeof AuthenticatedAdminSettingsIndexRoute
+  '/admin/settlements': typeof AuthenticatedAdminSettlementsIndexRoute
   '/admin/subcategories': typeof AuthenticatedAdminSubcategoriesIndexRoute
   '/admin/subscriptions': typeof AuthenticatedAdminSubscriptionsIndexRoute
   '/admin/terango-products': typeof AuthenticatedAdminTerangoProductsIndexRoute
@@ -426,6 +442,7 @@ export interface FileRoutesByTo {
   '/vendors': typeof AuthenticatedVendorsIndexRoute
   '/subscription': typeof VendorSubscriptionIndexRoute
   '/vendor': typeof VendorVendorIndexRoute
+  '/admin/drivers/$driverId': typeof AuthenticatedAdminDriversDriverIdRoute
   '/admin/terango-store/orders': typeof AuthenticatedAdminTerangoStoreOrdersRoute
   '/admin/terango-store/settings': typeof AuthenticatedAdminTerangoStoreSettingsRoute
   '/admin/advertisements': typeof AuthenticatedAdminAdvertisementsIndexRoute
@@ -441,6 +458,7 @@ export interface FileRoutesByTo {
   '/admin/promocodes': typeof AuthenticatedAdminPromocodesIndexRoute
   '/admin/reports': typeof AuthenticatedAdminReportsIndexRoute
   '/admin/settings': typeof AuthenticatedAdminSettingsIndexRoute
+  '/admin/settlements': typeof AuthenticatedAdminSettlementsIndexRoute
   '/admin/subcategories': typeof AuthenticatedAdminSubcategoriesIndexRoute
   '/admin/subscriptions': typeof AuthenticatedAdminSubscriptionsIndexRoute
   '/admin/terango-products': typeof AuthenticatedAdminTerangoProductsIndexRoute
@@ -480,6 +498,7 @@ export interface FileRoutesById {
   '/_authenticated/vendors/': typeof AuthenticatedVendorsIndexRoute
   '/_vendor/subscription/': typeof VendorSubscriptionIndexRoute
   '/_vendor/vendor/': typeof VendorVendorIndexRoute
+  '/_authenticated/admin/drivers/$driverId': typeof AuthenticatedAdminDriversDriverIdRoute
   '/_authenticated/admin/terango-store/orders': typeof AuthenticatedAdminTerangoStoreOrdersRoute
   '/_authenticated/admin/terango-store/settings': typeof AuthenticatedAdminTerangoStoreSettingsRoute
   '/_authenticated/admin/advertisements/': typeof AuthenticatedAdminAdvertisementsIndexRoute
@@ -495,6 +514,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/promocodes/': typeof AuthenticatedAdminPromocodesIndexRoute
   '/_authenticated/admin/reports/': typeof AuthenticatedAdminReportsIndexRoute
   '/_authenticated/admin/settings/': typeof AuthenticatedAdminSettingsIndexRoute
+  '/_authenticated/admin/settlements/': typeof AuthenticatedAdminSettlementsIndexRoute
   '/_authenticated/admin/subcategories/': typeof AuthenticatedAdminSubcategoriesIndexRoute
   '/_authenticated/admin/subscriptions/': typeof AuthenticatedAdminSubscriptionsIndexRoute
   '/_authenticated/admin/terango-products/': typeof AuthenticatedAdminTerangoProductsIndexRoute
@@ -533,6 +553,7 @@ export interface FileRouteTypes {
     | '/vendors'
     | '/subscription'
     | '/vendor'
+    | '/admin/drivers/$driverId'
     | '/admin/terango-store/orders'
     | '/admin/terango-store/settings'
     | '/admin/advertisements'
@@ -548,6 +569,7 @@ export interface FileRouteTypes {
     | '/admin/promocodes'
     | '/admin/reports'
     | '/admin/settings'
+    | '/admin/settlements'
     | '/admin/subcategories'
     | '/admin/subscriptions'
     | '/admin/terango-products'
@@ -584,6 +606,7 @@ export interface FileRouteTypes {
     | '/vendors'
     | '/subscription'
     | '/vendor'
+    | '/admin/drivers/$driverId'
     | '/admin/terango-store/orders'
     | '/admin/terango-store/settings'
     | '/admin/advertisements'
@@ -599,6 +622,7 @@ export interface FileRouteTypes {
     | '/admin/promocodes'
     | '/admin/reports'
     | '/admin/settings'
+    | '/admin/settlements'
     | '/admin/subcategories'
     | '/admin/subscriptions'
     | '/admin/terango-products'
@@ -637,6 +661,7 @@ export interface FileRouteTypes {
     | '/_authenticated/vendors/'
     | '/_vendor/subscription/'
     | '/_vendor/vendor/'
+    | '/_authenticated/admin/drivers/$driverId'
     | '/_authenticated/admin/terango-store/orders'
     | '/_authenticated/admin/terango-store/settings'
     | '/_authenticated/admin/advertisements/'
@@ -652,6 +677,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/promocodes/'
     | '/_authenticated/admin/reports/'
     | '/_authenticated/admin/settings/'
+    | '/_authenticated/admin/settlements/'
     | '/_authenticated/admin/subcategories/'
     | '/_authenticated/admin/subscriptions/'
     | '/_authenticated/admin/terango-products/'
@@ -920,6 +946,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminSubcategoriesIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/admin/settlements/': {
+      id: '/_authenticated/admin/settlements/'
+      path: '/admin/settlements'
+      fullPath: '/admin/settlements'
+      preLoaderRoute: typeof AuthenticatedAdminSettlementsIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/admin/settings/': {
       id: '/_authenticated/admin/settings/'
       path: '/admin/settings'
@@ -1025,6 +1058,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminTerangoStoreOrdersRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/admin/drivers/$driverId': {
+      id: '/_authenticated/admin/drivers/$driverId'
+      path: '/admin/drivers/$driverId'
+      fullPath: '/admin/drivers/$driverId'
+      preLoaderRoute: typeof AuthenticatedAdminDriversDriverIdRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/admin/analytics/analytics/': {
       id: '/_authenticated/admin/analytics/analytics/'
       path: '/admin/analytics/analytics'
@@ -1048,6 +1088,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedReportsIndexRoute: typeof AuthenticatedReportsIndexRoute
   AuthenticatedSubcategoriesIndexRoute: typeof AuthenticatedSubcategoriesIndexRoute
   AuthenticatedVendorsIndexRoute: typeof AuthenticatedVendorsIndexRoute
+  AuthenticatedAdminDriversDriverIdRoute: typeof AuthenticatedAdminDriversDriverIdRoute
   AuthenticatedAdminTerangoStoreOrdersRoute: typeof AuthenticatedAdminTerangoStoreOrdersRoute
   AuthenticatedAdminTerangoStoreSettingsRoute: typeof AuthenticatedAdminTerangoStoreSettingsRoute
   AuthenticatedAdminAdvertisementsIndexRoute: typeof AuthenticatedAdminAdvertisementsIndexRoute
@@ -1063,6 +1104,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdminPromocodesIndexRoute: typeof AuthenticatedAdminPromocodesIndexRoute
   AuthenticatedAdminReportsIndexRoute: typeof AuthenticatedAdminReportsIndexRoute
   AuthenticatedAdminSettingsIndexRoute: typeof AuthenticatedAdminSettingsIndexRoute
+  AuthenticatedAdminSettlementsIndexRoute: typeof AuthenticatedAdminSettlementsIndexRoute
   AuthenticatedAdminSubcategoriesIndexRoute: typeof AuthenticatedAdminSubcategoriesIndexRoute
   AuthenticatedAdminSubscriptionsIndexRoute: typeof AuthenticatedAdminSubscriptionsIndexRoute
   AuthenticatedAdminTerangoProductsIndexRoute: typeof AuthenticatedAdminTerangoProductsIndexRoute
@@ -1086,6 +1128,8 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedReportsIndexRoute: AuthenticatedReportsIndexRoute,
   AuthenticatedSubcategoriesIndexRoute: AuthenticatedSubcategoriesIndexRoute,
   AuthenticatedVendorsIndexRoute: AuthenticatedVendorsIndexRoute,
+  AuthenticatedAdminDriversDriverIdRoute:
+    AuthenticatedAdminDriversDriverIdRoute,
   AuthenticatedAdminTerangoStoreOrdersRoute:
     AuthenticatedAdminTerangoStoreOrdersRoute,
   AuthenticatedAdminTerangoStoreSettingsRoute:
@@ -1108,6 +1152,8 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
     AuthenticatedAdminPromocodesIndexRoute,
   AuthenticatedAdminReportsIndexRoute: AuthenticatedAdminReportsIndexRoute,
   AuthenticatedAdminSettingsIndexRoute: AuthenticatedAdminSettingsIndexRoute,
+  AuthenticatedAdminSettlementsIndexRoute:
+    AuthenticatedAdminSettlementsIndexRoute,
   AuthenticatedAdminSubcategoriesIndexRoute:
     AuthenticatedAdminSubcategoriesIndexRoute,
   AuthenticatedAdminSubscriptionsIndexRoute:

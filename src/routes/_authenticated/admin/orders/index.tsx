@@ -570,7 +570,7 @@ function OrdersPage() {
                           <TableRow key={order._id || "unknown"}>
                             <TableCell>
                               <code className="font-mono text-xs">
-                                #{order._id?.substring(0, 8) || "N/A"}
+                                TG{order._id?.slice(-4).toUpperCase() || "N/A"}
                               </code>
                             </TableCell>
                             <TableCell>
@@ -911,7 +911,8 @@ function OrdersPage() {
                   <div className="flex items-start justify-between">
                     <div>
                       <h3 className="text-xl font-bold">
-                        Order #{selectedOrder._id?.substring(0, 8) || "N/A"}
+                        Order # TG
+                        {selectedOrder._id?.slice(-4).toUpperCase() || "N/A"}
                       </h3>
                       <p className="text-muted-foreground text-sm">
                         {selectedOrder.createdAt
@@ -1158,7 +1159,8 @@ function OrdersPage() {
               <div className="space-y-4">
                 {selectedOrder && (
                   <div className="text-sm text-muted-foreground">
-                    Order #{selectedOrder._id?.substring(0, 8) || "N/A"} —{" "}
+                    Order TG
+                    {selectedOrder._id?.slice(-4).toUpperCase() || "N/A"} —{" "}
                     {selectedOrder.user?.name || selectedOrder.user?.fullName}
                   </div>
                 )}
