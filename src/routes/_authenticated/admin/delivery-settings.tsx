@@ -3,7 +3,7 @@
  *
  * Admin can configure:
  * - Gift order zone-based delivery fees
- * - Distance-based delivery fee tiers
+ * - Fallback delivery fee tiers (used when vehicle-based pricing is off/unavailable)
  * - Free delivery thresholds
  * - Service fees
  * - Driver commission
@@ -40,6 +40,7 @@ import {
   RefreshCw,
   Info,
   Users,
+  Weight,
 } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/admin/delivery-settings")(
@@ -230,22 +231,135 @@ function DeliverySettingsPage() {
                 <CardTitle>Gift Order Delivery Zones</CardTitle>
               </div>
               <CardDescription>
-                Flat delivery fees for "Buy for Others" orders based on
-                town/area
+                "Buy for Others" delivery pricing — zone fees are fallback only
+                when Weight-Based Pricing is <strong>off</strong>. When
+                Weight-Based Pricing is <strong>on</strong>, vehicle base fees +
+                per-km rates apply automatically.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="p-3 bg-muted rounded-lg">
-                <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
-                  <Info className="h-4 w-4" />
-                  <span>Beta: West Coast Region Only</span>
+              {/* Weight-based pricing notice */}
+              <div
+                className={`rounded-lg p-3 text-sm ${
+                  getValue("weightPricingEnabled")
+                    ? "border border-green-200 bg-green-50 text-green-800"
+                    : "border border-yellow-200 bg-yellow-50 text-yellow-800"
+                }`}
+              >
+                <div className="flex items-center gap-2 font-medium">
+                  <Weight className="h-4 w-4" />
+                  {getValue("weightPricingEnabled") ? (
+                    <span>
+                      ✅ Weight-Based Pricing is ON — gift order fees vary by
+                      vehicle type (🏍️ bike / 🛺 keke / 🚗 car…). Zone fees
+                      below are fallback only.
+                    </span>
+                  ) : (
+                    <span>
+                      ⚠️ Weight-Based Pricing is OFF — flat zone fees below are
+                      used for all gift orders regardless of vehicle. Enable it
+                      in "Vehicle-Based Pricing" to charge correctly per vehicle
+                      type.
+                    </span>
+                  )}
                 </div>
               </div>
+
+              {/* Reference table: zone × vehicle */}
+              {getValue("weightPricingEnabled") && (
+                <div className="rounded-lg border bg-muted/40 p-3">
+                  <p className="mb-2 text-xs font-semibold text-muted-foreground">
+                    REPRESENTATIVE FEES PER ZONE (Base Fee shown · actual = base
+                    + distance × per-km rate)
+                  </p>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-xs">
+                      <thead>
+                        <tr className="text-muted-foreground">
+                          <th className="pb-1 text-left font-medium">Zone</th>
+                          <th className="pb-1 text-center font-medium">
+                            🏍️ Bike
+                          </th>
+                          <th className="pb-1 text-center font-medium">
+                            🛺 Keke
+                          </th>
+                          <th className="pb-1 text-center font-medium">
+                            🚗 Car
+                          </th>
+                          <th className="pb-1 text-center font-medium">
+                            🚐 Van
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y">
+                        {[
+                          {
+                            label: "Zone 1 · Central",
+                            color: "text-green-700",
+                            extraKm: 3,
+                          },
+                          {
+                            label: "Zone 2 · Banjul",
+                            color: "text-blue-700",
+                            extraKm: 6,
+                          },
+                          {
+                            label: "Zone 3 · West Coast",
+                            color: "text-orange-700",
+                            extraKm: 12,
+                          },
+                        ].map(({ label, color, extraKm }) => (
+                          <tr key={label}>
+                            <td className={`py-1 font-medium ${color}`}>
+                              {label}
+                            </td>
+                            {(
+                              [
+                                "bikeDeliveryFee",
+                                "kekeCargoDeliveryFee",
+                                "carDeliveryFee",
+                                "vanDeliveryFee",
+                              ] as const
+                            ).map((field) => {
+                              const perKmField = field.replace(
+                                "DeliveryFee",
+                                "PerKmFee",
+                              ) as keyof SystemSettings;
+                              const est = Math.round(
+                                getNumericValue(field) +
+                                  extraKm * getNumericValue(perKmField),
+                              );
+                              return (
+                                <td
+                                  key={field}
+                                  className="py-1 text-center font-mono"
+                                >
+                                  ~D{est}
+                                </td>
+                              );
+                            })}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Estimates based on ≈3 km / 6 km / 12 km typical distances.
+                    Actual fee calculated at order time.
+                  </p>
+                </div>
+              )}
+
+              <Separator />
+
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                Fallback Flat Fees (used when Weight-Based Pricing is off)
+              </p>
 
               {/* Zone 1 */}
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <Label>Zone 1 - Central</Label>
+                  <Label>Zone 1 — Central</Label>
                   <Badge
                     variant="outline"
                     className="bg-green-50 text-green-700"
@@ -272,7 +386,7 @@ function DeliverySettingsPage() {
               {/* Zone 2 */}
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <Label>Zone 2 - Greater Banjul</Label>
+                  <Label>Zone 2 — Greater Banjul</Label>
                   <Badge variant="outline" className="bg-blue-50 text-blue-700">
                     Bakau, Fajara, Kotu, Kololi
                   </Badge>
@@ -296,7 +410,7 @@ function DeliverySettingsPage() {
               {/* Zone 3 */}
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <Label>Zone 3 - West Coast</Label>
+                  <Label>Zone 3 — West Coast</Label>
                   <Badge
                     variant="outline"
                     className="bg-orange-50 text-orange-700"
@@ -311,128 +425,6 @@ function DeliverySettingsPage() {
                     value={getNumericValue("giftZone3Fee")}
                     onChange={(e) =>
                       handleInputChange("giftZone3Fee", e.target.value)
-                    }
-                    disabled={!isEditing}
-                    className="w-24"
-                  />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Distance-based Delivery Fees */}
-          <Card>
-            <CardHeader>
-              <div className="flex items-center gap-2">
-                <Truck className="h-5 w-5 text-blue-500" />
-                <CardTitle>Distance-Based Delivery Fees</CardTitle>
-              </div>
-              <CardDescription>
-                Tiered delivery fees based on distance from vendor to customer
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {/* Tier 1: 0-5km */}
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <MapPin className="h-4 w-4 text-muted-foreground" />
-                  <Label>0 - 5 km</Label>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-muted-foreground">D</span>
-                  <Input
-                    type="number"
-                    value={getNumericValue("deliveryFee0to5km")}
-                    onChange={(e) =>
-                      handleInputChange("deliveryFee0to5km", e.target.value)
-                    }
-                    disabled={!isEditing}
-                    className="w-24"
-                  />
-                </div>
-              </div>
-
-              <Separator />
-
-              {/* Tier 2: 5-10km */}
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <MapPin className="h-4 w-4 text-muted-foreground" />
-                  <Label>5 - 10 km</Label>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-muted-foreground">D</span>
-                  <Input
-                    type="number"
-                    value={getNumericValue("deliveryFee5to10km")}
-                    onChange={(e) =>
-                      handleInputChange("deliveryFee5to10km", e.target.value)
-                    }
-                    disabled={!isEditing}
-                    className="w-24"
-                  />
-                </div>
-              </div>
-
-              <Separator />
-
-              {/* Tier 3: 10-20km */}
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <MapPin className="h-4 w-4 text-muted-foreground" />
-                  <Label>10 - 20 km</Label>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-muted-foreground">D</span>
-                  <Input
-                    type="number"
-                    value={getNumericValue("deliveryFee10to20km")}
-                    onChange={(e) =>
-                      handleInputChange("deliveryFee10to20km", e.target.value)
-                    }
-                    disabled={!isEditing}
-                    className="w-24"
-                  />
-                </div>
-              </div>
-
-              <Separator />
-
-              {/* Tier 4: 20-30km */}
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <MapPin className="h-4 w-4 text-muted-foreground" />
-                  <Label>20 - 30 km</Label>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-muted-foreground">D</span>
-                  <Input
-                    type="number"
-                    value={getNumericValue("deliveryFee20to30km")}
-                    onChange={(e) =>
-                      handleInputChange("deliveryFee20to30km", e.target.value)
-                    }
-                    disabled={!isEditing}
-                    className="w-24"
-                  />
-                </div>
-              </div>
-
-              <Separator />
-
-              {/* Tier 5: >30km */}
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <MapPin className="h-4 w-4 text-muted-foreground" />
-                  <Label>&gt; 30 km</Label>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-muted-foreground">D</span>
-                  <Input
-                    type="number"
-                    value={getNumericValue("deliveryFeeAbove30km")}
-                    onChange={(e) =>
-                      handleInputChange("deliveryFeeAbove30km", e.target.value)
                     }
                     disabled={!isEditing}
                     className="w-24"
@@ -525,7 +517,10 @@ function DeliverySettingsPage() {
               </div>
               <CardDescription>
                 Set base fees and per-kilometer rates for each vehicle type.
-                Distance-based pricing: Base Fee + (Distance × Per-km Rate)
+                Applies to{" "}
+                <strong>both regular delivery and gift orders</strong>
+                when Weight-Based Pricing is enabled. Formula: Base Fee +
+                (Distance × Per-km Rate)
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -743,8 +738,132 @@ function DeliverySettingsPage() {
                   <span>
                     Total delivery fee = Base Fee + (Distance × Per-km Rate).
                     Vehicle type is automatically selected based on order
-                    weight.
+                    weight. <strong>This also applies to gift orders</strong>{" "}
+                    when Weight-Based Pricing is enabled above.
                   </span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Fallback Delivery Fees */}
+          <Card>
+            <CardHeader>
+              <div className="flex items-center gap-2">
+                <Truck className="h-5 w-5 text-blue-500" />
+                <CardTitle>Fallback Delivery Fees</CardTitle>
+              </div>
+              <CardDescription>
+                Used when vehicle-based pricing is disabled or unavailable.
+                Tiered by distance from vendor to customer.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {/* Tier 1: 0-5km */}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <MapPin className="h-4 w-4 text-muted-foreground" />
+                  <Label>0 - 5 km</Label>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-muted-foreground">D</span>
+                  <Input
+                    type="number"
+                    value={getNumericValue("deliveryFee0to5km")}
+                    onChange={(e) =>
+                      handleInputChange("deliveryFee0to5km", e.target.value)
+                    }
+                    disabled={!isEditing}
+                    className="w-24"
+                  />
+                </div>
+              </div>
+
+              <Separator />
+
+              {/* Tier 2: 5-10km */}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <MapPin className="h-4 w-4 text-muted-foreground" />
+                  <Label>5 - 10 km</Label>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-muted-foreground">D</span>
+                  <Input
+                    type="number"
+                    value={getNumericValue("deliveryFee5to10km")}
+                    onChange={(e) =>
+                      handleInputChange("deliveryFee5to10km", e.target.value)
+                    }
+                    disabled={!isEditing}
+                    className="w-24"
+                  />
+                </div>
+              </div>
+
+              <Separator />
+
+              {/* Tier 3: 10-20km */}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <MapPin className="h-4 w-4 text-muted-foreground" />
+                  <Label>10 - 20 km</Label>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-muted-foreground">D</span>
+                  <Input
+                    type="number"
+                    value={getNumericValue("deliveryFee10to20km")}
+                    onChange={(e) =>
+                      handleInputChange("deliveryFee10to20km", e.target.value)
+                    }
+                    disabled={!isEditing}
+                    className="w-24"
+                  />
+                </div>
+              </div>
+
+              <Separator />
+
+              {/* Tier 4: 20-30km */}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <MapPin className="h-4 w-4 text-muted-foreground" />
+                  <Label>20 - 30 km</Label>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-muted-foreground">D</span>
+                  <Input
+                    type="number"
+                    value={getNumericValue("deliveryFee20to30km")}
+                    onChange={(e) =>
+                      handleInputChange("deliveryFee20to30km", e.target.value)
+                    }
+                    disabled={!isEditing}
+                    className="w-24"
+                  />
+                </div>
+              </div>
+
+              <Separator />
+
+              {/* Tier 5: >30km */}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <MapPin className="h-4 w-4 text-muted-foreground" />
+                  <Label>&gt; 30 km</Label>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-muted-foreground">D</span>
+                  <Input
+                    type="number"
+                    value={getNumericValue("deliveryFeeAbove30km")}
+                    onChange={(e) =>
+                      handleInputChange("deliveryFeeAbove30km", e.target.value)
+                    }
+                    disabled={!isEditing}
+                    className="w-24"
+                  />
                 </div>
               </div>
             </CardContent>
@@ -870,16 +989,31 @@ function DeliverySettingsPage() {
             <div className="grid gap-4 md:grid-cols-3">
               <div className="p-4 bg-muted rounded-lg">
                 <p className="text-sm text-muted-foreground">
-                  Gift Order Zones
+                  Gift Order Pricing
                 </p>
-                <p className="text-lg font-semibold">
-                  D{getNumericValue("giftZone1Fee")} / D
-                  {getNumericValue("giftZone2Fee")} / D
-                  {getNumericValue("giftZone3Fee")}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  Zone 1 / Zone 2 / Zone 3
-                </p>
+                {getValue("weightPricingEnabled") ? (
+                  <>
+                    <p className="text-lg font-semibold text-green-700">
+                      Vehicle-Based ✅
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      🏍️ D{getNumericValue("bikeDeliveryFee")} / 🛺 D
+                      {getNumericValue("kekeCargoDeliveryFee")} / 🚗 D
+                      {getNumericValue("carDeliveryFee")} base fees
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-lg font-semibold text-yellow-600">
+                      Flat Zones ⚠️
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      D{getNumericValue("giftZone1Fee")} / D
+                      {getNumericValue("giftZone2Fee")} / D
+                      {getNumericValue("giftZone3Fee")} (Z1/Z2/Z3)
+                    </p>
+                  </>
+                )}
               </div>
               <div className="p-4 bg-muted rounded-lg">
                 <p className="text-sm text-muted-foreground">Free Delivery</p>

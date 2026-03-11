@@ -97,6 +97,12 @@ interface Order {
   orderItems: OrderItem[];
   totalWeightKg?: number;
   requiredVehicleType?: string;
+  // Gift order fields
+  isGiftOrder?: boolean;
+  recipientName?: string | null;
+  recipientPhone?: string | null;
+  recipientAddress?: string | null;
+  recipientTown?: string | null;
   user?: {
     id: string;
     name: string;
@@ -179,6 +185,7 @@ const ADMIN_SETTABLE_STATUSES = [
   "PREPARING",
   "READY",
   "DISPATCHED",
+  "DELIVERED",
   "CANCELLED",
 ];
 
@@ -569,8 +576,16 @@ function TerangoStoreOrders() {
                           </TableCell>
                           <TableCell>
                             <div>
-                              <p className="font-medium">
+                              <p className="font-medium flex items-center gap-1">
                                 {order.customerName || "N/A"}
+                                {order.isGiftOrder && (
+                                  <span
+                                    title={`Gift for ${order.recipientName || "recipient"}`}
+                                    className="text-base leading-none"
+                                  >
+                                    🎁
+                                  </span>
+                                )}
                               </p>
                               <p className="text-muted-foreground text-xs">
                                 {order.customerPhone || "N/A"}
@@ -688,7 +703,9 @@ function TerangoStoreOrders() {
               <div>
                 <h3 className="mb-2 flex items-center gap-2 font-semibold">
                   <User className="h-4 w-4" />
-                  Customer Information
+                  {selectedOrder.isGiftOrder
+                    ? "Ordering Customer"
+                    : "Customer Information"}
                 </h3>
                 <div className="space-y-1 rounded-lg border p-3">
                   <p className="flex items-center gap-2">
@@ -709,6 +726,60 @@ function TerangoStoreOrders() {
                   )}
                 </div>
               </div>
+
+              {/* Gift Order Recipient Info */}
+              {selectedOrder.isGiftOrder && (
+                <div className="rounded-lg border border-pink-200 bg-gradient-to-r from-pink-50 to-rose-50 p-3">
+                  <h3 className="mb-2 flex items-center gap-2 font-semibold text-pink-800">
+                    <span>\uD83C\uDF81</span>
+                    Gift Order — Recipient Details
+                  </h3>
+                  <div className="space-y-1 text-sm">
+                    {selectedOrder.recipientName && (
+                      <p className="flex items-center gap-2">
+                        <span className="text-muted-foreground w-20">
+                          Recipient:
+                        </span>
+                        <span className="font-medium">
+                          {selectedOrder.recipientName}
+                        </span>
+                      </p>
+                    )}
+                    {selectedOrder.recipientPhone && (
+                      <p className="flex items-center gap-2">
+                        <Phone className="h-3 w-3 text-pink-500" />
+                        <span className="text-muted-foreground w-20">
+                          Phone:
+                        </span>
+                        <span className="font-medium">
+                          {selectedOrder.recipientPhone}
+                        </span>
+                      </p>
+                    )}
+                    {selectedOrder.recipientAddress && (
+                      <p className="flex items-center gap-2">
+                        <MapPin className="h-3 w-3 text-pink-500" />
+                        <span className="text-muted-foreground w-20">
+                          Landmark:
+                        </span>
+                        <span className="font-medium">
+                          {selectedOrder.recipientAddress}
+                        </span>
+                      </p>
+                    )}
+                    {selectedOrder.recipientTown && (
+                      <p className="flex items-center gap-2">
+                        <span className="text-muted-foreground w-20">
+                          Town:
+                        </span>
+                        <span className="font-medium capitalize">
+                          {selectedOrder.recipientTown.replace(/_/g, " ")}
+                        </span>
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )}
 
               {/* Order Items */}
               <div>
@@ -969,8 +1040,9 @@ function TerangoStoreOrders() {
               <div>
                 <h3 className="mb-2 font-semibold">Update Status</h3>
                 <p className="text-muted-foreground mb-2 text-xs">
-                  Note: Only drivers can mark orders as Delivered by scanning QR
-                  code
+                  {selectedOrder.isGiftOrder
+                    ? "Gift order: confirm delivery with the driver via Slack, then click Delivered."
+                    : "Select the new status for this order."}
                 </p>
                 <div className="flex flex-wrap gap-2">
                   {ORDER_STATUSES.filter((s) =>

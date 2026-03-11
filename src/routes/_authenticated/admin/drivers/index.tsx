@@ -120,6 +120,8 @@ function DriversPage() {
     vehicleColor: "",
     profileImage: "",
     status: "",
+    driverType: "SYSTEM",
+    thirdPartyRate: "",
   });
 
   // Fetch drivers
@@ -225,6 +227,10 @@ function DriversPage() {
       vehicleColor: (driver as any).vehicleColor || "",
       profileImage: driver.profileImage || driver.profileImageUrl || "",
       status: (driver as any).status || "approved",
+      driverType: (driver as any).driverType || "SYSTEM",
+      thirdPartyRate: (driver as any).thirdPartyRate
+        ? String((driver as any).thirdPartyRate)
+        : "",
     });
     setIsEditOpen(true);
   };
@@ -1048,6 +1054,81 @@ function DriversPage() {
                           }
                           placeholder="Red, Blue, White, etc."
                         />
+                      </div>
+                    </div>
+
+                    {/* Driver Type & Earnings */}
+                    <div className="space-y-4 rounded-lg border p-4">
+                      <h4 className="font-semibold">
+                        Driver Type &amp; Earnings
+                      </h4>
+                      <div className="grid gap-4 sm:grid-cols-2">
+                        <div className="space-y-2">
+                          <Label>Driver Type</Label>
+                          <Select
+                            value={editForm.driverType}
+                            onValueChange={(v) =>
+                              setEditForm((prev) => ({
+                                ...prev,
+                                driverType: v,
+                              }))
+                            }
+                          >
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="SYSTEM">
+                                TeranGO (Salaried)
+                              </SelectItem>
+                              <SelectItem value="THIRD_PARTY">
+                                Third-Party (Commission)
+                              </SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <p className="text-muted-foreground text-xs">
+                            {editForm.driverType === "SYSTEM"
+                              ? "Salaried — no per-order earnings tracked."
+                              : "Earns a commission % per delivery."}
+                          </p>
+                        </div>
+                        {editForm.driverType === "THIRD_PARTY" && (
+                          <div className="space-y-2">
+                            <Label>
+                              Split Rate
+                              <span className="text-muted-foreground ml-2 text-xs">
+                                Leave blank for global default
+                              </span>
+                            </Label>
+                            <Input
+                              type="number"
+                              min="0.1"
+                              max="1"
+                              step="0.05"
+                              placeholder="e.g. 0.70 for 70%"
+                              value={editForm.thirdPartyRate}
+                              onChange={(e) =>
+                                setEditForm((prev) => ({
+                                  ...prev,
+                                  thirdPartyRate: e.target.value,
+                                }))
+                              }
+                            />
+                            {editForm.thirdPartyRate && (
+                              <p className="text-muted-foreground text-xs">
+                                Driver gets{" "}
+                                {Math.round(
+                                  Number(editForm.thirdPartyRate) * 100,
+                                )}
+                                % — Platform keeps{" "}
+                                {Math.round(
+                                  (1 - Number(editForm.thirdPartyRate)) * 100,
+                                )}
+                                %
+                              </p>
+                            )}
+                          </div>
+                        )}
                       </div>
                     </div>
 

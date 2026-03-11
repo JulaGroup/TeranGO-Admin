@@ -10,12 +10,16 @@ import {
   AlertCircle,
   ChevronLeft,
   ChevronRight,
+  Edit,
+  Upload,
+  Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { api } from "@/lib/api";
 import { adminApi } from "@/lib/api";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   Card,
   CardContent,
@@ -54,6 +58,9 @@ import { TopNav } from "@/components/layout/top-nav";
 import { ProfileDropdown } from "@/components/profile-dropdown";
 import { Search } from "@/components/search";
 import { ThemeSwitch } from "@/components/theme-switch";
+
+const CLOUDINARY_CLOUD_NAME = "dkpi5ij2t";
+const CLOUDINARY_UPLOAD_PRESET = "unsigned_preset";
 
 export const Route = createFileRoute("/_authenticated/admin/drivers/$driverId")(
   {
@@ -102,8 +109,19 @@ function DriverDetailPage() {
   const [earningsPage, setEarningsPage] = useState(1);
   const [earningsStatus, setEarningsStatus] = useState<string>("all");
   const [ratingsPage, setRatingsPage] = useState(1);
-  const [isEditTypeOpen, setIsEditTypeOpen] = useState(false);
-  const [editTypeForm, setEditTypeForm] = useState({
+
+  // ─── Full edit dialog state ───────────────────────────────────────────────
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const [editForm, setEditForm] = useState({
+    name: "",
+    email: "",
+    phoneNumber: "",
+    vehicleType: "BIKE",
+    vehicleNumber: "",
+    vehicleColor: "",
+    profileImage: "",
+    status: "approved",
     driverType: "SYSTEM",
     thirdPartyRate: "",
   });
@@ -112,11 +130,17 @@ function DriverDetailPage() {
   const { data: driver, isLoading: driverLoading } = useQuery({
     queryKey: ["driver", driverId],
     queryFn: async () => {
-      const res = await adminApi.getDrivers({});
-      const list = Array.isArray(res?.data)
-        ? res.data
-        : res?.data?.data || res?.data?.drivers || [];
-      return list.find((d: any) => d.id === driverId || d._id === driverId);
+      try {
+        const res = await adminApi.getDriverById(driverId);
+        return res?.data?.data || res?.data || null;
+      } catch {
+        // fallback: search full list
+        const res = await adminApi.getDrivers({});
+        const list = Array.isArray(res?.data)
+          ? res.data
+          : res?.data?.data || res?.data?.drivers || [];
+        return list.find((d: any) => d.id === driverId || d._id === driverId);
+      }
     },
   });
 
@@ -163,18 +187,42 @@ function DriverDetailPage() {
     },
   });
 
-  // ─── Update driver type mutation ──────────────────────────────────────────
-  const updateTypeMutation = useMutation({
-    mutationFn: (data: any) =>
-      api.patch(`/api/admin/drivers/${driverId}/type`, data),
+  // ─── Full update driver mutation ──────────────────────────────────────────
+  const updateDriverMutation = useMutation({
+    mutationFn: (data: any) => adminApi.updateDriver(driverId, data),
     onSuccess: () => {
-      toast.success("Driver type updated");
+      toast.success("Driver updated successfully");
       queryClient.invalidateQueries({ queryKey: ["driver", driverId] });
       queryClient.invalidateQueries({ queryKey: ["drivers"] });
-      setIsEditTypeOpen(false);
+      setIsEditOpen(false);
     },
-    onError: () => toast.error("Failed to update driver type"),
+    onError: () => toast.error("Failed to update driver"),
   });
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setIsUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("upload_preset", CLOUDINARY_UPLOAD_PRESET);
+      const res = await fetch(
+        `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`,
+        { method: "POST", body: formData },
+      );
+      const data = await res.json();
+      if (data.secure_url) {
+        setEditForm((prev) => ({ ...prev, profileImage: data.secure_url }));
+      } else {
+        toast.error("Image upload failed");
+      }
+    } catch {
+      toast.error("Image upload failed");
+    } finally {
+      setIsUploading(false);
+    }
+  };
 
   if (driverLoading) {
     return (
@@ -215,7 +263,7 @@ function DriverDetailPage() {
             </div>
           </div>
 
-          {/* Driver type badge + quick stats */}
+          {/* Driver type badge + rating + edit button */}
           <div className="flex flex-wrap items-center gap-3">
             <Badge
               variant={
@@ -239,20 +287,63 @@ function DriverDetailPage() {
                 platform
               </Badge>
             )}
+            {/* ─── Average Rating Display ─────────────────────────── */}
+            {(driver?.rating != null || ratingsData?.average != null) && (
+              <div className="flex items-center gap-1.5 rounded-full border border-yellow-300 bg-yellow-50 px-3 py-1">
+                {[1, 2, 3, 4, 5].map((s) => {
+                  const avg = driver?.rating ?? ratingsData?.average ?? 0;
+                  return (
+                    <Star
+                      key={s}
+                      className={`h-3.5 w-3.5 ${
+                        s <= Math.round(avg)
+                          ? "fill-yellow-400 text-yellow-400"
+                          : "text-gray-300"
+                      }`}
+                    />
+                  );
+                })}
+                <span className="text-sm font-bold text-yellow-700">
+                  {(driver?.rating ?? ratingsData?.average ?? 0).toFixed(1)}
+                </span>
+                {(driver?.totalRatings ?? ratingsData?.totalRatings) !=
+                  null && (
+                  <span className="text-muted-foreground text-xs">
+                    ({driver?.totalRatings ?? ratingsData?.totalRatings}{" "}
+                    reviews)
+                  </span>
+                )}
+              </div>
+            )}
             <Button
               size="sm"
               variant="outline"
               onClick={() => {
-                setEditTypeForm({
-                  driverType: driver?.driverType || "SYSTEM",
-                  thirdPartyRate: driver?.thirdPartyRate
-                    ? String(driver.thirdPartyRate)
+                setEditForm({
+                  name: driver?.name || driver?.user?.fullName || "",
+                  email: driver?.email || driver?.user?.email || "",
+                  phoneNumber:
+                    driver?.phoneNumber ||
+                    driver?.phone ||
+                    driver?.user?.phone ||
+                    "",
+                  vehicleType: driver?.vehicleType || "BIKE",
+                  vehicleNumber:
+                    driver?.vehicleNumber || driver?.vehicleNo || "",
+                  vehicleColor: (driver as any)?.vehicleColor || "",
+                  profileImage:
+                    driver?.profileImage || driver?.profileImageUrl || "",
+                  status: (driver as any)?.status || "approved",
+                  driverType: (driver as any)?.driverType || "SYSTEM",
+                  thirdPartyRate: (driver as any)?.thirdPartyRate
+                    ? String((driver as any).thirdPartyRate)
                     : "",
                 });
-                setIsEditTypeOpen(true);
+                setIsEditOpen(true);
               }}
             >
-              Change Type
+              <Edit className="mr-2 h-4 w-4" />
+              Edit Driver
             </Button>
           </div>
 
@@ -599,91 +690,235 @@ function DriverDetailPage() {
         </div>
       </Main>
 
-      {/* ─── Edit Driver Type Dialog ──────────────────────────────────── */}
-      <Dialog open={isEditTypeOpen} onOpenChange={setIsEditTypeOpen}>
-        <DialogContent>
+      {/* ─── Edit Driver Dialog (full) ──────────────────────────────────── */}
+      <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
+        <DialogContent className="max-h-[85vh] max-w-2xl overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Change Driver Type</DialogTitle>
+            <DialogTitle>Edit Driver</DialogTitle>
             <DialogDescription>
-              SYSTEM drivers are salaried — no per-order earnings are tracked.
-              THIRD_PARTY drivers earn a % of the delivery fee.
+              Update all driver details including type, vehicle info and status.
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <Label>Driver Type</Label>
-              <Select
-                value={editTypeForm.driverType}
-                onValueChange={(v) =>
-                  setEditTypeForm((prev) => ({ ...prev, driverType: v }))
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="SYSTEM">TeranGO (Salaried)</SelectItem>
-                  <SelectItem value="THIRD_PARTY">
-                    Third-Party (Commission)
-                  </SelectItem>
-                </SelectContent>
-              </Select>
+          <div className="space-y-6">
+            {/* Avatar upload */}
+            <div className="flex flex-col items-center gap-3">
+              <Avatar className="h-20 w-20">
+                <AvatarImage src={editForm.profileImage} />
+                <AvatarFallback>
+                  {editForm.name.slice(0, 2).toUpperCase() || "DR"}
+                </AvatarFallback>
+              </Avatar>
+              <Label htmlFor="edit-img" className="cursor-pointer">
+                <div className="flex items-center gap-2 rounded-md border px-3 py-1.5 text-sm hover:bg-muted">
+                  {isUploading ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Upload className="h-4 w-4" />
+                  )}
+                  {isUploading ? "Uploading…" : "Change Photo"}
+                </div>
+              </Label>
+              <Input
+                id="edit-img"
+                type="file"
+                accept="image/*"
+                onChange={handleImageUpload}
+                className="hidden"
+                disabled={isUploading}
+              />
             </div>
-            {editTypeForm.driverType === "THIRD_PARTY" && (
-              <div>
-                <Label>
-                  Custom Split Rate (optional)
-                  <span className="text-muted-foreground ml-2 text-xs">
-                    Leave blank to use global default
-                  </span>
-                </Label>
-                <div className="relative">
+
+            {/* Basic info */}
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label>Full Name</Label>
+                <Input
+                  value={editForm.name}
+                  onChange={(e) =>
+                    setEditForm((p) => ({ ...p, name: e.target.value }))
+                  }
+                  placeholder="Driver full name"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Email</Label>
+                <Input
+                  type="email"
+                  value={editForm.email}
+                  onChange={(e) =>
+                    setEditForm((p) => ({ ...p, email: e.target.value }))
+                  }
+                  placeholder="driver@example.com"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Phone Number</Label>
+                <Input
+                  value={editForm.phoneNumber}
+                  onChange={(e) =>
+                    setEditForm((p) => ({ ...p, phoneNumber: e.target.value }))
+                  }
+                  placeholder="+2207xxxxxx"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Status</Label>
+                <Select
+                  value={editForm.status}
+                  onValueChange={(v) =>
+                    setEditForm((p) => ({ ...p, status: v }))
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="approved">Approved</SelectItem>
+                    <SelectItem value="pending">Pending</SelectItem>
+                    <SelectItem value="rejected">Rejected</SelectItem>
+                    <SelectItem value="suspended">Suspended</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {/* Vehicle info */}
+            <div>
+              <h4 className="mb-3 font-semibold">Vehicle Information</h4>
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-2">
+                  <Label>Vehicle Type</Label>
+                  <Select
+                    value={editForm.vehicleType}
+                    onValueChange={(v) =>
+                      setEditForm((p) => ({ ...p, vehicleType: v }))
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="BIKE">🏍️ Motorbike</SelectItem>
+                      <SelectItem value="KEKE_CARGO">🛺 Keke Cargo</SelectItem>
+                      <SelectItem value="CAR">🚗 Car</SelectItem>
+                      <SelectItem value="VAN">🚐 Van</SelectItem>
+                      <SelectItem value="LORRY">🚚 Lorry</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Vehicle Number</Label>
                   <Input
-                    type="number"
-                    min="0.1"
-                    max="1"
-                    step="0.05"
-                    placeholder="e.g. 0.70 for 70%"
-                    value={editTypeForm.thirdPartyRate}
+                    value={editForm.vehicleNumber}
                     onChange={(e) =>
-                      setEditTypeForm((prev) => ({
-                        ...prev,
-                        thirdPartyRate: e.target.value,
+                      setEditForm((p) => ({
+                        ...p,
+                        vehicleNumber: e.target.value,
                       }))
                     }
+                    placeholder="ABC-123"
                   />
                 </div>
-                {editTypeForm.thirdPartyRate && (
-                  <p className="text-muted-foreground mt-1 text-xs">
-                    Driver gets{" "}
-                    {Math.round(Number(editTypeForm.thirdPartyRate) * 100)}% —
-                    Platform keeps{" "}
-                    {Math.round(
-                      (1 - Number(editTypeForm.thirdPartyRate)) * 100,
-                    )}
-                    %
+                <div className="space-y-2">
+                  <Label>Vehicle Color</Label>
+                  <Input
+                    value={editForm.vehicleColor}
+                    onChange={(e) =>
+                      setEditForm((p) => ({
+                        ...p,
+                        vehicleColor: e.target.value,
+                      }))
+                    }
+                    placeholder="Red, Blue, White…"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Driver type & earnings split */}
+            <div>
+              <h4 className="mb-3 font-semibold">Driver Type &amp; Earnings</h4>
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-2">
+                  <Label>Driver Type</Label>
+                  <Select
+                    value={editForm.driverType}
+                    onValueChange={(v) =>
+                      setEditForm((p) => ({ ...p, driverType: v }))
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="SYSTEM">TeranGO (Salaried)</SelectItem>
+                      <SelectItem value="THIRD_PARTY">
+                        Third-Party (Commission)
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-muted-foreground text-xs">
+                    {editForm.driverType === "SYSTEM"
+                      ? "Salaried — no per-order earnings tracked."
+                      : "Earns a % of the delivery fee per order."}
                   </p>
+                </div>
+                {editForm.driverType === "THIRD_PARTY" && (
+                  <div className="space-y-2">
+                    <Label>
+                      Split Rate
+                      <span className="text-muted-foreground ml-2 text-xs">
+                        Leave blank for global default
+                      </span>
+                    </Label>
+                    <Input
+                      type="number"
+                      min="0.1"
+                      max="1"
+                      step="0.05"
+                      placeholder="e.g. 0.70 for 70%"
+                      value={editForm.thirdPartyRate}
+                      onChange={(e) =>
+                        setEditForm((p) => ({
+                          ...p,
+                          thirdPartyRate: e.target.value,
+                        }))
+                      }
+                    />
+                    {editForm.thirdPartyRate && (
+                      <p className="text-muted-foreground text-xs">
+                        Driver gets{" "}
+                        {Math.round(Number(editForm.thirdPartyRate) * 100)}% —
+                        Platform keeps{" "}
+                        {Math.round(
+                          (1 - Number(editForm.thirdPartyRate)) * 100,
+                        )}
+                        %
+                      </p>
+                    )}
+                  </div>
                 )}
               </div>
-            )}
-            <div className="flex justify-end gap-2">
-              <Button
-                variant="outline"
-                onClick={() => setIsEditTypeOpen(false)}
-              >
+            </div>
+
+            <div className="flex justify-end gap-2 pt-2">
+              <Button variant="outline" onClick={() => setIsEditOpen(false)}>
                 Cancel
               </Button>
               <Button
                 onClick={() =>
-                  updateTypeMutation.mutate({
-                    driverType: editTypeForm.driverType,
-                    thirdPartyRate: editTypeForm.thirdPartyRate
-                      ? Number(editTypeForm.thirdPartyRate)
+                  updateDriverMutation.mutate({
+                    ...editForm,
+                    thirdPartyRate: editForm.thirdPartyRate
+                      ? Number(editForm.thirdPartyRate)
                       : null,
                   })
                 }
-                disabled={updateTypeMutation.isPending}
+                disabled={updateDriverMutation.isPending}
               >
+                {updateDriverMutation.isPending ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : null}
                 Save Changes
               </Button>
             </div>

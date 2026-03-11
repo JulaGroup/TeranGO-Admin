@@ -757,20 +757,22 @@ function OrdersPage() {
                                       </DropdownMenuItem>
                                     )}
 
-                                  {order.status?.toLowerCase() ===
-                                    "in_transit" && (
-                                    <DropdownMenuItem
-                                      onClick={() =>
-                                        updateStatusMutation.mutate({
-                                          orderId: order._id,
-                                          status: "delivered",
-                                        })
-                                      }
-                                    >
-                                      <CheckCircle2 className="mr-2 h-4 w-4" />
-                                      Mark as Delivered
-                                    </DropdownMenuItem>
-                                  )}
+                                  {order.status?.toLowerCase() !==
+                                    "delivered" &&
+                                    order.status?.toLowerCase() !==
+                                      "cancelled" && (
+                                      <DropdownMenuItem
+                                        onClick={() =>
+                                          updateStatusMutation.mutate({
+                                            orderId: order._id,
+                                            status: "delivered",
+                                          })
+                                        }
+                                      >
+                                        <CheckCircle2 className="mr-2 h-4 w-4" />
+                                        Mark as Delivered
+                                      </DropdownMenuItem>
+                                    )}
 
                                   {order.status?.toLowerCase() !==
                                     "cancelled" &&
