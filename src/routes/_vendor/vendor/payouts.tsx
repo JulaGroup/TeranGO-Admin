@@ -2,8 +2,22 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { api } from "@/lib/api";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardFooter,
+} from "@/components/ui/card";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Header } from "@/components/layout/header";
 import { Main } from "@/components/layout/main";
@@ -44,6 +58,17 @@ function VendorPayouts() {
     },
   });
 
+  const { data: settlementsData, isLoading: isLoadingSettlements } = useQuery({
+    queryKey: ["vendor-settlements", page],
+    queryFn: async () => {
+      const res = await api.get(
+        `/api/vendor/earnings/settlements?page=${page}&pageSize=20`,
+      );
+      return res.data as any;
+    },
+    placeholderData: (prev) => prev,
+  });
+
   const settleMutation = useMutation({
     mutationFn: async () => {
       const res = await api.post("/api/vendor/earnings/settle", {});
@@ -58,13 +83,22 @@ function VendorPayouts() {
     },
   });
 
-  const settlements = summary?.allSettlements || [];
+  const settlements =
+    settlementsData?.earnings || summary?.allSettlements || [];
   const pendingRequest = summary?.pendingSettlementRequest;
+  const totalPages =
+    settlementsData?.totalPages || settlementsData?.meta?.totalPages || 1;
 
   return (
     <>
       <Header>
-        <TopNav links={[{ title: "Dashboard", href: "/vendor/dashboard", isActive: false }, { title: "Orders", href: "/vendor/orders", isActive: false }, { title: "Payouts", href: "/vendor/payouts", isActive: true }]} />
+        <TopNav
+          links={[
+            { title: "Dashboard", href: "/vendor/dashboard", isActive: false },
+            { title: "Orders", href: "/vendor/orders", isActive: false },
+            { title: "Payouts", href: "/vendor/payouts", isActive: true },
+          ]}
+        />
         <div className="ms-auto flex items-center space-x-4">
           <ProfileDropdown />
         </div>
@@ -77,11 +111,15 @@ function VendorPayouts() {
                 <Wallet className="h-5 w-5" />
                 Available for Payout
               </CardTitle>
-              <CardDescription>Earnings from delivered orders not yet paid out</CardDescription>
+              <CardDescription>
+                Earnings from delivered orders not yet paid out
+              </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="text-4xl font-bold text-green-700">
-                {isLoadingSummary ? "..." : formatGMD(summary?.pendingUnsettled?.total)}
+                {isLoadingSummary
+                  ? "..."
+                  : formatGMD(summary?.pendingUnsettled?.total)}
               </div>
               <p className="text-sm text-green-600 mt-2">
                 Includes {summary?.pendingUnsettled?.count || 0} order(s)
@@ -89,17 +127,29 @@ function VendorPayouts() {
             </CardContent>
             <CardFooter>
               {pendingRequest ? (
-                <Button disabled className="w-full sm:w-auto gap-2" variant="outline">
+                <Button
+                  disabled
+                  className="w-full sm:w-auto gap-2"
+                  variant="outline"
+                >
                   <Clock className="h-4 w-4" />
                   Payout Request Pending
                 </Button>
               ) : (
-                <Button 
-                  onClick={() => settleMutation.mutate()} 
-                  disabled={settleMutation.isPending || !summary?.pendingUnsettled?.total || summary?.pendingUnsettled?.total <= 0}
+                <Button
+                  onClick={() => settleMutation.mutate()}
+                  disabled={
+                    settleMutation.isPending ||
+                    !summary?.pendingUnsettled?.total ||
+                    summary?.pendingUnsettled?.total <= 0
+                  }
                   className="w-full sm:w-auto bg-green-600 hover:bg-green-700 gap-2"
                 >
-                  {settleMutation.isPending ? <RotateCw className="h-4 w-4 animate-spin" /> : <Wallet className="h-4 w-4" />}
+                  {settleMutation.isPending ? (
+                    <RotateCw className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Wallet className="h-4 w-4" />
+                  )}
                   Request Payout
                 </Button>
               )}
@@ -107,7 +157,9 @@ function VendorPayouts() {
           </Card>
           <Card className="flex-1">
             <CardHeader className="pb-2">
-              <CardTitle className="text-lg text-muted-foreground">Total Earned All Time</CardTitle>
+              <CardTitle className="text-lg text-muted-foreground">
+                Total Earned All Time
+              </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="text-3xl font-bold">
@@ -119,7 +171,9 @@ function VendorPayouts() {
         <Card>
           <CardHeader>
             <CardTitle>Payout History</CardTitle>
-            <CardDescription>Track all your previous withdrawal requests.</CardDescription>
+            <CardDescription>
+              Track all your previous withdrawal requests.
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <Table>
@@ -133,28 +187,77 @@ function VendorPayouts() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {isLoadingSummary ? (
-                  <TableRow><TableCell colSpan={5} className="text-center py-6 text-muted-foreground">Loading...</TableCell></TableRow>
+                {isLoadingSummary || isLoadingSettlements ? (
+                  <TableRow>
+                    <TableCell
+                      colSpan={5}
+                      className="text-center py-6 text-muted-foreground"
+                    >
+                      Loading...
+                    </TableCell>
+                  </TableRow>
                 ) : settlements.length === 0 ? (
-                  <TableRow><TableCell colSpan={5} className="text-center py-6 text-muted-foreground">No payout history.</TableCell></TableRow>
+                  <TableRow>
+                    <TableCell
+                      colSpan={5}
+                      className="text-center py-6 text-muted-foreground"
+                    >
+                      No payout history.
+                    </TableCell>
+                  </TableRow>
                 ) : (
                   settlements.map((s: any) => (
                     <TableRow key={s.id}>
-                      <TableCell className="font-mono text-xs">{s.id.slice(0, 8)}</TableCell>
-                      <TableCell className="font-bold">{formatGMD(s.totalAmount)}</TableCell>
-                      <TableCell className="text-sm">{formatDate(s.requestedAt)}</TableCell>
+                      <TableCell className="font-mono text-xs">
+                        {s.id.slice(0, 8)}
+                      </TableCell>
+                      <TableCell className="font-bold">
+                        {formatGMD(s.totalAmount)}
+                      </TableCell>
+                      <TableCell className="text-sm">
+                        {formatDate(s.createdAt)}
+                      </TableCell>
                       <TableCell>
-                        <Badge variant={s.status === "APPROVED" ? "default" : "outline"} className={s.status === "APPROVED" ? "bg-green-600" : ""}>
+                        <Badge
+                          variant={
+                            s.status === "APPROVED" ? "default" : "outline"
+                          }
+                          className={
+                            s.status === "APPROVED" ? "bg-green-600" : ""
+                          }
+                        >
                           {s.status}
                         </Badge>
                       </TableCell>
-                      <TableCell className="text-sm text-muted-foreground">{formatDate(s.reviewedAt)}</TableCell>
+                      <TableCell className="text-sm text-muted-foreground">
+                        {formatDate(s.settledAt || s.updatedAt)}
+                      </TableCell>
                     </TableRow>
                   ))
                 )}
               </TableBody>
             </Table>
           </CardContent>
+          <div className="flex items-center justify-between px-4 py-3">
+            <div className="text-sm text-muted-foreground">
+              Page {page} of {totalPages || 1}
+            </div>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                disabled={page <= 1 || isLoadingSettlements}
+              >
+                Prev
+              </Button>
+              <Button
+                onClick={() => setPage((p) => p + 1)}
+                disabled={page >= (totalPages || 1) || isLoadingSettlements}
+              >
+                Next
+              </Button>
+            </div>
+          </div>
         </Card>
       </Main>
     </>
