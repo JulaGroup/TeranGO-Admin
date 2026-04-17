@@ -17,9 +17,12 @@ import {
   RefreshCw,
   XCircle,
   Package,
-  Filter,
-  ChevronLeft as ChevronLeftIcon,
-  ChevronRight as ChevronRightIcon,
+  ChevronLeft,
+  ChevronRight,
+  List,
+  LayoutGrid,
+  Inbox,
+  Gift,
 } from "lucide-react";
 import { toast } from "sonner";
 import { adminApi } from "@/lib/api";
@@ -33,11 +36,11 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
+  CardFooter,
 } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -65,55 +68,68 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { ConfigDrawer } from "@/components/config-drawer";
-import { Header } from "@/components/layout/header";
-import { Main } from "@/components/layout/main";
-import { TopNav } from "@/components/layout/top-nav";
-import { ProfileDropdown } from "@/components/profile-dropdown";
-import { Search as SearchInput } from "@/components/search";
-import { ThemeSwitch } from "@/components/theme-switch";
-
-const topNav = [
-  { title: "Overview", href: "/admin", isActive: false },
-  { title: "Orders", href: "/admin/orders", isActive: true },
-  { title: "Customers", href: "/admin/customers", isActive: false },
-  { title: "Settings", href: "#", isActive: false },
-];
+import { cn } from "@/lib/utils";
+import { Separator } from "@/components/ui/separator";
+import { AxiosError } from "axios";
 
 export const Route = createFileRoute("/_authenticated/admin/orders/")({
   component: OrdersPage,
 });
 
-interface OrderStats {
-  total: number;
-  pending: number;
-  confirmed: number;
-  preparing: number;
-  ready: number;
-  dispatched: number;
-  inTransit: number;
-  delivered: number;
-  cancelled: number;
-  totalRevenue: number;
+interface RawOrder {
+  _id: string;
+  id: string;
+  userId: string;
+  customerName: string;
+  customerPhone: string;
+  restaurant?: { id: string; name: string; phone: string };
+  shop?: { id: string; name: string; phone: string };
+  pharmacy?: { id: string; name: string; phone: string };
+  [key: string]: unknown;
 }
+
+// Helper to normalize order data from different API responses
+const normalizeOrder = (order: RawOrder): Order => {
+  const vendor = order.restaurant || order.shop || order.pharmacy;
+  return {
+    ...order,
+    _id: order._id || order.id,
+    id: order.id || order._id,
+    user: {
+      _id: order.userId,
+      name: order.customerName,
+      phoneNumber: order.customerPhone,
+      phone: order.customerPhone,
+    },
+    vendor: {
+      _id: vendor?.id,
+      id: vendor?.id,
+      shopName: vendor?.name,
+      businessName: vendor?.name,
+      phoneNumber: vendor?.phone,
+    },
+    restaurant: order.restaurant,
+    shop: order.shop,
+    pharmacy: order.pharmacy,
+  } as Order;
+};
 
 function OrdersPage() {
   const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [viewLayout, setViewLayout] = useState<"grid" | "list">("grid");
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const [isAssignDriverOpen, setIsAssignDriverOpen] = useState(false);
-  const [selectedDriverId, setSelectedDriverId] = useState<string>("");
   const [currentPage, setCurrentPage] = useState(1);
 
-  // Fetch orders
   const { data: ordersResponse, isLoading } = useQuery({
     queryKey: ["orders", currentPage, statusFilter, searchQuery],
     queryFn: async () => {
       const response = await adminApi.getOrders({
         page: currentPage,
-        limit: 10,
+        limit: 12, // Adjusted for grid layout
         status: statusFilter === "all" ? undefined : statusFilter,
         search: searchQuery || undefined,
       });
@@ -121,76 +137,39 @@ function OrdersPage() {
     },
   });
 
-  // Extract and normalize orders from response
-  const normalizeOrder = (order: any): Order => {
-    const vendor = order.restaurant || order.shop || order.pharmacy;
-    return {
-      ...order,
-      _id: order._id || order.id,
-      id: order.id || order._id,
-      user: {
-        _id: order.userId,
-        name: order.customerName,
-        phoneNumber: order.customerPhone,
-        phone: order.customerPhone,
-      },
-      vendor: {
-        _id: vendor?.id,
-        id: vendor?.id,
-        shopName: vendor?.name,
-        businessName: vendor?.name,
-        phoneNumber: vendor?.phone,
-      },
-      restaurant: order.restaurant,
-      shop: order.shop,
-      pharmacy: order.pharmacy,
-    };
-  };
+  const orders = useMemo(
+    () => (ordersResponse?.orders || []).map(normalizeOrder),
+    [ordersResponse?.orders],
+  );
 
-  const orders = Array.isArray(ordersResponse)
-    ? ordersResponse.map(normalizeOrder)
-    : (ordersResponse?.orders || []).map(normalizeOrder);
-
-  // Get pagination from response
   const paginationInfo = useMemo(
     () =>
-      ordersResponse?.pagination || { page: 1, limit: 10, total: 0, pages: 0 },
+      ordersResponse?.pagination || { page: 1, limit: 12, total: 0, pages: 0 },
     [ordersResponse?.pagination],
   );
 
-  // Fetch compatible drivers for the selected order
-  const { data: driversData = [] } = useQuery({
+  const stats = useMemo(() => {
+    if (ordersResponse?.stats) {
+      return {
+        total: paginationInfo.total,
+        ...ordersResponse.stats,
+      };
+    }
+    return { total: paginationInfo.total };
+  }, [ordersResponse?.stats, paginationInfo.total]);
+
+  const { data: drivers = [] } = useQuery<Driver[]>({
     queryKey: ["compatible-drivers", selectedOrder?._id],
     queryFn: async () => {
-      try {
-        if (!selectedOrder?._id) {
-          // If no order selected, get all available drivers
-          const response = await adminApi.getAvailableDrivers();
-          return Array.isArray(response?.data) ? response.data : [];
-        }
-
-        // Get drivers compatible with the selected order's vehicle requirements
-        const response = await adminApi.getCompatibleDriversForOrder(
-          selectedOrder._id,
-        );
-        const driversList = Array.isArray(response?.data) ? response.data : [];
-        return driversList;
-      } catch (_error) {
-        // Fallback to all available drivers if compatible drivers API fails
-        try {
-          const response = await adminApi.getAvailableDrivers();
-          return Array.isArray(response?.data) ? response.data : [];
-        } catch {
-          return [];
-        }
-      }
+      if (!selectedOrder?._id) return [];
+      const response = await adminApi.getCompatibleDriversForOrder(
+        selectedOrder._id,
+      );
+      return Array.isArray(response?.data) ? response.data : [];
     },
-    enabled: isAssignDriverOpen, // Only fetch when assignment dialog is open
+    enabled: isAssignDriverOpen,
   });
 
-  const drivers = Array.isArray(driversData) ? driversData : [];
-
-  // Update order status mutation
   const updateStatusMutation = useMutation({
     mutationFn: ({ orderId, status }: { orderId: string; status: string }) =>
       adminApi.updateOrderStatus(orderId, status),
@@ -198,21 +177,15 @@ function OrdersPage() {
       toast.success("Order status updated");
       queryClient.invalidateQueries({ queryKey: ["orders"] });
     },
-    onError: (
-      error:
-        | Error
-        | { response?: { data?: { message?: string } }; message?: string },
-    ) => {
+    onError: (error: AxiosError<{ message: string }>) => {
       const message =
-        (error as { response?: { data?: { message?: string } } })?.response
-          ?.data?.message ||
-        error?.message ||
+        error?.response?.data?.message ||
+        error.message ||
         "Failed to update order";
       toast.error(message);
     },
   });
 
-  // Assign driver mutation
   const assignDriverMutation = useMutation({
     mutationFn: ({
       orderId,
@@ -220,1117 +193,658 @@ function OrdersPage() {
     }: {
       orderId: string;
       driverId: string;
-    }) => {
-      if (!orderId || !driverId) {
-        throw new Error("Order ID and Driver ID are required");
-      }
-      return adminApi.assignDriver(orderId, driverId);
-    },
-    onSuccess: (_response) => {
+    }) => adminApi.assignDriver(orderId, driverId),
+    onSuccess: () => {
       toast.success("Driver assigned successfully");
       queryClient.invalidateQueries({ queryKey: ["orders"] });
       setIsAssignDriverOpen(false);
-      setSelectedDriverId("");
     },
-    onError: (
-      error:
-        | Error
-        | { response?: { data?: { message?: string } }; message?: string },
-    ) => {
+    onError: (error: AxiosError<{ message: string }>) => {
       const message =
-        (error as { response?: { data?: { message?: string } } })?.response
-          ?.data?.message ||
-        error?.message ||
+        error?.response?.data?.message ||
+        error.message ||
         "Failed to assign driver";
       toast.error(message);
     },
   });
-
-  // Calculate stats - use API stats if available, otherwise calculate from current page
-  const stats: OrderStats = useMemo(() => {
-    // The API response should include aggregated stats for all orders
-    // If not available, fallback to calculating from the orders on current page
-    if (ordersResponse?.stats) {
-      return {
-        total: paginationInfo.total,
-        pending: ordersResponse.stats.pending || 0,
-        confirmed: ordersResponse.stats.confirmed || 0,
-        preparing: ordersResponse.stats.preparing || 0,
-        ready: ordersResponse.stats.ready || 0,
-        dispatched: ordersResponse.stats.dispatched || 0,
-        inTransit: ordersResponse.stats.inTransit || 0,
-        delivered: ordersResponse.stats.delivered || 0,
-        cancelled: ordersResponse.stats.cancelled || 0,
-        totalRevenue: ordersResponse.stats.totalRevenue || 0,
-      };
-    }
-
-    // Fallback calculation from current page
-    const orderList = orders || [];
-    return {
-      total: paginationInfo.total,
-      pending: orderList.filter(
-        (o: Order) => o.status?.toUpperCase() === "PENDING",
-      ).length,
-      confirmed: orderList.filter(
-        (o: Order) => o.status?.toUpperCase() === "CONFIRMED",
-      ).length,
-      preparing: orderList.filter(
-        (o: Order) => o.status?.toUpperCase() === "PREPARING",
-      ).length,
-      ready: orderList.filter((o: Order) => o.status?.toUpperCase() === "READY")
-        .length,
-      dispatched: orderList.filter(
-        (o: Order) => o.status?.toUpperCase() === "DISPATCHED",
-      ).length,
-      inTransit: orderList.filter(
-        (o: Order) => o.status?.toUpperCase() === "IN_TRANSIT",
-      ).length,
-      delivered: orderList.filter(
-        (o: Order) => o.status?.toUpperCase() === "DELIVERED",
-      ).length,
-      cancelled: orderList.filter(
-        (o: Order) => o.status?.toUpperCase() === "CANCELLED",
-      ).length,
-      totalRevenue: orderList.reduce(
-        (sum: number, o: Order) => sum + (o.totalAmount || 0),
-        0,
-      ),
-    };
-  }, [orders, ordersResponse, paginationInfo]);
 
   const handleViewDetails = (order: Order) => {
     setSelectedOrder(order);
     setIsDetailsOpen(true);
   };
 
-  const handleAssignDriver = (order: Order) => {
+  const handleAssignDriverClick = (order: Order) => {
     setSelectedOrder(order);
-    setSelectedDriverId(order.driver?.id || "");
     setIsAssignDriverOpen(true);
   };
 
-  const handleRefresh = () => {
-    queryClient.invalidateQueries({ queryKey: ["orders"] });
-  };
-
-  const getStatusBadge = (status: string) => {
-    const variants: Record<
-      string,
-      {
-        variant: "default" | "secondary" | "destructive" | "outline";
-        icon: React.ComponentType<{ className?: string }>;
-        label: string;
-        color: string;
-      }
-    > = {
-      pending: {
-        variant: "secondary",
-        icon: Clock,
-        label: "Pending",
-        color: "bg-yellow-50",
-      },
-      confirmed: {
-        variant: "default",
-        icon: CheckCircle2,
-        label: "Confirmed",
-        color: "bg-blue-50",
-      },
-      preparing: {
-        variant: "default",
-        icon: Store,
-        label: "Preparing",
-        color: "bg-orange-50",
-      },
-      ready: {
-        variant: "default",
-        icon: Package,
-        label: "Ready",
-        color: "bg-purple-50",
-      },
-      in_transit: {
-        variant: "default",
-        icon: Truck,
-        label: "In Transit",
-        color: "bg-indigo-50",
-      },
-      delivered: {
-        variant: "default",
-        icon: CheckCircle2,
-        label: "Delivered",
-        color: "bg-green-50",
-      },
-      cancelled: {
-        variant: "destructive",
-        icon: XCircle,
-        label: "Cancelled",
-        color: "bg-red-50",
-      },
-    };
-    const config = variants[status.toLowerCase()] || {
-      variant: "outline" as const,
-      icon: Package,
-      label: status,
-      color: "bg-gray-50",
-    };
-    const Icon = config.icon;
+  if (isLoading && orders.length === 0) {
     return (
-      <Badge variant={config.variant} className="flex items-center gap-1">
-        {Icon && <Icon className="h-3 w-3" />}
-        {config.label}
-      </Badge>
-    );
-  };
-
-  const getPaymentBadge = (status: string) => {
-    const isPaid = status === "paid" || status === "completed";
-    return (
-      <Badge variant={isPaid ? "default" : "secondary"}>
-        {isPaid ? "Paid" : "Pending"}
-      </Badge>
-    );
-  };
-
-  if (isLoading) {
-    return (
-      <div className="flex h-64 items-center justify-center">
-        <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-purple-600"></div>
+      <div className="flex h-[60vh] items-center justify-center">
+        <div className="text-center">
+          <div className="border-primary mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-b-2"></div>
+          <p className="text-muted-foreground">Loading orders...</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <>
-      <Header>
-        <TopNav links={topNav} />
-        <div className="ms-auto flex items-center space-x-4">
-          <SearchInput />
-          <ThemeSwitch />
-          <ConfigDrawer />
-          <ProfileDropdown />
+    <div className="container mx-auto space-y-6 p-4 md:p-6">
+      <header className="flex flex-col items-start justify-between gap-4 md:flex-row md:items-center">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Orders</h1>
+          <p className="text-muted-foreground">
+            Track and manage all customer orders.
+          </p>
         </div>
-      </Header>
+        <Button
+          onClick={() =>
+            queryClient.invalidateQueries({ queryKey: ["orders"] })
+          }
+          variant="outline"
+          className="flex items-center gap-2"
+          disabled={isLoading}
+        >
+          <RefreshCw className={cn("h-4 w-4", isLoading && "animate-spin")} />
+          Refresh
+        </Button>
+      </header>
 
-      <Main>
-        <div className="space-y-6">
-          {/* Header */}
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+        <StatCard
+          title="Total Orders"
+          value={stats.total}
+          icon={ShoppingCart}
+          color="bg-blue-500"
+        />
+        <StatCard
+          title="Pending"
+          value={stats.pending || 0}
+          icon={Clock}
+          color="bg-yellow-500"
+        />
+        <StatCard
+          title="In Transit"
+          value={stats.in_transit || 0}
+          icon={Truck}
+          color="bg-purple-500"
+        />
+        <StatCard
+          title="Delivered"
+          value={stats.delivered || 0}
+          icon={CheckCircle2}
+          color="bg-green-500"
+        />
+      </div>
+
+      <Card>
+        <CardContent className="p-4">
           <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-            <div>
-              <h1 className="text-3xl font-bold tracking-tight">Orders</h1>
-              <p className="text-muted-foreground">
-                Manage and track all orders and deliveries
-              </p>
+            <div className="relative flex-1">
+              <Search className="text-muted-foreground absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 transform" />
+              <Input
+                placeholder="Search by Order ID, customer, vendor..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10"
+              />
             </div>
-            <div className="flex gap-2">
-              <Button
-                onClick={handleRefresh}
-                variant="outline"
-                size="sm"
-                className="flex items-center gap-2"
-              >
-                <RefreshCw className="h-4 w-4" />
-                Refresh
-              </Button>
+            <div className="flex items-center gap-2">
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="w-full md:w-[200px]">
+                  <SelectValue placeholder="Filter by status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Statuses</SelectItem>
+                  <SelectItem value="PENDING">Pending</SelectItem>
+                  <SelectItem value="CONFIRMED">Confirmed</SelectItem>
+                  <SelectItem value="PREPARING">Preparing</SelectItem>
+                  <SelectItem value="READY">Ready</SelectItem>
+                  <SelectItem value="IN_TRANSIT">In Transit</SelectItem>
+                  <SelectItem value="DELIVERED">Delivered</SelectItem>
+                  <SelectItem value="CANCELLED">Cancelled</SelectItem>
+                </SelectContent>
+              </Select>
+              <div className="flex items-center rounded-md bg-gray-100 p-1 dark:bg-gray-800">
+                <Button
+                  variant={viewLayout === "grid" ? "secondary" : "ghost"}
+                  size="sm"
+                  onClick={() => setViewLayout("grid")}
+                >
+                  <LayoutGrid className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant={viewLayout === "list" ? "secondary" : "ghost"}
+                  size="sm"
+                  onClick={() => setViewLayout("list")}
+                >
+                  <List className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
           </div>
+        </CardContent>
+      </Card>
 
-          {/* Stats Cards */}
-          <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-            <Card>
-              <CardContent className="pt-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-muted-foreground text-sm font-medium">
-                      Total Orders
-                    </p>
-                    <p className="text-2xl font-bold">{paginationInfo.total}</p>
-                  </div>
-                  <ShoppingCart className="h-8 w-8 text-blue-500 opacity-50" />
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent className="pt-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-muted-foreground text-sm font-medium">
-                      Pending
-                    </p>
-                    <p className="text-2xl font-bold">{stats.pending}</p>
-                  </div>
-                  <Clock className="h-8 w-8 text-yellow-500 opacity-50" />
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent className="pt-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-muted-foreground text-sm font-medium">
-                      Ready
-                    </p>
-                    <p className="text-2xl font-bold">{stats.ready}</p>
-                  </div>
-                  <Package className="h-8 w-8 text-orange-500 opacity-50" />
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent className="pt-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-muted-foreground text-sm font-medium">
-                      Delivered
-                    </p>
-                    <p className="text-2xl font-bold">{stats.delivered}</p>
-                  </div>
-                  <CheckCircle2 className="h-8 w-8 text-green-500 opacity-50" />
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Filters */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Filter className="h-5 w-5" />
-                Filter Orders
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex flex-col gap-4 md:flex-row">
-                <div className="relative flex-1">
-                  <Search className="text-muted-foreground absolute top-3 left-3 h-4 w-4" />
-                  <Input
-                    placeholder="Search by order ID, customer name, vendor..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-10"
-                  />
-                </div>
-                <Select value={statusFilter} onValueChange={setStatusFilter}>
-                  <SelectTrigger className="w-full md:w-[200px]">
-                    <SelectValue placeholder="Filter by status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Statuses</SelectItem>
-                    <SelectItem value="pending">Pending</SelectItem>
-                    <SelectItem value="confirmed">Confirmed</SelectItem>
-                    <SelectItem value="preparing">Preparing</SelectItem>
-                    <SelectItem value="ready">Ready</SelectItem>
-                    <SelectItem value="in_transit">In Transit</SelectItem>
-                    <SelectItem value="delivered">Delivered</SelectItem>
-                    <SelectItem value="cancelled">Cancelled</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Orders Table */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <ShoppingCart className="h-5 w-5" />
-                  All Orders
-                </div>
-                <Badge variant="outline" className="text-sm font-medium">
-                  Page {paginationInfo.page} of {paginationInfo.pages} (
-                  {paginationInfo.total} total)
-                </Badge>
-              </CardTitle>
-              <CardDescription>
-                View and manage all customer orders
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {orders && orders.length > 0 ? (
-                <div className="space-y-4">
-                  <div className="overflow-x-auto">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Order ID</TableHead>
-                          <TableHead>Customer</TableHead>
-                          <TableHead>Vendor</TableHead>
-                          <TableHead>Amount</TableHead>
-                          <TableHead>Status</TableHead>
-                          <TableHead>Driver</TableHead>
-                          <TableHead>Date</TableHead>
-                          <TableHead className="text-right">Actions</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {orders.map((order: Order) => (
-                          <TableRow key={order._id || "unknown"}>
-                            <TableCell>
-                              <code className="font-mono text-xs">
-                                TG{order._id?.slice(-4).toUpperCase() || "N/A"}
-                              </code>
-                            </TableCell>
-                            <TableCell>
-                              <div className="flex items-center gap-3">
-                                <Avatar className="h-8 w-8">
-                                  <AvatarFallback>
-                                    {order.user?.name
-                                      ?.substring(0, 2)
-                                      .toUpperCase() || "U"}
-                                  </AvatarFallback>
-                                </Avatar>
-                                <div>
-                                  <div className="flex items-center gap-2">
-                                    <p className="font-medium">
-                                      {order.user?.name || "Guest"}
-                                    </p>
-                                    {order.isGiftOrder && (
-                                      <Badge
-                                        variant="outline"
-                                        className="border-orange-300 bg-orange-50 text-orange-700 text-xs"
-                                      >
-                                        🎁 Gift
-                                      </Badge>
-                                    )}
-                                  </div>
-                                  <p className="text-muted-foreground text-sm">
-                                    {order.isGiftOrder && order.recipientName
-                                      ? `→ ${order.recipientName}`
-                                      : order.user?.phoneNumber || "N/A"}
-                                  </p>
-                                </div>
-                              </div>
-                            </TableCell>
-                            <TableCell>
-                              <div className="flex items-center gap-2">
-                                <Store className="text-muted-foreground h-4 w-4" />
-                                <span className="text-sm">
-                                  {order.vendor?.shopName || "Unknown"}
-                                </span>
-                              </div>
-                            </TableCell>
-                            <TableCell>
-                              <div className="font-medium">
-                                D{order.totalAmount?.toFixed(2) || "0.00"}
-                              </div>
-                              <div className="text-muted-foreground text-xs">
-                                {order.items?.length || 0} items
-                              </div>
-                            </TableCell>
-                            <TableCell>
-                              {getStatusBadge(order.status)}
-                            </TableCell>
-                            <TableCell>
-                              {order.driver ? (
-                                <div className="flex items-center gap-2">
-                                  <Avatar className="h-6 w-6">
-                                    <AvatarFallback className="text-xs">
-                                      {(
-                                        order.driver.user?.fullName ||
-                                        order.driver.name ||
-                                        "D"
-                                      )
-                                        .substring(0, 2)
-                                        .toUpperCase()}
-                                    </AvatarFallback>
-                                  </Avatar>
-                                  <div className="text-sm">
-                                    <p className="font-medium">
-                                      {order.driver.user?.fullName ||
-                                        order.driver.name}
-                                    </p>
-                                    <p className="text-muted-foreground text-xs">
-                                      {order.driver.user?.phone || "N/A"}
-                                    </p>
-                                  </div>
-                                </div>
-                              ) : (
-                                <span className="text-muted-foreground text-xs">
-                                  Unassigned
-                                </span>
-                              )}
-                            </TableCell>
-                            <TableCell>
-                              <div className="text-sm">
-                                {order.createdAt
-                                  ? format(
-                                      new Date(order.createdAt),
-                                      "MMM dd, yyyy",
-                                    )
-                                  : "N/A"}
-                              </div>
-                              <div className="text-muted-foreground text-xs">
-                                {order.createdAt
-                                  ? format(new Date(order.createdAt), "HH:mm")
-                                  : ""}
-                              </div>
-                            </TableCell>
-                            <TableCell className="text-right">
-                              <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                  <Button variant="ghost" size="icon">
-                                    <MoreHorizontal className="h-4 w-4" />
-                                  </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end">
-                                  <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                                  <DropdownMenuSeparator />
-                                  <DropdownMenuItem
-                                    onClick={() => handleViewDetails(order)}
-                                  >
-                                    <Eye className="mr-2 h-4 w-4" />
-                                    View Details
-                                  </DropdownMenuItem>
-
-                                  {order.status?.toLowerCase() ===
-                                    "pending" && (
-                                    <DropdownMenuItem
-                                      onClick={() =>
-                                        updateStatusMutation.mutate({
-                                          orderId: order._id,
-                                          status: "confirmed",
-                                        })
-                                      }
-                                    >
-                                      <CheckCircle2 className="mr-2 h-4 w-4" />
-                                      Confirm Order
-                                    </DropdownMenuItem>
-                                  )}
-
-                                  {order.status?.toLowerCase() ===
-                                    "confirmed" && (
-                                    <DropdownMenuItem
-                                      onClick={() =>
-                                        updateStatusMutation.mutate({
-                                          orderId: order._id,
-                                          status: "preparing",
-                                        })
-                                      }
-                                    >
-                                      <Store className="mr-2 h-4 w-4" />
-                                      Start Preparing
-                                    </DropdownMenuItem>
-                                  )}
-
-                                  {order.status?.toLowerCase() ===
-                                    "preparing" && (
-                                    <DropdownMenuItem
-                                      onClick={() =>
-                                        updateStatusMutation.mutate({
-                                          orderId: order._id,
-                                          status: "ready",
-                                        })
-                                      }
-                                    >
-                                      <Package className="mr-2 h-4 w-4" />
-                                      Mark as Ready
-                                    </DropdownMenuItem>
-                                  )}
-
-                                  {order.status?.toLowerCase() === "ready" &&
-                                    !order.driver && (
-                                      <DropdownMenuItem
-                                        onClick={() =>
-                                          handleAssignDriver(order)
-                                        }
-                                      >
-                                        <Truck className="mr-2 h-4 w-4" />
-                                        Assign Driver
-                                      </DropdownMenuItem>
-                                    )}
-
-                                  {order.driver &&
-                                    order.status?.toLowerCase() === "ready" && (
-                                      <DropdownMenuItem
-                                        onClick={() =>
-                                          updateStatusMutation.mutate({
-                                            orderId: order._id,
-                                            status: "in_transit",
-                                          })
-                                        }
-                                      >
-                                        <Truck className="mr-2 h-4 w-4" />
-                                        Dispatch Order
-                                      </DropdownMenuItem>
-                                    )}
-
-                                  {order.status?.toLowerCase() !==
-                                    "delivered" &&
-                                    order.status?.toLowerCase() !==
-                                      "cancelled" && (
-                                      <DropdownMenuItem
-                                        onClick={() =>
-                                          updateStatusMutation.mutate({
-                                            orderId: order._id,
-                                            status: "delivered",
-                                          })
-                                        }
-                                      >
-                                        <CheckCircle2 className="mr-2 h-4 w-4" />
-                                        Mark as Delivered
-                                      </DropdownMenuItem>
-                                    )}
-
-                                  {order.status?.toLowerCase() !==
-                                    "cancelled" &&
-                                    order.status?.toLowerCase() !==
-                                      "delivered" && (
-                                      <>
-                                        <DropdownMenuSeparator />
-                                        <DropdownMenuItem
-                                          onClick={() =>
-                                            updateStatusMutation.mutate({
-                                              orderId: order._id,
-                                              status: "cancelled",
-                                            })
-                                          }
-                                          className="text-destructive"
-                                        >
-                                          <XCircle className="mr-2 h-4 w-4" />
-                                          Cancel Order
-                                        </DropdownMenuItem>
-                                      </>
-                                    )}
-                                </DropdownMenuContent>
-                              </DropdownMenu>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </div>
-
-                  {/* Pagination Controls */}
-                  <div className="flex flex-col gap-4 border-t pt-4 sm:flex-row sm:items-center sm:justify-between">
-                    <div className="text-muted-foreground text-sm">
-                      Showing{" "}
-                      <span className="font-medium">
-                        {(paginationInfo.page - 1) * paginationInfo.limit + 1}
-                      </span>{" "}
-                      to{" "}
-                      <span className="font-medium">
-                        {Math.min(
-                          paginationInfo.page * paginationInfo.limit,
-                          paginationInfo.total,
-                        )}
-                      </span>{" "}
-                      of{" "}
-                      <span className="font-medium">
-                        {paginationInfo.total}
-                      </span>{" "}
-                      orders
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Button
-                        onClick={() =>
-                          setCurrentPage(Math.max(1, currentPage - 1))
-                        }
-                        disabled={currentPage === 1}
-                        variant="outline"
-                        size="sm"
-                      >
-                        <ChevronLeftIcon className="mr-2 h-4 w-4" />
-                        Previous
-                      </Button>
-
-                      <div className="flex items-center gap-1">
-                        {Array.from(
-                          { length: paginationInfo.pages },
-                          (_, i) => i + 1,
-                        )
-                          .filter(
-                            (page) =>
-                              page === 1 ||
-                              page === paginationInfo.pages ||
-                              (page >= currentPage - 1 &&
-                                page <= currentPage + 1),
-                          )
-                          .map((page, idx, arr) => (
-                            <div key={page}>
-                              {idx > 0 && arr[idx - 1] !== page - 1 && (
-                                <span className="text-muted-foreground text-sm">
-                                  ...
-                                </span>
-                              )}
-                              <Button
-                                onClick={() => setCurrentPage(page)}
-                                variant={
-                                  currentPage === page ? "default" : "outline"
-                                }
-                                size="sm"
-                                className="h-8 w-8 p-0"
-                              >
-                                {page}
-                              </Button>
-                            </div>
-                          ))}
-                      </div>
-
-                      <Button
-                        onClick={() =>
-                          setCurrentPage(
-                            Math.min(paginationInfo.pages, currentPage + 1),
-                          )
-                        }
-                        disabled={currentPage === paginationInfo.pages}
-                        variant="outline"
-                        size="sm"
-                      >
-                        Next
-                        <ChevronRightIcon className="ml-2 h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <div className="flex flex-col items-center justify-center py-12">
-                  <ShoppingCart className="text-muted-foreground mb-4 h-12 w-12" />
-                  <p className="text-muted-foreground">
-                    {searchQuery || statusFilter !== "all"
-                      ? "No orders match your filters"
-                      : "No orders yet"}
-                  </p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Order Details Dialog */}
-          <Dialog open={isDetailsOpen} onOpenChange={setIsDetailsOpen}>
-            <DialogContent className="max-h-[90vh] max-w-5xl overflow-y-auto">
-              <DialogHeader>
-                <DialogTitle>Order Details</DialogTitle>
-                <DialogDescription>
-                  Complete information about the order
-                </DialogDescription>
-              </DialogHeader>
-              {selectedOrder && (
-                <div className="space-y-6">
-                  {/* Order Header */}
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <h3 className="text-xl font-bold">
-                        Order # TG
-                        {selectedOrder._id?.slice(-4).toUpperCase() || "N/A"}
-                      </h3>
-                      <p className="text-muted-foreground text-sm">
-                        {selectedOrder.createdAt
-                          ? format(
-                              new Date(selectedOrder.createdAt),
-                              "MMMM dd, yyyy HH:mm",
-                            )
-                          : "N/A"}
-                      </p>
-                    </div>
-                    <div className="flex flex-col items-end gap-2">
-                      {getStatusBadge(selectedOrder.status)}
-                      {getPaymentBadge(
-                        selectedOrder.paymentStatus || "pending",
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Customer & Vendor Info */}
-                  <div className="grid gap-4 md:grid-cols-2">
-                    <Card>
-                      <CardHeader className="pb-3">
-                        <CardTitle className="flex items-center gap-2 text-sm">
-                          <User className="h-4 w-4" />
-                          {selectedOrder.isGiftOrder
-                            ? "Ordered By (Buyer)"
-                            : "Customer"}
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent className="space-y-1 text-sm">
-                        <p className="font-medium">
-                          {selectedOrder.user?.name || "Guest"}
-                        </p>
-                        <p className="text-muted-foreground">
-                          {selectedOrder.user?.phoneNumber || "N/A"}
-                        </p>
-                        <p className="text-muted-foreground">
-                          {selectedOrder.user?.email || "N/A"}
-                        </p>
-                      </CardContent>
-                    </Card>
-
-                    <Card>
-                      <CardHeader className="pb-3">
-                        <CardTitle className="flex items-center gap-2 text-sm">
-                          <Store className="h-4 w-4" />
-                          Vendor
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent className="space-y-1 text-sm">
-                        <p className="font-medium">
-                          {selectedOrder.vendor?.shopName || "Unknown"}
-                        </p>
-                        <p className="text-muted-foreground">
-                          {selectedOrder.vendor?.phoneNumber || "N/A"}
-                        </p>
-                      </CardContent>
-                    </Card>
-                  </div>
-
-                  {/* 🎁 Gift Order Recipient Info */}
-                  {selectedOrder.isGiftOrder && selectedOrder.recipientName && (
-                    <Card className="border-orange-200 bg-orange-50">
-                      <CardHeader className="pb-3">
-                        <CardTitle className="flex items-center gap-2 text-sm text-orange-700">
-                          <Package className="h-4 w-4" />
-                          🎁 Gift Order - Recipient Information
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent className="space-y-2 text-sm">
-                        <div className="grid gap-4 md:grid-cols-2">
-                          <div>
-                            <p className="text-muted-foreground">
-                              Recipient Name
-                            </p>
-                            <p className="font-medium">
-                              {selectedOrder.recipientName}
-                            </p>
-                          </div>
-                          <div>
-                            <p className="text-muted-foreground">
-                              Recipient Phone
-                            </p>
-                            <p className="font-medium">
-                              {selectedOrder.recipientPhone || "N/A"}
-                            </p>
-                          </div>
-                        </div>
-                        <div>
-                          <p className="text-muted-foreground">
-                            Delivery Address/Instructions
-                          </p>
-                          <p className="font-medium">
-                            {selectedOrder.recipientAddress || "N/A"}
-                          </p>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  )}
-
-                  {/* Delivery Address */}
-                  {selectedOrder.deliveryAddress && (
-                    <Card>
-                      <CardHeader className="pb-3">
-                        <CardTitle className="flex items-center gap-2 text-sm">
-                          <MapPin className="h-4 w-4" />
-                          Delivery Address
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent className="text-sm">
-                        {typeof selectedOrder.deliveryAddress === "string" ? (
-                          <p>{selectedOrder.deliveryAddress}</p>
-                        ) : (
-                          <>
-                            <p>{selectedOrder.deliveryAddress.street}</p>
-                            <p className="text-muted-foreground">
-                              {selectedOrder.deliveryAddress.city},{" "}
-                              {selectedOrder.deliveryAddress.state}{" "}
-                              {selectedOrder.deliveryAddress.zipCode}
-                            </p>
-                          </>
-                        )}
-                      </CardContent>
-                    </Card>
-                  )}
-
-                  {/* Order Items */}
-                  <Card>
-                    <CardHeader className="pb-3">
-                      <CardTitle className="text-sm">Order Items</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="space-y-3">
-                        {selectedOrder.items?.map((item, index) => (
-                          <div
-                            key={index}
-                            className="flex justify-between text-sm"
-                          >
-                            <div className="flex-1">
-                              <p className="font-medium">
-                                {item.productName ||
-                                  item.product?.name ||
-                                  item.menuItem?.name ||
-                                  item.medicine?.name ||
-                                  "Unknown Item"}
-                              </p>
-                              <p className="text-muted-foreground">
-                                Qty: {item.quantity}
-                              </p>
-                            </div>
-                            <p className="font-medium">
-                              D{(item.price * item.quantity).toFixed(2)}
-                            </p>
-                          </div>
-                        )) || (
-                          <p className="text-muted-foreground text-sm">
-                            No items
-                          </p>
-                        )}
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  {/* Order Summary */}
-                  <Card>
-                    <CardHeader className="pb-3">
-                      <CardTitle className="flex items-center gap-2 text-sm">
-                        <Banknote className="h-4 w-4" />
-                        Order Summary
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-2 text-sm">
-                      <div className="flex justify-between">
-                        <span>Subtotal</span>
-                        <span>
-                          D
-                          {(
-                            selectedOrder.totalAmount -
-                            (selectedOrder.deliveryFee || 0)
-                          ).toFixed(2)}
-                        </span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span>Delivery Fee</span>
-                        <span>
-                          D{selectedOrder.deliveryFee?.toFixed(2) || "0.00"}
-                        </span>
-                      </div>
-                      <div className="flex justify-between border-t pt-2 text-base font-bold">
-                        <span>Total</span>
-                        <span>
-                          D{selectedOrder.totalAmount?.toFixed(2) || "0.00"}
-                        </span>
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  {/* Driver Info */}
-                  {selectedOrder.driver && (
-                    <Card>
-                      <CardHeader className="pb-3">
-                        <CardTitle className="flex items-center gap-2 text-sm">
-                          <Truck className="h-4 w-4" />
-                          Delivery Driver
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent className="space-y-1 text-sm">
-                        <p className="font-medium">
-                          {selectedOrder.driver.name ||
-                            selectedOrder.driver.fullName ||
-                            "Driver"}
-                        </p>
-                        <p className="text-muted-foreground">
-                          {selectedOrder.driver.phoneNumber ||
-                            selectedOrder.driver.phone ||
-                            "N/A"}
-                        </p>
-                        <p className="text-muted-foreground">
-                          {selectedOrder.driver.vehicleNumber ||
-                            selectedOrder.driver.vehicleNo ||
-                            "N/A"}
-                        </p>
-                      </CardContent>
-                    </Card>
-                  )}
-                </div>
-              )}
-            </DialogContent>
-          </Dialog>
-
-          {/* Assign Driver Dialog */}
-          <Dialog
-            open={isAssignDriverOpen}
-            onOpenChange={setIsAssignDriverOpen}
-          >
-            <DialogContent className="max-w-md">
-              <DialogHeader>
-                <DialogTitle>Assign Driver</DialogTitle>
-                <DialogDescription>
-                  Select a driver to assign to this order
-                </DialogDescription>
-              </DialogHeader>
-
-              <div className="space-y-4">
-                {selectedOrder && (
-                  <div className="text-sm text-muted-foreground">
-                    Order TG
-                    {selectedOrder._id?.slice(-4).toUpperCase() || "N/A"} —{" "}
-                    {selectedOrder.user?.name || selectedOrder.user?.fullName}
-                  </div>
-                )}
-
-                {/* Required Vehicle Type Banner */}
-                {selectedOrder?.requiredVehicleType && (
-                  <div className="flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2">
-                    <span className="text-lg">
-                      {selectedOrder.requiredVehicleType === "BIKE" && "🏍️"}
-                      {selectedOrder.requiredVehicleType === "KEKE_CARGO" &&
-                        "🛺"}
-                      {selectedOrder.requiredVehicleType === "CAR" && "🚗"}
-                      {selectedOrder.requiredVehicleType === "VAN" && "🚐"}
-                      {selectedOrder.requiredVehicleType === "LORRY" && "🚛"}
-                    </span>
-                    <div className="flex-1">
-                      <p className="text-xs font-semibold text-amber-800">
-                        This order requires:{" "}
-                        {selectedOrder.requiredVehicleType === "BIKE" && "Bike"}
-                        {selectedOrder.requiredVehicleType === "KEKE_CARGO" &&
-                          "Keke Cargo"}
-                        {selectedOrder.requiredVehicleType === "CAR" && "Car"}
-                        {selectedOrder.requiredVehicleType === "VAN" && "Van"}
-                        {selectedOrder.requiredVehicleType === "LORRY" &&
-                          "Lorry"}
-                      </p>
-                      {selectedOrder.totalWeightKg != null && (
-                        <p className="text-xs text-amber-600">
-                          Estimated weight:{" "}
-                          {selectedOrder.totalWeightKg.toFixed(1)} kg
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                )}
-
-                {drivers.length === 0 ? (
-                  <div className="text-muted-foreground rounded-lg border border-dashed p-4 text-center text-sm">
-                    No compatible drivers are currently available for assignment
-                  </div>
-                ) : (
-                  <Select
-                    value={selectedDriverId}
-                    onValueChange={setSelectedDriverId}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Choose a driver..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {drivers.map((driver: Driver) => {
-                        const driverName =
-                          driver.user?.fullName ||
-                          driver.name ||
-                          driver.fullName ||
-                          "Unknown Driver";
-                        const driverVehicle = driver.vehicleType;
-                        const driverPhone =
-                          driver.phoneNumber ||
-                          driver.phone ||
-                          driver.user?.phoneNumber ||
-                          driver.user?.phone;
-                        const isCompatible =
-                          !selectedOrder?.requiredVehicleType ||
-                          driverVehicle === selectedOrder.requiredVehicleType;
-                        const avatarLetter = driverName.charAt(0).toUpperCase();
-                        return (
-                          <SelectItem
-                            key={driver._id || driver.id || ""}
-                            value={driver._id || driver.id || ""}
-                            className="py-2"
-                          >
-                            <div className="flex items-center gap-2 w-full">
-                              {/* Avatar */}
-                              {driver.profileImageUrl ? (
-                                <img
-                                  src={driver.profileImageUrl}
-                                  alt={driverName}
-                                  className="w-8 h-8 rounded-full object-cover border border-gray-200 flex-shrink-0"
-                                />
-                              ) : (
-                                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white font-medium text-xs flex-shrink-0">
-                                  {avatarLetter}
-                                </div>
-                              )}
-                              {/* Info */}
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-1.5 flex-wrap">
-                                  <span className="font-medium text-sm">
-                                    {driverName}
-                                  </span>
-                                  {driverVehicle && (
-                                    <span className="text-xs bg-gray-100 px-1.5 py-0.5 rounded">
-                                      {driverVehicle === "BIKE" && "🏍️ Bike"}
-                                      {driverVehicle === "KEKE_CARGO" &&
-                                        "🛺 Keke"}
-                                      {driverVehicle === "CAR" && "🚗 Car"}
-                                      {driverVehicle === "VAN" && "🚐 Van"}
-                                      {driverVehicle === "LORRY" && "🚛 Lorry"}
-                                    </span>
-                                  )}
-                                  {isCompatible &&
-                                    selectedOrder?.requiredVehicleType && (
-                                      <span className="text-xs text-green-600 font-medium">
-                                        ✓
-                                      </span>
-                                    )}
-                                  {(driver.isAvailable ?? true) && (
-                                    <span
-                                      className="w-2 h-2 bg-green-400 rounded-full flex-shrink-0"
-                                      title="Available"
-                                    />
-                                  )}
-                                </div>
-                                {driverPhone && (
-                                  <div className="text-xs text-muted-foreground truncate">
-                                    {driverPhone}
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                          </SelectItem>
-                        );
-                      })}
-                    </SelectContent>
-                  </Select>
-                )}
-
-                <div className="flex justify-end gap-3 pt-4">
-                  <Button
-                    variant="outline"
-                    onClick={() => setIsAssignDriverOpen(false)}
-                  >
-                    Cancel
-                  </Button>
-                  <Button
-                    onClick={() => {
-                      if (selectedOrder && selectedDriverId) {
-                        const orderId = selectedOrder._id || selectedOrder.id;
-                        if (!orderId) {
-                          toast.error("Order ID is missing");
-                          return;
-                        }
-                        assignDriverMutation.mutate({
-                          orderId,
-                          driverId: selectedDriverId,
-                        });
-                      }
-                    }}
-                    disabled={!selectedDriverId || drivers.length === 0}
-                  >
-                    {assignDriverMutation.isPending ? (
-                      <>
-                        <div className="mr-2 h-4 w-4 animate-spin rounded-full border-b-2 border-white"></div>
-                        Assigning...
-                      </>
-                    ) : (
-                      <>
-                        <Truck className="mr-2 h-4 w-4" />
-                        Assign Driver
-                      </>
-                    )}
-                  </Button>
-                </div>
-              </div>
-            </DialogContent>
-          </Dialog>
+      {orders.length > 0 ? (
+        <>
+          {viewLayout === "grid" ? (
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+              {orders.map((order: Order) => (
+                <OrderCard
+                  key={order.id}
+                  order={order}
+                  onViewDetails={handleViewDetails}
+                  onAssignDriver={handleAssignDriverClick}
+                  onUpdateStatus={updateStatusMutation.mutate}
+                />
+              ))}
+            </div>
+          ) : (
+            <OrderTable
+              orders={orders}
+              onViewDetails={handleViewDetails}
+              onAssignDriver={handleAssignDriverClick}
+              onUpdateStatus={updateStatusMutation.mutate}
+            />
+          )}
+          <Pagination
+            currentPage={paginationInfo.page}
+            totalPages={paginationInfo.pages}
+            onPageChange={setCurrentPage}
+          />
+        </>
+      ) : (
+        <div className="flex h-64 flex-col items-center justify-center rounded-lg border-2 border-dashed bg-gray-50 dark:bg-gray-800/50">
+          <Inbox className="h-12 w-12 text-gray-400" />
+          <h3 className="mt-4 text-lg font-semibold">No Orders Found</h3>
+          <p className="text-muted-foreground mt-1">
+            Try adjusting your search or filters.
+          </p>
         </div>
-      </Main>
-    </>
+      )}
+
+      {selectedOrder && (
+        <OrderDetailsDialog
+          isOpen={isDetailsOpen}
+          setIsOpen={setIsDetailsOpen}
+          order={selectedOrder}
+        />
+      )}
+
+      {selectedOrder && (
+        <AssignDriverDialog
+          isOpen={isAssignDriverOpen}
+          setIsOpen={setIsAssignDriverOpen}
+          order={selectedOrder}
+          drivers={drivers}
+          onAssign={assignDriverMutation.mutate}
+          isAssigning={assignDriverMutation.isPending}
+        />
+      )}
+    </div>
   );
 }
+
+// Sub-components
+const StatCard = ({
+  title,
+  value,
+  icon: Icon,
+  color,
+}: {
+  title: string;
+  value: string;
+  icon: any;
+  color: string;
+}) => (
+  <Card>
+    <CardContent className="p-4">
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-sm font-medium text-muted-foreground">{title}</p>
+          <p className="text-2xl font-bold">{value}</p>
+        </div>
+        <div className={`rounded-full p-3 ${color}`}>
+          <Icon className="h-6 w-6 text-white" />
+        </div>
+      </div>
+    </CardContent>
+  </Card>
+);
+
+const getStatusConfig = (status: string) => {
+  const s = status?.toLowerCase() || "pending";
+  const configs = {
+    pending: { icon: Clock, color: "text-yellow-600", bg: "bg-yellow-100" },
+    confirmed: {
+      icon: CheckCircle2,
+      color: "text-blue-600",
+      bg: "bg-blue-100",
+    },
+    preparing: { icon: Store, color: "text-orange-600", bg: "bg-orange-100" },
+    ready: { icon: Package, color: "text-purple-600", bg: "bg-purple-100" },
+    in_transit: { icon: Truck, color: "text-indigo-600", bg: "bg-indigo-100" },
+    delivered: {
+      icon: CheckCircle2,
+      color: "text-green-600",
+      bg: "bg-green-100",
+    },
+    cancelled: { icon: XCircle, color: "text-red-600", bg: "bg-red-100" },
+  };
+  return configs[s] || configs.pending;
+};
+
+const StatusBadge = ({ status }: { status: string }) => {
+  const config = getStatusConfig(status);
+  const Icon = config.icon;
+  return (
+    <Badge className={cn("flex items-center gap-1.5", config.bg, config.color)}>
+      <Icon className="h-3 w-3" />
+      {status.replace("_", " ")}
+    </Badge>
+  );
+};
+
+const OrderCard = ({
+  order,
+  onViewDetails,
+  onAssignDriver,
+  onUpdateStatus,
+}: {
+  order: Order;
+  onViewDetails: (order: Order) => void;
+  onAssignDriver: (order: Order) => void;
+  onUpdateStatus: (orderId: string, status: string) => void;
+}) => (
+  <Card className="flex flex-col justify-between transition-all hover:shadow-lg">
+    <CardHeader>
+      <div className="flex items-start justify-between">
+        <div>
+          <CardTitle className="text-base">
+            ID: TG{order.id.slice(-4).toUpperCase()}
+          </CardTitle>
+          <CardDescription>
+            {format(new Date(order.createdAt), "MMM dd, yyyy, HH:mm")}
+          </CardDescription>
+        </div>
+        <StatusBadge status={order.status} />
+      </div>
+    </CardHeader>
+    <CardContent className="space-y-3 text-sm">
+      <div className="flex items-center gap-2">
+        <Avatar className="h-8 w-8">
+          <AvatarFallback>{order.user?.name?.charAt(0) || "U"}</AvatarFallback>
+        </Avatar>
+        <div>
+          <p className="font-medium">{order.user?.name || "Guest"}</p>
+          <p className="text-xs text-muted-foreground">
+            {order.user?.phoneNumber}
+          </p>
+        </div>
+      </div>
+      <div className="flex items-center gap-2">
+        <Store className="h-4 w-4 text-muted-foreground" />
+        <span>{order.vendor?.shopName || "Unknown Vendor"}</span>
+      </div>
+      <div className="flex items-center gap-2">
+        <Banknote className="h-4 w-4 text-muted-foreground" />
+        <span className="font-semibold">
+          D{order.totalAmount?.toFixed(2) || "0.00"}
+        </span>
+      </div>
+    </CardContent>
+    <CardFooter className="flex justify-between">
+      <p className="text-xs text-muted-foreground">
+        {order.items?.length || 0} items
+      </p>
+      <div className="flex items-center gap-2">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => onViewDetails(order)}
+        >
+          <Eye className="mr-2 h-4 w-4" />
+          Details
+        </Button>
+        <OrderActions
+          order={order}
+          onAssignDriver={onAssignDriver}
+          onUpdateStatus={onUpdateStatus}
+        />
+      </div>
+    </CardFooter>
+  </Card>
+);
+
+const OrderTable = ({
+  orders,
+  onViewDetails,
+  onAssignDriver,
+  onUpdateStatus,
+}: {
+  orders: Order[];
+  onViewDetails: (order: Order) => void;
+  onAssignDriver: (order: Order) => void;
+  onUpdateStatus: (orderId: string, status: string) => void;
+}) => (
+  <Card>
+    <Table>
+      <TableHeader>
+        <TableRow>
+          <TableHead>Order</TableHead>
+          <TableHead>Customer</TableHead>
+          <TableHead>Vendor</TableHead>
+          <TableHead>Amount</TableHead>
+          <TableHead>Status</TableHead>
+          <TableHead>Driver</TableHead>
+          <TableHead className="text-right">Actions</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {orders.map((order) => (
+          <TableRow key={order.id}>
+            <TableCell>
+              <div className="font-medium">
+                TG{order.id.slice(-4).toUpperCase()}
+              </div>
+              <div className="text-xs text-muted-foreground">
+                {format(new Date(order.createdAt), "PP")}
+              </div>
+            </TableCell>
+            <TableCell>{order.user?.name || "Guest"}</TableCell>
+            <TableCell>{order.vendor?.shopName || "Unknown"}</TableCell>
+            <TableCell>D{order.totalAmount?.toFixed(2)}</TableCell>
+            <TableCell>
+              <StatusBadge status={order.status} />
+            </TableCell>
+            <TableCell>{order.driver?.name || "Unassigned"}</TableCell>
+            <TableCell className="text-right">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => onViewDetails(order)}
+              >
+                <Eye className="h-4 w-4" />
+              </Button>
+              <OrderActions
+                order={order}
+                onAssignDriver={onAssignDriver}
+                onUpdateStatus={onUpdateStatus}
+              />
+            </TableCell>
+          </TableRow>
+        ))}
+      </TableBody>
+    </Table>
+  </Card>
+);
+
+const OrderActions = ({
+  order,
+  onAssignDriver,
+  onUpdateStatus,
+}: {
+  order: Order;
+  onAssignDriver: (order: Order) => void;
+  onUpdateStatus: (orderId: string, status: string) => void;
+}) => {
+  const status = order.status?.toLowerCase();
+  const items = [];
+
+  if (status === "pending") {
+    items.push({ label: "Confirm", status: "CONFIRMED", icon: CheckCircle2 });
+  }
+  if (status === "confirmed") {
+    items.push({ label: "Prepare", status: "PREPARING", icon: Store });
+  }
+  if (status === "preparing") {
+    items.push({ label: "Ready", status: "READY", icon: Package });
+  }
+  if (status === "ready" && !order.driver) {
+    items.push({
+      label: "Assign Driver",
+      action: () => onAssignDriver(order),
+      icon: Truck,
+    });
+  }
+  if (status === "ready" && order.driver) {
+    items.push({ label: "Dispatch", status: "IN_TRANSIT", icon: Truck });
+  }
+  if (status !== "delivered" && status !== "cancelled") {
+    items.push({ label: "Deliver", status: "DELIVERED", icon: CheckCircle2 });
+  }
+  if (status !== "cancelled" && status !== "delivered") {
+    items.push({
+      label: "Cancel",
+      status: "CANCELLED",
+      icon: XCircle,
+      isDestructive: true,
+    });
+  }
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="ghost" size="icon">
+          <MoreHorizontal className="h-4 w-4" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        <DropdownMenuLabel>Actions</DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        {items.map((item) => (
+          <DropdownMenuItem
+            key={item.label}
+            onClick={() =>
+              item.action
+                ? item.action()
+                : onUpdateStatus({ orderId: order.id, status: item.status })
+            }
+            className={cn(item.isDestructive && "text-red-500")}
+          >
+            <item.icon className="mr-2 h-4 w-4" />
+            {item.label}
+          </DropdownMenuItem>
+        ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+};
+
+const Pagination = ({
+  currentPage,
+  totalPages,
+  onPageChange,
+}: {
+  currentPage: number;
+  totalPages: number;
+  onPageChange: (page: number) => void;
+}) => (
+  <div className="flex items-center justify-center gap-2">
+    <Button
+      onClick={() => onPageChange(currentPage - 1)}
+      disabled={currentPage === 1}
+      variant="outline"
+      size="sm"
+    >
+      <ChevronLeft className="h-4 w-4" />
+    </Button>
+    <span className="text-sm text-muted-foreground">
+      Page {currentPage} of {totalPages}
+    </span>
+    <Button
+      onClick={() => onPageChange(currentPage + 1)}
+      disabled={currentPage === totalPages}
+      variant="outline"
+      size="sm"
+    >
+      <ChevronRight className="h-4 w-4" />
+    </Button>
+  </div>
+);
+
+const OrderDetailsDialog = ({
+  isOpen,
+  setIsOpen,
+  order,
+}: {
+  isOpen: boolean;
+  setIsOpen: (isOpen: boolean) => void;
+  order: Order;
+}) => (
+  <Dialog open={isOpen} onOpenChange={setIsOpen}>
+    <DialogContent className="max-w-2xl">
+      <DialogHeader>
+        <DialogTitle className="text-xl">
+          Order TG{order.id.slice(-4).toUpperCase()}
+        </DialogTitle>
+        <div className="flex items-center justify-between pt-2">
+          <StatusBadge status={order.status} />
+          <p className="text-sm text-muted-foreground">
+            {format(new Date(order.createdAt), "PPpp")}
+          </p>
+        </div>
+      </DialogHeader>
+      <div className="grid gap-6 py-4">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <InfoCard
+            icon={User}
+            title="Customer"
+            data={[
+              { label: "Name", value: order.user?.name },
+              { label: "Phone", value: order.user?.phoneNumber },
+            ]}
+          />
+          <InfoCard
+            icon={Store}
+            title="Vendor"
+            data={[
+              { label: "Name", value: order.vendor?.shopName },
+              { label: "Phone", value: order.vendor?.phoneNumber },
+            ]}
+          />
+        </div>
+        {order.isGiftOrder && (
+          <InfoCard
+            icon={Gift}
+            title="Gift Recipient"
+            data={[
+              { label: "Name", value: order.recipientName },
+              { label: "Phone", value: order.recipientPhone },
+            ]}
+          />
+        )}
+        <InfoCard
+          icon={MapPin}
+          title="Delivery"
+          data={[
+            { label: "Address", value: order.deliveryAddress?.street },
+            { label: "Driver", value: order.driver?.name || "Unassigned" },
+          ]}
+        />
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Order Items</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {order.items?.map((item) => (
+              <div key={item.product?._id} className="flex justify-between">
+                <p>
+                  {item.quantity} x {item.product?.name}
+                </p>
+                <p>D{(item.price * item.quantity).toFixed(2)}</p>
+              </div>
+            ))}
+            <Separator className="my-2" />
+            <div className="flex justify-between font-bold">
+              <p>Total</p>
+              <p>D{order.totalAmount?.toFixed(2)}</p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    </DialogContent>
+  </Dialog>
+);
+
+const AssignDriverDialog = ({
+  isOpen,
+  setIsOpen,
+  order,
+  drivers,
+  onAssign,
+  isAssigning,
+}: {
+  isOpen: boolean;
+  setIsOpen: (isOpen: boolean) => void;
+  order: Order;
+  drivers: Driver[];
+  onAssign: (data: { orderId: string; driverId: string }) => void;
+  isAssigning: boolean;
+}) => {
+  const [selectedDriverId, setSelectedDriverId] = useState(
+    order.driver?.id || "",
+  );
+  return (
+    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Assign Driver</DialogTitle>
+        </DialogHeader>
+        <div className="py-4">
+          <p>
+            Select a driver for order{" "}
+            <strong>TG{order.id.slice(-4).toUpperCase()}</strong>.
+          </p>
+          <Select value={selectedDriverId} onValueChange={setSelectedDriverId}>
+            <SelectTrigger className="mt-4">
+              <SelectValue placeholder="Select a driver" />
+            </SelectTrigger>
+            <SelectContent>
+              {drivers.map((driver) => (
+                <SelectItem key={driver.id} value={driver.id}>
+                  {driver.name} ({driver.vehicleType})
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <Button
+          onClick={() =>
+            onAssign({ orderId: order.id, driverId: selectedDriverId })
+          }
+          disabled={!selectedDriverId || isAssigning}
+        >
+          {isAssigning ? "Assigning..." : "Assign Driver"}
+        </Button>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
+const InfoCard = ({
+  icon: Icon,
+  title,
+  data,
+}: {
+  icon: any;
+  title: string;
+  data: { label: string; value: string }[];
+}) => (
+  <Card>
+    <CardHeader className="flex-row items-center gap-2 space-y-0 pb-2">
+      <Icon className="h-4 w-4 text-muted-foreground" />
+      <CardTitle className="text-base">{title}</CardTitle>
+    </CardHeader>
+    <CardContent className="space-y-1 text-sm">
+      {data.map((item) => (
+        <div key={item.label} className="flex justify-between">
+          <p className="text-muted-foreground">{item.label}</p>
+          <p className="font-medium">{item.value || "N/A"}</p>
+        </div>
+      ))}
+    </CardContent>
+  </Card>
+);

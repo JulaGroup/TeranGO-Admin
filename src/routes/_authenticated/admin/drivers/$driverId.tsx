@@ -15,8 +15,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
-import { api } from "@/lib/api";
-import { adminApi } from "@/lib/api";
+import { adminApi, api } from "@/lib/api";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -264,6 +263,91 @@ function DriverDetailPage() {
           </div>
 
           {/* Driver type badge + rating + edit button */}
+          {/* Driver Info */}
+          <div className="grid gap-4 md:grid-cols-3 items-start">
+            <Card className="md:col-span-1">
+              <CardContent className="flex flex-col items-center gap-3">
+                <Avatar className="h-24 w-24">
+                  <AvatarImage
+                    src={
+                      driver?.profileImage ||
+                      driver?.profileImageUrl ||
+                      driver?.user?.avatarUrl
+                    }
+                  />
+                  <AvatarFallback>
+                    {(driver?.name || driver?.user?.fullName || "DR")
+                      .slice(0, 2)
+                      .toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+                <h2 className="text-lg font-semibold">{driverName}</h2>
+                <p className="text-sm text-muted-foreground">
+                  {driver?.user?.email || driver?.email || "—"}
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  {driver?.user?.phone ||
+                    driver?.phone ||
+                    driver?.phoneNumber ||
+                    "—"}
+                </p>
+              </CardContent>
+            </Card>
+            <Card className="md:col-span-2">
+              <CardContent>
+                <div className="grid gap-2 md:grid-cols-3">
+                  <div>
+                    <p className="text-xs text-muted-foreground">Vehicle</p>
+                    <p className="font-medium">
+                      {driver?.vehicleNumber || driver?.vehicleNo || "—"}
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      {driver?.vehicleType || "—"}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Status</p>
+                    <p className="font-medium">
+                      {(driver as any)?.status ||
+                        (driver?.isAvailable ? "Available" : "Unavailable")}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Driver Type: {driver?.driverType || "—"}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Location</p>
+                    <p className="font-medium">
+                      {driver?.currentLatitude && driver?.currentLongitude
+                        ? `${driver.currentLatitude.toFixed(5)}, ${driver.currentLongitude.toFixed(5)}`
+                        : "No location"}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {driver?.lastLocationUpdate
+                        ? formatDate(driver.lastLocationUpdate)
+                        : ""}
+                    </p>
+                  </div>
+                </div>
+                <div className="mt-4 grid gap-2 md:grid-cols-2">
+                  <div>
+                    <p className="text-xs text-muted-foreground">Joined</p>
+                    <p className="font-medium">
+                      {driver?.createdAt ? formatDate(driver.createdAt) : "—"}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">
+                      Recent Orders
+                    </p>
+                    <p className="font-medium">
+                      {driver?.recentOrders?.length ?? 0}
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
           <div className="flex flex-wrap items-center gap-3">
             <Badge
               variant={
@@ -906,14 +990,24 @@ function DriverDetailPage() {
                 Cancel
               </Button>
               <Button
-                onClick={() =>
+                onClick={async () => {
+                  const normalizedThirdPartyRate =
+                    editForm.driverType === "THIRD_PARTY"
+                      ? editForm.thirdPartyRate === ""
+                        ? null
+                        : Number(editForm.thirdPartyRate)
+                      : null;
+
+                  await adminApi.updateDriverType(driverId, {
+                    driverType: editForm.driverType as "SYSTEM" | "THIRD_PARTY",
+                    thirdPartyRate: normalizedThirdPartyRate,
+                  });
+
                   updateDriverMutation.mutate({
                     ...editForm,
-                    thirdPartyRate: editForm.thirdPartyRate
-                      ? Number(editForm.thirdPartyRate)
-                      : null,
-                  })
-                }
+                    thirdPartyRate: normalizedThirdPartyRate,
+                  });
+                }}
                 disabled={updateDriverMutation.isPending}
               >
                 {updateDriverMutation.isPending ? (

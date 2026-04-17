@@ -80,6 +80,11 @@ function SettlementsPage() {
   const queryClient = useQueryClient();
   const [page, setPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState("PENDING");
+  const [approveDialog, setApproveDialog] = useState<{
+    id: string;
+    driverName: string;
+    amount: number;
+  } | null>(null);
   const [rejectDialog, setRejectDialog] = useState<{
     id: string;
     driverName: string;
@@ -128,16 +133,11 @@ function SettlementsPage() {
   });
 
   const handleApprove = (settlement: any) => {
-    const driverName = settlement.driver?.user?.fullName || "this driver";
-    const amount = formatGMD(settlement.totalAmount);
-
-    if (
-      confirm(
-        `Approve settlement of ${amount} for ${driverName}? \n\nRemember: you will need to manually pay them via Wave.`,
-      )
-    ) {
-      approveMutation.mutate(settlement.id);
-    }
+    setApproveDialog({
+      id: settlement.id,
+      driverName: settlement.driver?.user?.fullName || "Driver",
+      amount: settlement.totalAmount,
+    });
   };
 
   const settlements = data?.settlements || [];
@@ -349,6 +349,46 @@ function SettlementsPage() {
           </Card>
         </div>
       </Main>
+
+      {/* Approve Dialog */}
+      <Dialog
+        open={!!approveDialog}
+        onOpenChange={() => setApproveDialog(null)}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Approve Settlement</DialogTitle>
+            <DialogDescription>
+              Approve settlement of <strong>D{approveDialog?.amount?.toFixed(2)}</strong> for{" "}
+              <strong>{approveDialog?.driverName}</strong>.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="bg-yellow-50 border border-yellow-200 rounded-md p-4">
+            <p className="text-sm text-yellow-800">
+              <strong>⚠️ Important:</strong> You will need to manually pay this driver{" "}
+              <strong>via Wave</strong> after approving.
+            </p>
+          </div>
+          <div className="flex justify-end gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setApproveDialog(null)}
+            >
+              Cancel
+            </Button>
+            <Button
+              className="bg-green-600 hover:bg-green-700"
+              onClick={() => {
+                approveMutation.mutate(approveDialog!.id);
+                setApproveDialog(null);
+              }}
+              disabled={approveMutation.isPending}
+            >
+              Approve Settlement
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Reject Dialog */}
       <Dialog

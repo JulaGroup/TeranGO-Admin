@@ -386,6 +386,16 @@ function TerangoStoreOrders() {
 
   const handleStatusUpdate = (status: string) => {
     if (selectedOrder) {
+      if (status === "CANCELLED" && selectedOrder.paymentStatus === "PAID") {
+        toast.error("Cannot cancel after payment received");
+        return;
+      }
+      const PAID_STATES = ["PREPARING", "PROCESSING", "READY", "DISPATCHED", "DELIVERED"];
+      if (PAID_STATES.includes(status) && selectedOrder.paymentStatus !== "PAID" && selectedOrder.paymentMethod !== "CASH") {
+        toast.error("Order must be PAID before you can begin processing");
+        return;
+      }
+      if (status === "CANCELLED" && !window.confirm("Cancel this order?")) return;
       updateStatusMutation.mutate({ orderId: selectedOrder.id, status });
     }
   };
@@ -1059,7 +1069,11 @@ function TerangoStoreOrders() {
                       onClick={() => handleStatusUpdate(status.value)}
                       disabled={
                         updateStatusMutation.isPending ||
-                        selectedOrder.status === status.value
+                        selectedOrder.status === status.value ||
+                        (status.value === "CANCELLED" && selectedOrder.paymentStatus === "PAID") ||
+                        (["PREPARING", "PROCESSING", "READY", "DISPATCHED", "DELIVERED"].includes(status.value) &&
+                          selectedOrder.paymentStatus !== "PAID" &&
+                          selectedOrder.paymentMethod !== "CASH")
                       }
                     >
                       {status.label}

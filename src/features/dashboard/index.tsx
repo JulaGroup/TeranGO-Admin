@@ -9,6 +9,8 @@ import {
   Package,
   Settings,
   ArrowRight,
+  Truck,
+  TrendingUp,
 } from 'lucide-react'
 import { adminApi, api } from '@/lib/api'
 import { Button } from '@/components/ui/button'
@@ -27,6 +29,7 @@ import { TopNav } from '@/components/layout/top-nav'
 import { ProfileDropdown } from '@/components/profile-dropdown'
 import { Search } from '@/components/search'
 import { ThemeSwitch } from '@/components/theme-switch'
+import { StatCard, CompactStatCard, StatsGrid } from '@/components/ui/stat-card'
 import { Analytics } from './components/analytics'
 import { Overview } from './components/overview'
 import { RecentSales } from './components/recent-sales'
@@ -46,6 +49,15 @@ export function Dashboard() {
     queryKey: ['terango-products-stats'],
     queryFn: async () => {
       const response = await api.get('/api/admin/terango-products/stats')
+      return response.data
+    },
+  })
+
+  // Fetch Express delivery stats
+  const { data: expressStats } = useQuery({
+    queryKey: ['express-metrics'],
+    queryFn: async () => {
+      const response = await adminApi.getExpressMetrics()
       return response.data
     },
   })
@@ -105,87 +117,84 @@ export function Dashboard() {
             </TabsList>
           </div>
           <TabsContent value='overview' className='space-y-4'>
-            <div className='grid gap-4 sm:grid-cols-2 lg:grid-cols-4'>
-              <Card>
-                <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2'>
-                  <CardTitle className='text-sm font-medium'>
-                    Total Revenue
-                  </CardTitle>
-                  <Banknote className='text-muted-foreground h-4 w-4' />
-                </CardHeader>
-                <CardContent>
-                  <div className='text-2xl font-bold'>
-                    {isLoading
-                      ? '...'
-                      : `D${stats.totalRevenue?.toLocaleString() || '0'}`}
-                  </div>
-                  <p className='text-muted-foreground text-xs'>
-                    {isLoading
-                      ? '...'
-                      : `${stats?.revenueGrowth || 0}% from last month`}
-                  </p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2'>
-                  <CardTitle className='text-sm font-medium'>
-                    Total Orders
-                  </CardTitle>
-                  <ShoppingCart className='text-muted-foreground h-4 w-4' />
-                </CardHeader>
-                <CardContent>
-                  <div className='text-2xl font-bold'>
-                    {isLoading
-                      ? '...'
-                      : `+${stats.totalOrders?.toLocaleString() || '0'}`}
-                  </div>
-                  <p className='text-muted-foreground text-xs'>
-                    {isLoading
-                      ? '...'
-                      : `${stats.ordersGrowth || 0}% from last month`}
-                  </p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2'>
-                  <CardTitle className='text-sm font-medium'>
-                    Active Vendors
-                  </CardTitle>
-                  <Store className='text-muted-foreground h-4 w-4' />
-                </CardHeader>
-                <CardContent>
-                  <div className='text-2xl font-bold'>
-                    {isLoading
-                      ? '...'
-                      : `${stats.activeVendors?.toLocaleString() || '0'}`}
-                  </div>
-                  <p className='text-muted-foreground text-xs'>
-                    {isLoading
-                      ? '...'
-                      : `${stats.vendorsGrowth || 0}% from last month`}
-                  </p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2'>
-                  <CardTitle className='text-sm font-medium'>
-                    Total Customers
-                  </CardTitle>
-                  <Users className='text-muted-foreground h-4 w-4' />
-                </CardHeader>
-                <CardContent>
-                  <div className='text-2xl font-bold'>
-                    {isLoading
-                      ? '...'
-                      : `${stats.activeDrivers?.toLocaleString() || '0'}`}
-                  </div>
-                  <p className='text-muted-foreground text-xs'>
-                    {isLoading
-                      ? '...'
-                      : `${stats.driversGrowth || 0}% from last month`}
-                  </p>
-                </CardContent>
-              </Card>
+            {/* Main Stats with Modern Stat Cards */}
+            <StatsGrid columns={4}>
+              <StatCard
+                title="Total Revenue"
+                value={`D${stats.totalRevenue?.toLocaleString() || '0'}`}
+                icon={Banknote}
+                trend={{
+                  value: stats.revenueGrowth || 0,
+                  label: "from last month"
+                }}
+                loading={isLoading}
+                variant="gradient"
+                color="green"
+              />
+              <StatCard
+                title="Total Orders"
+                value={stats.totalOrders?.toLocaleString() || '0'}
+                icon={ShoppingCart}
+                trend={{
+                  value: stats.ordersGrowth || 0,
+                  label: "from last month"
+                }}
+                loading={isLoading}
+                variant="outlined"
+                color="blue"
+              />
+              <StatCard
+                title="Active Vendors"
+                value={stats.activeVendors?.toLocaleString() || '0'}
+                icon={Store}
+                trend={{
+                  value: stats.vendorsGrowth || 0,
+                  label: "from last month"
+                }}
+                loading={isLoading}
+                color="purple"
+              />
+              <StatCard
+                title="Active Drivers"
+                value={stats.activeDrivers?.toLocaleString() || '0'}
+                icon={Truck}
+                trend={{
+                  value: stats.driversGrowth || 0,
+                  label: "from last month"
+                }}
+                loading={isLoading}
+                variant="outlined"
+                color="blue"
+              />
+            </StatsGrid>
+
+            {/* Compact Stats Row for Express & TeranGO */}
+            <div className="grid gap-4 grid-cols-2 md:grid-cols-4">
+              <CompactStatCard
+                title="Express Deliveries"
+                value={expressStats?.totalDeliveries?.toLocaleString() || '0'}
+                icon={TrendingUp}
+                trend={expressStats?.growthRate}
+                loading={!expressStats}
+              />
+              <CompactStatCard
+                title="TeranGO Products"
+                value={terangoStats?.totalProducts?.toLocaleString() || '0'}
+                icon={Package}
+                loading={!terangoStats}
+              />
+              <CompactStatCard
+                title="Low Stock Items"
+                value={terangoStats?.lowStockCount?.toLocaleString() || '0'}
+                icon={Package}
+                loading={!terangoStats}
+              />
+              <CompactStatCard
+                title="Featured Products"
+                value={terangoStats?.featuredCount?.toLocaleString() || '0'}
+                icon={Crown}
+                loading={!terangoStats}
+              />
             </div>
 
             {/* TeranGO Official Store Section */}

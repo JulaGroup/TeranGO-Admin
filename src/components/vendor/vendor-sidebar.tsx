@@ -11,7 +11,7 @@ import {
   Package,
   BarChart3,
   FileText,
-  Crown,
+  // Crown,
   DollarSign,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -68,7 +68,7 @@ const getNavGroups = (): NavGroup[] => [
           Boolean(vendor?.shops && vendor.shops.length > 0),
       },
       {
-        title: "Payouts (GMD)",
+        title: "Earnings",
         href: "/vendor/payouts",
         icon: DollarSign,
       },
@@ -94,11 +94,11 @@ const getNavGroups = (): NavGroup[] => [
   {
     title: "System",
     items: [
-      {
-        title: "Subscription",
-        href: "/vendor/subscription",
-        icon: Crown,
-      },
+      // {
+      //   title: "Subscription",
+      //   href: "/vendor/subscription",
+      //   icon: Crown,
+      // },
       {
         title: "Settings",
         href: "/vendor/settings",
@@ -262,3 +262,5 @@ export function VendorMobileSidebar() {
     </Sheet>
   );
 }
+
+

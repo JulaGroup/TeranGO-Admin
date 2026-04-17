@@ -110,6 +110,8 @@ function DriversPage() {
     vehicleColor: "",
     profileImage: "",
     password: "",
+    driverType: "SYSTEM",
+    thirdPartyRate: "",
   });
   const [editForm, setEditForm] = useState({
     name: "",
@@ -164,6 +166,8 @@ function DriversPage() {
         vehicleColor: "",
         profileImage: "",
         password: "",
+        driverType: "SYSTEM",
+        thirdPartyRate: "",
       });
     },
     onError: (error: any) => {
@@ -305,9 +309,25 @@ function DriversPage() {
     if (!editingDriver) return;
 
     try {
+      const driverId = (editingDriver.id || editingDriver._id) as string;
+      const normalizedThirdPartyRate =
+        editForm.driverType === "THIRD_PARTY"
+          ? editForm.thirdPartyRate === ""
+            ? null
+            : Number(editForm.thirdPartyRate)
+          : null;
+
+      await adminApi.updateDriverType(driverId, {
+        driverType: editForm.driverType as "SYSTEM" | "THIRD_PARTY",
+        thirdPartyRate: normalizedThirdPartyRate,
+      });
+
       await updateMutation.mutateAsync({
-        driverId: (editingDriver.id || editingDriver._id) as string,
-        data: editForm,
+        driverId,
+        data: {
+          ...editForm,
+          thirdPartyRate: normalizedThirdPartyRate,
+        },
       });
     } catch (error) {
       // Error is handled by the mutation
@@ -1013,7 +1033,7 @@ function DriversPage() {
                             }
                           >
                             <SelectTrigger>
-                              <SelectValue />
+                              <SelectValue placeholder="Select vehicle type" />
                             </SelectTrigger>
                             <SelectContent>
                               <SelectItem value="BIKE">🏍️ Motorbike</SelectItem>
@@ -1058,7 +1078,7 @@ function DriversPage() {
                     </div>
 
                     {/* Driver Type & Earnings */}
-                    <div className="space-y-4 rounded-lg border p-4">
+                    <div className="space-y-4">
                       <h4 className="font-semibold">
                         Driver Type &amp; Earnings
                       </h4>
@@ -1075,7 +1095,7 @@ function DriversPage() {
                             }
                           >
                             <SelectTrigger>
-                              <SelectValue />
+                              <SelectValue placeholder="Select driver type" />
                             </SelectTrigger>
                             <SelectContent>
                               <SelectItem value="SYSTEM">
@@ -1094,18 +1114,12 @@ function DriversPage() {
                         </div>
                         {editForm.driverType === "THIRD_PARTY" && (
                           <div className="space-y-2">
-                            <Label>
-                              Split Rate
-                              <span className="text-muted-foreground ml-2 text-xs">
-                                Leave blank for global default
-                              </span>
+                            <Label htmlFor="thirdPartyRate">
+                              Third-Party Rate (Commission)
                             </Label>
                             <Input
+                              id="thirdPartyRate"
                               type="number"
-                              min="0.1"
-                              max="1"
-                              step="0.05"
-                              placeholder="e.g. 0.70 for 70%"
                               value={editForm.thirdPartyRate}
                               onChange={(e) =>
                                 setEditForm((prev) => ({
@@ -1113,20 +1127,17 @@ function DriversPage() {
                                   thirdPartyRate: e.target.value,
                                 }))
                               }
+                              placeholder="e.g., 0.75 for 75%"
                             />
-                            {editForm.thirdPartyRate && (
-                              <p className="text-muted-foreground text-xs">
-                                Driver gets{" "}
-                                {Math.round(
-                                  Number(editForm.thirdPartyRate) * 100,
-                                )}
-                                % — Platform keeps{" "}
-                                {Math.round(
-                                  (1 - Number(editForm.thirdPartyRate)) * 100,
-                                )}
-                                %
-                              </p>
-                            )}
+                            <p className="text-xs text-muted-foreground">
+                              Driver gets{" "}
+                              {isNaN(parseFloat(editForm.thirdPartyRate))
+                                ? "0"
+                                : (
+                                    parseFloat(editForm.thirdPartyRate) * 100
+                                  ).toFixed(0)}
+                              % of the delivery fee.
+                            </p>
                           </div>
                         )}
                       </div>
@@ -1343,45 +1354,136 @@ function DriversPage() {
                   />
                 </div>
 
-                {/* Action Buttons */}
-                <div className="flex gap-3 border-t pt-4">
-                  <Button
-                    variant="outline"
-                    className="flex-1"
-                    onClick={() => setIsCreateOpen(false)}
-                    disabled={createMutation.isPending}
-                  >
-                    Cancel
-                  </Button>
-                  <Button
-                    className="flex-1"
-                    onClick={() => {
-                      if (
-                        !createForm.name ||
-                        !createForm.email ||
-                        !createForm.phone
-                      ) {
-                        toast.error("Name, email, and phone are required");
-                        return;
-                      }
-                      const payload: any = { ...createForm };
-                      if (!payload.password) delete payload.password;
-                      createMutation.mutate(payload);
-                    }}
-                    disabled={createMutation.isPending || isCreateUploading}
-                  >
-                    {createMutation.isPending ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Creating...
-                      </>
-                    ) : (
-                      <>
-                        <UserPlus className="mr-2 h-4 w-4" />
-                        Create Driver
-                      </>
+                {/* Driver Type & Earnings */}
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Driver Type</Label>
+                      <Select
+                        value={createForm.driverType}
+                        onValueChange={(v) =>
+                          setCreateForm((prev) => ({
+                            ...prev,
+                            driverType: v,
+                          }))
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select driver type" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="SYSTEM">
+                            TeranGO (Salaried)
+                          </SelectItem>
+                          <SelectItem value="THIRD_PARTY">
+                            Third-Party
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <p className="text-muted-foreground text-xs">
+                        {createForm.driverType === "SYSTEM"
+                          ? "Salaried — no per-order earnings tracked."
+                          : "Earns a commission % per delivery."}
+                      </p>
+                    </div>
+                    {createForm.driverType === "THIRD_PARTY" && (
+                      <div className="space-y-2">
+                        <Label htmlFor="create-thirdPartyRate">
+                          Third-Party Rate (Commission)
+                        </Label>
+                        <Input
+                          id="create-thirdPartyRate"
+                          type="number"
+                          value={createForm.thirdPartyRate}
+                          onChange={(e) =>
+                            setCreateForm((prev) => ({
+                              ...prev,
+                              thirdPartyRate: e.target.value,
+                            }))
+                          }
+                          placeholder="e.g., 0.75 for 75%"
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          Driver gets{" "}
+                          {isNaN(parseFloat(createForm.thirdPartyRate))
+                            ? "0"
+                            : (
+                                parseFloat(createForm.thirdPartyRate) * 100
+                              ).toFixed(0)}
+                          % of the delivery fee.
+                        </p>
+                      </div>
                     )}
-                  </Button>
+                  </div>
+
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label htmlFor="thirdPartyRate">
+                        Third-Party Rate (Commission)
+                      </Label>
+                      <Input
+                        id="thirdPartyRate"
+                        type="number"
+                        value={editForm.thirdPartyRate}
+                        onChange={(e) =>
+                          setEditForm((prev) => ({
+                            ...prev,
+                            thirdPartyRate: e.target.value,
+                          }))
+                        }
+                        placeholder="e.g., 0.75 for 75%"
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Driver gets{" "}
+                        {isNaN(parseFloat(editForm.thirdPartyRate))
+                          ? "0"
+                          : (parseFloat(editForm.thirdPartyRate) * 100).toFixed(
+                              0,
+                            )}
+                        % of the delivery fee.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-3 border-t pt-4">
+                    <Button
+                      variant="outline"
+                      className="flex-1"
+                      onClick={() => setIsCreateOpen(false)}
+                      disabled={createMutation.isPending}
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      className="flex-1"
+                      onClick={() => {
+                        if (
+                          !createForm.name ||
+                          !createForm.email ||
+                          !createForm.phone
+                        ) {
+                          toast.error("Name, email, and phone are required");
+                          return;
+                        }
+                        const payload: any = { ...createForm };
+                        if (!payload.password) delete payload.password;
+                        createMutation.mutate(payload);
+                      }}
+                      disabled={createMutation.isPending || isCreateUploading}
+                    >
+                      {createMutation.isPending ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Creating...
+                        </>
+                      ) : (
+                        <>
+                          <UserPlus className="mr-2 h-4 w-4" />
+                          Create Driver
+                        </>
+                      )}
+                    </Button>
+                  </div>
                 </div>
               </div>
             </DialogContent>

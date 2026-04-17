@@ -163,6 +163,10 @@ export const adminApi = {
     api.post("/api/admin/drivers", data),
   updateDriver: (id: string, data: Record<string, unknown>) =>
     api.put(`/api/admin/drivers/${id}`, data),
+  updateDriverType: (
+    id: string,
+    payload: { driverType: "SYSTEM" | "THIRD_PARTY"; thirdPartyRate?: number | null },
+  ) => api.patch(`/api/admin/drivers/${id}/type`, payload),
   deleteDriver: (id: string) => api.delete(`/api/admin/drivers/${id}`),
   approveDriver: (id: string) => api.patch(`/api/admin/drivers/${id}/approve`),
   rejectDriver: (id: string) => api.patch(`/api/admin/drivers/${id}/reject`),
@@ -243,6 +247,48 @@ export const adminApi = {
   getTerangoStoreDrivers: () =>
     api.get("/api/admin/terango-store/available-drivers"),
   setupTerangoStore: () => api.post("/api/admin/terango-products/setup"),
+
+  // Express Delivery Management
+  getExpressDeliveries: (params?: Record<string, unknown>) =>
+    api.get("/api/express-delivery", { params }),
+  getExpressDeliveryById: (id: string) => 
+    api.get(`/api/express-delivery/${id}`),
+  getUrgentExpressDeliveries: () =>
+    api.get("/api/express-delivery/urgent"),
+  approveExpressDeliveryForPayment: (id: string, note?: string) =>
+    api.post(`/api/express-delivery/${id}/admin-approve-payment`, { note }),
+  assignExpressDelivery: (id: string) =>
+    api.post(`/api/express-delivery/${id}/assign`),
+  updateExpressDeliveryStatus: (id: string, status: string, data?: Record<string, unknown>) =>
+    api.put(`/api/express-delivery/${id}/status`, { status, ...data }),
+  confirmExpressDelivery: (id: string, reason: string) =>
+    api.post(`/api/express-delivery/${id}/admin-confirm`, { reason }),
+  getExpressMetrics: () =>
+    api.get("/api/express-delivery/metrics/dashboard"),
+  
+  // Express Delivery Tracking
+  getExpressDeliveryTracking: (id: string) =>
+    api.get(`/api/express-delivery/${id}/tracking`),
+  getExpressDeliveryTimeline: (id: string) =>
+    api.get(`/api/express-delivery/${id}/timeline`),
+  
+  // Express Driver Management
+  getExpressCapableDrivers: () =>
+    api.get("/api/drivers/express-capable"),
+  updateDriverExpressCapability: (driverId: string, enabled: boolean) =>
+    api.patch(`/api/admin/drivers/${driverId}/express-capability`, { enabled }),
+  getExpressDriverPerformance: (driverId?: string) =>
+    api.get(`/api/admin/express-analytics/driver-performance${driverId ? `/${driverId}` : ""}`),
+  
+  // Express Analytics & Reports
+  getExpressAnalytics: (params?: Record<string, unknown>) =>
+    api.get("/api/admin/express-analytics", { params }),
+  getExpressRevenueAnalytics: (params?: Record<string, unknown>) =>
+    api.get("/api/admin/express-analytics/revenue", { params }),
+  getExpressDeliveryAnalytics: (params?: Record<string, unknown>) =>
+    api.get("/api/admin/express-analytics/deliveries", { params }),
+  getExpressPerformanceAnalytics: (params?: Record<string, unknown>) =>
+    api.get("/api/admin/express-analytics/performance", { params }),
 };
 
 // Vendor-facing API helpers (for vendor portal pages)

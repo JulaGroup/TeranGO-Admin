@@ -12,9 +12,8 @@ export const Route = createRootRouteWithContext<{
   component: () => {
     return (
       <>
-        <NavigationProgress />+{" "}
+        <NavigationProgress />
         {/* Provide search context at the very top so any page can use <Search> */}
-        +{" "}
         <SearchProvider>
           <Outlet />
           <Toaster duration={5000} />
@@ -24,7 +23,6 @@ export const Route = createRootRouteWithContext<{
               <TanStackRouterDevtools position="bottom-right" />
             </>
           )}
-          +{" "}
         </SearchProvider>
       </>
     );

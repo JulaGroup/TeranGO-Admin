@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import {
@@ -10,12 +10,16 @@ import {
   Mail,
   MapPin,
   RefreshCw,
-  Building2,
   ShoppingCart,
   User,
+  LayoutGrid,
+  List,
+  Inbox,
+  Star,
+  Shield,
 } from "lucide-react";
 import { adminApi } from "@/lib/api";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -24,11 +28,11 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
+  CardFooter,
 } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -36,8 +40,6 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
@@ -49,20 +51,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { ConfigDrawer } from "@/components/config-drawer";
-import { Header } from "@/components/layout/header";
-import { Main } from "@/components/layout/main";
-import { TopNav } from "@/components/layout/top-nav";
-import { ProfileDropdown } from "@/components/profile-dropdown";
-import { Search as SearchInput } from "@/components/search";
-import { ThemeSwitch } from "@/components/theme-switch";
-
-const topNav = [
-  { title: "Overview", href: "/admin", isActive: false },
-  { title: "Customers", href: "/admin/customers", isActive: true },
-  { title: "Orders", href: "/admin/orders", isActive: false },
-  { title: "Settings", href: "#", isActive: false },
-];
+import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/admin/customers/")({
   component: CustomersPage,
@@ -78,71 +67,56 @@ interface Customer {
   totalOrders: number;
   createdAt: string;
   updatedAt: string;
+  avatarUrl?: string; // Assuming an avatar URL might be available
 }
 
 function CustomersPage() {
   const [searchQuery, setSearchQuery] = useState("");
-  const [allCustomers, setAllCustomers] = useState<Customer[]>([]);
-  const [filteredCustomers, setFilteredCustomers] = useState<Customer[]>([]);
+  const [viewLayout, setViewLayout] = useState<"grid" | "list">("grid");
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(
     null,
   );
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
-  const [stats, setStats] = useState({
-    totalCustomers: 0,
-    totalOrders: 0,
-    averageOrdersPerCustomer: 0,
-  });
 
-  // Fetch all customers
   const {
-    data: customersResponse,
+    data: allCustomers = [],
     isLoading,
     refetch,
-  } = useQuery({
+  } = useQuery<Customer[]>({
     queryKey: ["customers-all"],
     queryFn: async () => {
       const response = await adminApi.getUsers({});
-      return response.data.users || response.data || [];
+      // Ensure the response is always an array
+      const users = response.data.users || response.data || [];
+      return Array.isArray(users) ? users : [];
     },
   });
 
-  // Update allCustomers when data changes
-  useEffect(() => {
-    if (Array.isArray(customersResponse)) {
-      setAllCustomers(customersResponse);
+  const stats = useMemo(() => {
+    const totalOrders = allCustomers.reduce(
+      (sum, c) => sum + (c.totalOrders || 0),
+      0,
+    );
+    return {
+      totalCustomers: allCustomers.length,
+      totalOrders: totalOrders,
+      averageOrdersPerCustomer:
+        allCustomers.length > 0
+          ? Math.round(totalOrders / allCustomers.length)
+          : 0,
+    };
+  }, [allCustomers]);
 
-      // Calculate stats from fetched customers
-      const totalOrders = customersResponse.reduce(
-        (sum, c) => sum + (c.totalOrders || 0),
-        0,
-      );
-
-      setStats({
-        totalCustomers: customersResponse.length,
-        totalOrders: totalOrders,
-        averageOrdersPerCustomer:
-          customersResponse.length > 0
-            ? Math.round(totalOrders / customersResponse.length)
-            : 0,
-      });
-    }
-  }, [customersResponse]);
-
-  // Filter customers based on search
-  useEffect(() => {
+  const filteredCustomers = useMemo(() => {
     if (!searchQuery.trim()) {
-      setFilteredCustomers(allCustomers);
-      return;
+      return allCustomers;
     }
-
     const searchLower = searchQuery.toLowerCase();
-    const filtered = allCustomers.filter((customer) => {
+    return allCustomers.filter((customer) => {
       const fullName = customer.fullName?.toLowerCase() || "";
       const email = customer.email?.toLowerCase() || "";
       const phone = customer.phone?.toLowerCase() || "";
       const city = customer.city?.toLowerCase() || "";
-
       return (
         fullName.includes(searchLower) ||
         email.includes(searchLower) ||
@@ -150,8 +124,6 @@ function CustomersPage() {
         city.includes(searchLower)
       );
     });
-
-    setFilteredCustomers(filtered);
   }, [searchQuery, allCustomers]);
 
   const handleViewDetails = (customer: Customer) => {
@@ -159,91 +131,63 @@ function CustomersPage() {
     setIsDetailsOpen(true);
   };
 
-  return (
-    <>
-      <Header>
-        <TopNav links={topNav} />
-        <div className="ms-auto flex items-center space-x-4">
-          <SearchInput />
-          <ThemeSwitch />
-          <ConfigDrawer />
-          <ProfileDropdown />
+  if (isLoading) {
+    return (
+      <div className="flex h-[60vh] items-center justify-center">
+        <div className="text-center">
+          <div className="border-primary mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-b-2"></div>
+          <p className="text-muted-foreground">Loading customers...</p>
         </div>
-      </Header>
+      </div>
+    );
+  }
 
-      <Main>
-        <div className="space-y-6">
-          {/* Header */}
+  return (
+    <div className="container mx-auto space-y-6 p-4 md:p-6">
+      <header className="flex flex-col items-start justify-between gap-4 md:flex-row md:items-center">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Customers</h1>
+          <p className="text-muted-foreground">
+            View and manage your customer base.
+          </p>
+        </div>
+        <Button
+          onClick={() => refetch()}
+          variant="outline"
+          className="flex items-center gap-2"
+          disabled={isLoading}
+        >
+          <RefreshCw className={cn("h-4 w-4", isLoading && "animate-spin")} />
+          Refresh
+        </Button>
+      </header>
+
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <StatCard
+          title="Total Customers"
+          value={stats.totalCustomers}
+          icon={Users}
+          color="bg-blue-500"
+        />
+        <StatCard
+          title="Total Orders"
+          value={stats.totalOrders}
+          icon={ShoppingCart}
+          color="bg-purple-500"
+        />
+        <StatCard
+          title="Avg. Orders"
+          value={stats.averageOrdersPerCustomer}
+          icon={Star}
+          color="bg-green-500"
+        />
+      </div>
+
+      <Card>
+        <CardContent className="p-4">
           <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-            <div>
-              <h1 className="text-3xl font-bold tracking-tight">Customers</h1>
-              <p className="text-muted-foreground">
-                Manage and view all customer accounts
-              </p>
-            </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => refetch()}
-              disabled={isLoading}
-            >
-              <RefreshCw className="mr-2 h-4 w-4" />
-              Refresh
-            </Button>
-          </div>
-
-          {/* Stats Cards */}
-          <div className="grid gap-4 md:grid-cols-3">
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">
-                  Total Customers
-                </CardTitle>
-                <Users className="text-muted-foreground h-4 w-4" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{stats.totalCustomers}</div>
-                <p className="text-muted-foreground text-xs">
-                  All registered customers
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">
-                  Total Orders
-                </CardTitle>
-                <ShoppingCart className="h-4 w-4 text-blue-600" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{stats.totalOrders}</div>
-                <p className="text-muted-foreground text-xs">
-                  Placed by all customers
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">
-                  Avg Orders
-                </CardTitle>
-                <Building2 className="h-4 w-4 text-green-600" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">
-                  {stats.averageOrdersPerCustomer}
-                </div>
-                <p className="text-muted-foreground text-xs">Per customer</p>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Search */}
-          <div className="flex flex-col gap-4 md:flex-row">
             <div className="relative flex-1">
-              <Search className="text-muted-foreground absolute top-3 left-3 h-4 w-4" />
+              <Search className="text-muted-foreground absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 transform" />
               <Input
                 placeholder="Search by name, email, phone, or city..."
                 value={searchQuery}
@@ -251,237 +195,279 @@ function CustomersPage() {
                 className="pl-10"
               />
             </div>
+            <div className="flex items-center rounded-md bg-gray-100 p-1 dark:bg-gray-800">
+              <Button
+                variant={viewLayout === "grid" ? "secondary" : "ghost"}
+                size="sm"
+                onClick={() => setViewLayout("grid")}
+              >
+                <LayoutGrid className="h-4 w-4" />
+              </Button>
+              <Button
+                variant={viewLayout === "list" ? "secondary" : "ghost"}
+                size="sm"
+                onClick={() => setViewLayout("list")}
+              >
+                <List className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
+        </CardContent>
+      </Card>
 
-          {/* Customers Table */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <User className="h-5 w-5" />
-                All Customers ({filteredCustomers.length})
-              </CardTitle>
-              <CardDescription>
-                Showing {filteredCustomers.length} of {stats.totalCustomers}{" "}
-                customers
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {isLoading ? (
-                <div className="flex items-center justify-center py-8">
-                  <p className="text-muted-foreground">Loading customers...</p>
-                </div>
-              ) : filteredCustomers.length > 0 ? (
-                <div className="overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Customer Name</TableHead>
-                        <TableHead>Contact</TableHead>
-                        <TableHead>Location</TableHead>
-                        <TableHead>Orders</TableHead>
-                        <TableHead>Joined</TableHead>
-                        <TableHead className="text-right">Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {filteredCustomers.map((customer: Customer) => (
-                        <TableRow key={customer.id}>
-                          <TableCell>
-                            <div className="flex items-center gap-3">
-                              <Avatar>
-                                <AvatarFallback>
-                                  {customer.fullName
-                                    ?.substring(0, 2)
-                                    .toUpperCase() || "C"}
-                                </AvatarFallback>
-                              </Avatar>
-                              <div>
-                                <p className="font-medium">
-                                  {customer.fullName || "N/A"}
-                                </p>
-                                <p className="text-muted-foreground text-xs">
-                                  {customer.id.substring(0, 8)}...
-                                </p>
-                              </div>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <div className="space-y-1">
-                              <div className="flex items-center gap-2 text-sm">
-                                <Phone className="h-3 w-3" />
-                                {customer.phone || "N/A"}
-                              </div>
-                              <div className="text-muted-foreground flex items-center gap-2 text-xs">
-                                <Mail className="h-3 w-3" />
-                                {customer.email || "N/A"}
-                              </div>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex items-center gap-2 text-sm">
-                              <MapPin className="h-3 w-3" />
-                              <span className="max-w-[200px] truncate">
-                                {customer.city || "N/A"}
-                              </span>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant="outline">
-                              {customer.totalOrders} order
-                              {customer.totalOrders !== 1 ? "s" : ""}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>
-                            <span className="text-sm">
-                              {new Date(
-                                customer.createdAt,
-                              ).toLocaleDateString()}
-                            </span>
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon">
-                                  <MoreHorizontal className="h-4 w-4" />
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end">
-                                <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem
-                                  onClick={() => handleViewDetails(customer)}
-                                >
-                                  <Eye className="mr-2 h-4 w-4" />
-                                  View Details
-                                </DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              ) : (
-                <div className="flex flex-col items-center justify-center py-12">
-                  <Users className="text-muted-foreground mb-4 h-12 w-12" />
-                  <p className="text-muted-foreground">
-                    {allCustomers.length === 0
-                      ? "No customers registered yet"
-                      : "No customers match your search"}
-                  </p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Customer Details Dialog */}
-          <Dialog open={isDetailsOpen} onOpenChange={setIsDetailsOpen}>
-            <DialogContent className="max-h-[80vh] max-w-2xl overflow-y-auto">
-              <DialogHeader>
-                <DialogTitle>Customer Details</DialogTitle>
-                <DialogDescription>
-                  Complete information about the customer
-                </DialogDescription>
-              </DialogHeader>
-              {selectedCustomer && (
-                <div className="space-y-6">
-                  <div className="flex items-start gap-4">
-                    <Avatar className="h-20 w-20">
-                      <AvatarFallback>
-                        {selectedCustomer.fullName
-                          ?.substring(0, 2)
-                          .toUpperCase() || "C"}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="flex-1">
-                      <h3 className="text-2xl font-bold">
-                        {selectedCustomer.fullName || "N/A"}
-                      </h3>
-                      <p className="text-muted-foreground text-sm">
-                        {selectedCustomer.id}
-                      </p>
-                      <div className="mt-2">
-                        <Badge>Active Customer</Badge>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="grid gap-4 md:grid-cols-2">
-                    <div>
-                      <h4 className="mb-2 font-semibold">
-                        Contact Information
-                      </h4>
-                      <div className="space-y-2 text-sm">
-                        <div className="flex items-center gap-2">
-                          <Phone className="text-muted-foreground h-4 w-4" />
-                          {selectedCustomer.phone || "N/A"}
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Mail className="text-muted-foreground h-4 w-4" />
-                          {selectedCustomer.email || "N/A"}
-                        </div>
-                      </div>
-                    </div>
-
-                    <div>
-                      <h4 className="mb-2 font-semibold">Account Details</h4>
-                      <div className="space-y-2 text-sm">
-                        <div>
-                          <span className="text-muted-foreground">Joined:</span>{" "}
-                          {new Date(
-                            selectedCustomer.createdAt,
-                          ).toLocaleDateString()}
-                        </div>
-                        <div>
-                          <span className="text-muted-foreground">
-                            Total Orders:
-                          </span>{" "}
-                          {selectedCustomer.totalOrders}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {selectedCustomer.address && (
-                    <div>
-                      <h4 className="mb-2 font-semibold">
-                        Address Information
-                      </h4>
-                      <div className="flex items-start gap-2 text-sm">
-                        <MapPin className="text-muted-foreground mt-0.5 h-4 w-4" />
-                        <div>
-                          <p>{selectedCustomer.address}</p>
-                          {selectedCustomer.city && (
-                            <p className="text-muted-foreground">
-                              {selectedCustomer.city}
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  <div className="bg-muted rounded-md p-4">
-                    <div className="flex items-center gap-2">
-                      <ShoppingCart className="h-5 w-5 text-blue-600" />
-                      <div>
-                        <p className="font-semibold">Order History</p>
-                        <p className="text-muted-foreground text-sm">
-                          This customer has placed{" "}
-                          {selectedCustomer.totalOrders} order
-                          {selectedCustomer.totalOrders !== 1 ? "s" : ""} with
-                          us
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </DialogContent>
-          </Dialog>
+      {filteredCustomers.length > 0 ? (
+        viewLayout === "grid" ? (
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {filteredCustomers.map((customer) => (
+              <CustomerCard
+                key={customer.id}
+                customer={customer}
+                onViewDetails={() => handleViewDetails(customer)}
+              />
+            ))}
+          </div>
+        ) : (
+          <CustomerTable
+            customers={filteredCustomers}
+            onViewDetails={handleViewDetails}
+          />
+        )
+      ) : (
+        <div className="flex h-64 flex-col items-center justify-center rounded-lg border-2 border-dashed bg-gray-50 dark:bg-gray-800/50">
+          <Inbox className="h-12 w-12 text-gray-400" />
+          <h3 className="mt-4 text-lg font-semibold">No Customers Found</h3>
+          <p className="text-muted-foreground mt-1">
+            {allCustomers.length > 0
+              ? "Try adjusting your search."
+              : "There are no customers to display yet."}
+          </p>
         </div>
-      </Main>
-    </>
+      )}
+
+      {selectedCustomer && (
+        <CustomerDetailsDialog
+          isOpen={isDetailsOpen}
+          setIsOpen={setIsDetailsOpen}
+          customer={selectedCustomer}
+        />
+      )}
+    </div>
   );
 }
+
+const StatCard = ({
+  title,
+  value,
+  icon: Icon,
+  color,
+}: {
+  title: string;
+  value: number;
+  icon: React.ElementType;
+  color: string;
+}) => (
+  <Card>
+    <CardContent className="p-4">
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-sm font-medium text-muted-foreground">{title}</p>
+          <p className="text-2xl font-bold">{value}</p>
+        </div>
+        <div className={`rounded-full p-3 ${color}`}>
+          <Icon className="h-6 w-6 text-white" />
+        </div>
+      </div>
+    </CardContent>
+  </Card>
+);
+
+const CustomerCard = ({
+  customer,
+  onViewDetails,
+}: {
+  customer: Customer;
+  onViewDetails: () => void;
+}) => (
+  <Card className="flex flex-col justify-between transition-all hover:shadow-lg">
+    <CardHeader className="flex-row items-center gap-4">
+      <Avatar className="h-12 w-12">
+        <AvatarImage src={customer.avatarUrl} />
+        <AvatarFallback>
+          {customer.fullName?.charAt(0).toUpperCase() || "C"}
+        </AvatarFallback>
+      </Avatar>
+      <div className="flex-1">
+        <CardTitle className="truncate text-base">
+          {customer.fullName || "Unnamed Customer"}
+        </CardTitle>
+        <CardDescription className="truncate">
+          {customer.email || "No email"}
+        </CardDescription>
+      </div>
+    </CardHeader>
+    <CardContent className="space-y-2 text-sm">
+      <div className="flex items-center gap-2">
+        <Phone className="h-4 w-4 text-muted-foreground" />
+        <span>{customer.phone || "No phone"}</span>
+      </div>
+      <div className="flex items-center gap-2">
+        <MapPin className="h-4 w-4 text-muted-foreground" />
+        <span>{customer.city || "No city"}</span>
+      </div>
+    </CardContent>
+    <CardFooter className="flex justify-between">
+      <Badge variant="outline" className="flex items-center gap-1.5">
+        <ShoppingCart className="h-3 w-3" />
+        {customer.totalOrders} Orders
+      </Badge>
+      <Button variant="outline" size="sm" onClick={onViewDetails}>
+        <Eye className="mr-2 h-4 w-4" />
+        Details
+      </Button>
+    </CardFooter>
+  </Card>
+);
+
+const CustomerTable = ({
+  customers,
+  onViewDetails,
+}: {
+  customers: Customer[];
+  onViewDetails: (customer: Customer) => void;
+}) => (
+  <Card>
+    <Table>
+      <TableHeader>
+        <TableRow>
+          <TableHead>Customer</TableHead>
+          <TableHead className="hidden md:table-cell">Contact</TableHead>
+          <TableHead className="hidden lg:table-cell">Location</TableHead>
+          <TableHead className="text-center">Orders</TableHead>
+          <TableHead className="hidden lg:table-cell">Joined</TableHead>
+          <TableHead className="text-right">Actions</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {customers.map((customer) => (
+          <TableRow key={customer.id}>
+            <TableCell>
+              <div className="flex items-center gap-3">
+                <Avatar className="h-10 w-10">
+                  <AvatarImage src={customer.avatarUrl} />
+                  <AvatarFallback>
+                    {customer.fullName?.charAt(0).toUpperCase() || "C"}
+                  </AvatarFallback>
+                </Avatar>
+                <div>
+                  <p className="font-medium">
+                    {customer.fullName || "Unnamed Customer"}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {customer.email || "No email"}
+                  </p>
+                </div>
+              </div>
+            </TableCell>
+            <TableCell className="hidden md:table-cell">
+              {customer.phone || "N/A"}
+            </TableCell>
+            <TableCell className="hidden lg:table-cell">
+              {customer.city || "N/A"}
+            </TableCell>
+            <TableCell className="text-center">
+              <Badge variant="secondary">{customer.totalOrders}</Badge>
+            </TableCell>
+            <TableCell className="hidden lg:table-cell">
+              {new Date(customer.createdAt).toLocaleDateString()}
+            </TableCell>
+            <TableCell className="text-right">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon">
+                    <MoreHorizontal className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => onViewDetails(customer)}>
+                    <Eye className="mr-2 h-4 w-4" />
+                    View Details
+                  </DropdownMenuItem>
+                  <DropdownMenuItem>
+                    <Shield className="mr-2 h-4 w-4" />
+                    Manage
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </TableCell>
+          </TableRow>
+        ))}
+      </TableBody>
+    </Table>
+  </Card>
+);
+
+const CustomerDetailsDialog = ({
+  isOpen,
+  setIsOpen,
+  customer,
+}: {
+  isOpen: boolean;
+  setIsOpen: (open: boolean) => void;
+  customer: Customer;
+}) => (
+  <Dialog open={isOpen} onOpenChange={setIsOpen}>
+    <DialogContent className="max-w-lg">
+      <DialogHeader>
+        <div className="flex items-center gap-4">
+          <Avatar className="h-16 w-16">
+            <AvatarImage src={customer.avatarUrl} />
+            <AvatarFallback className="text-2xl">
+              {customer.fullName?.charAt(0).toUpperCase() || "C"}
+            </AvatarFallback>
+          </Avatar>
+          <div>
+            <DialogTitle className="text-2xl">
+              {customer.fullName || "Unnamed Customer"}
+            </DialogTitle>
+            <p className="text-sm text-muted-foreground">
+              Customer since {new Date(customer.createdAt).toLocaleDateString()}
+            </p>
+          </div>
+        </div>
+      </DialogHeader>
+      <div className="grid gap-4 py-4">
+        <div className="grid grid-cols-2 gap-4">
+          <InfoItem icon={Mail} label="Email" value={customer.email} />
+          <InfoItem icon={Phone} label="Phone" value={customer.phone} />
+        </div>
+        <InfoItem icon={MapPin} label="Address" value={customer.address} />
+        <div className="grid grid-cols-2 gap-4">
+          <InfoItem icon={MapPin} label="City" value={customer.city} />
+          <InfoItem
+            icon={ShoppingCart}
+            label="Total Orders"
+            value={customer.totalOrders.toString()}
+          />
+        </div>
+      </div>
+    </DialogContent>
+  </Dialog>
+);
+
+const InfoItem = ({
+  icon: Icon,
+  label,
+  value,
+}: {
+  icon: React.ElementType;
+  label: string;
+  value?: string | null;
+}) => (
+  <div>
+    <p className="text-sm font-medium text-muted-foreground">{label}</p>
+    <div className="flex items-center gap-2">
+      <Icon className="h-4 w-4 text-gray-500" />
+      <p className="text-base">{value || "N/A"}</p>
+    </div>
+  </div>
+);

@@ -6,7 +6,12 @@ type SearchContextType = {
   setOpen: React.Dispatch<React.SetStateAction<boolean>>
 }
 
-const SearchContext = createContext<SearchContextType | null>(null)
+const noopSetOpen: React.Dispatch<React.SetStateAction<boolean>> = () => {}
+
+const SearchContext = createContext<SearchContextType>({
+  open: false,
+  setOpen: noopSetOpen,
+})
 
 type SearchProviderProps = {
   children: React.ReactNode
@@ -36,11 +41,5 @@ export function SearchProvider({ children }: SearchProviderProps) {
 
 // eslint-disable-next-line react-refresh/only-export-components
 export const useSearch = () => {
-  const searchContext = useContext(SearchContext)
-
-  if (!searchContext) {
-    throw new Error('useSearch has to be used within SearchProvider')
-  }
-
-  return searchContext
+  return useContext(SearchContext)
 }

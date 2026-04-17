@@ -20,6 +20,9 @@ import {
   CheckCircle2,
   Trash2,
   CreditCard,
+  Filter,
+  List,
+  LayoutGrid,
 } from "lucide-react";
 import { toast } from "sonner";
 import { adminApi, api } from "@/lib/api";
@@ -34,7 +37,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -43,6 +46,7 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
+  CardFooter,
 } from "@/components/ui/card";
 import {
   Dialog,
@@ -77,13 +81,18 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { ConfigDrawer } from "@/components/config-drawer";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { Header } from "@/components/layout/header";
 import { Main } from "@/components/layout/main";
 import { TopNav } from "@/components/layout/top-nav";
 import { ProfileDropdown } from "@/components/profile-dropdown";
-import { Search as SearchInput } from "@/components/search";
 import { ThemeSwitch } from "@/components/theme-switch";
+import { cn } from "@/lib/utils";
 
 const topNav = [
   { title: "Overview", href: "/admin", isActive: false },
@@ -107,6 +116,8 @@ interface VendorWithSubscription extends Vendor {
 
 function VendorsPage() {
   const [searchQuery, setSearchQuery] = useState("");
+  const [filterStatus, setFilterStatus] = useState("all");
+  const [viewMode, setViewMode] = useState("grid"); // 'grid' or 'list'
   const [allVendors, setAllVendors] = useState<VendorWithSubscription[]>([]);
   const [filteredVendors, setFilteredVendors] = useState<
     VendorWithSubscription[]
@@ -129,7 +140,6 @@ function VendorsPage() {
 
   const queryClient = useQueryClient();
 
-  // Fetch all vendors
   const {
     data: vendorsResponse,
     isLoading,
@@ -142,12 +152,9 @@ function VendorsPage() {
     },
   });
 
-  // Update allVendors when data changes
   useEffect(() => {
     if (Array.isArray(vendorsResponse)) {
       setAllVendors(vendorsResponse);
-
-      // Calculate stats from fetched vendors
       const activeCount = vendorsResponse.filter((v) => v.isActive).length;
       let totalRestaurants = 0;
       let totalShops = 0;
@@ -169,40 +176,40 @@ function VendorsPage() {
     }
   }, [vendorsResponse]);
 
-  // Filter vendors based on search
   useEffect(() => {
-    if (!searchQuery.trim()) {
-      setFilteredVendors(allVendors);
-      return;
+    let vendors = allVendors;
+
+    if (filterStatus !== "all") {
+      vendors = vendors.filter(
+        (v) => v.isActive === (filterStatus === "active"),
+      );
     }
 
-    const searchLower = searchQuery.toLowerCase();
-    const filtered = allVendors.filter((vendor) => {
-      const fullName = vendor.user?.fullName?.toLowerCase() || "";
-      const email = vendor.user?.email?.toLowerCase() || "";
-      const phone = vendor.user?.phone?.toLowerCase() || "";
-      const wave = vendor.waveNumber?.toLowerCase() || "";
+    if (searchQuery.trim()) {
+      const searchLower = searchQuery.toLowerCase();
+      vendors = vendors.filter((vendor) => {
+        const fullName = vendor.user?.fullName?.toLowerCase() || "";
+        const email = vendor.user?.email?.toLowerCase() || "";
+        const phone = vendor.user?.phone?.toLowerCase() || "";
+        const wave = vendor.waveNumber?.toLowerCase() || "";
+        const businessNames = [
+          ...(vendor.restaurants?.map((r) => r.name.toLowerCase()) || []),
+          ...(vendor.shops?.map((s) => s.name.toLowerCase()) || []),
+          ...(vendor.pharmacies?.map((p) => p.name.toLowerCase()) || []),
+        ];
+        return (
+          fullName.includes(searchLower) ||
+          email.includes(searchLower) ||
+          phone.includes(searchLower) ||
+          wave.includes(searchLower) ||
+          businessNames.some((name) => name.includes(searchLower))
+        );
+      });
+    }
 
-      // Search in business names too
-      const businessNames = [
-        ...(vendor.restaurants?.map((r) => r.name.toLowerCase()) || []),
-        ...(vendor.shops?.map((s) => s.name.toLowerCase()) || []),
-        ...(vendor.pharmacies?.map((p) => p.name.toLowerCase()) || []),
-      ];
+    setFilteredVendors(vendors);
+  }, [searchQuery, allVendors, filterStatus]);
 
-      return (
-        fullName.includes(searchLower) ||
-        email.includes(searchLower) ||
-        phone.includes(searchLower) ||
-        wave.includes(searchLower) ||
-        businessNames.some((name) => name.includes(searchLower))
-      );
-    });
-
-    setFilteredVendors(filtered);
-  }, [searchQuery, allVendors]);
-
-  // Fetch subscription packages
   useEffect(() => {
     const fetchPackages = async () => {
       try {
@@ -215,7 +222,6 @@ function VendorsPage() {
     fetchPackages();
   }, []);
 
-  // Toggle vendor active status mutation
   const toggleVendorStatusMutation = useMutation({
     mutationFn: async ({
       vendorId,
@@ -242,7 +248,6 @@ function VendorsPage() {
     },
   });
 
-  // Update vendor mutation
   const updateVendorMutation = useMutation({
     mutationFn: async ({ vendorId, data }: { vendorId: string; data: any }) => {
       const response = await adminApi.updateVendor(vendorId, data);
@@ -258,7 +263,6 @@ function VendorsPage() {
     },
   });
 
-  // Assign subscription mutation
   const assignSubscriptionMutation = useMutation({
     mutationFn: async ({
       vendorId,
@@ -288,7 +292,6 @@ function VendorsPage() {
     },
   });
 
-  // Delete vendor mutation
   const deleteVendorMutation = useMutation({
     mutationFn: async (vendorId: string) => {
       await adminApi.deleteVendor(vendorId);
@@ -346,7 +349,9 @@ function VendorsPage() {
 
   const getStatusBadge = (isActive: boolean) => {
     return isActive ? (
-      <Badge variant="default">Active</Badge>
+      <Badge variant="default" className="bg-green-600 hover:bg-green-700">
+        Active
+      </Badge>
     ) : (
       <Badge variant="destructive">Inactive</Badge>
     );
@@ -360,21 +365,155 @@ function VendorsPage() {
     );
   };
 
+  const getBusinessNames = (vendor: VendorWithSubscription) => {
+    return [
+      ...(vendor.restaurants?.map((r) => r.name) || []),
+      ...(vendor.shops?.map((s) => s.name) || []),
+      ...(vendor.pharmacies?.map((p) => p.name) || []),
+    ];
+  };
+
+  const VendorCard = ({ vendor }: { vendor: VendorWithSubscription }) => (
+    <Card className="flex flex-col transition-all hover:shadow-lg">
+      <CardHeader className="flex flex-row items-start gap-4 space-y-0">
+        <Avatar className="h-12 w-12">
+          <AvatarImage
+            src={vendor.user?.avatarUrl || ""}
+            alt={vendor.user?.fullName}
+          />
+          <AvatarFallback>
+            {vendor.user?.fullName
+              ?.split(" ")
+              .map((n) => n[0])
+              .join("")}
+          </AvatarFallback>
+        </Avatar>
+        <div className="flex-1">
+          <CardTitle className="text-lg">{vendor.user?.fullName}</CardTitle>
+          <CardDescription>{vendor.user?.email}</CardDescription>
+        </div>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon" className="h-8 w-8">
+              <MoreHorizontal className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={() => handleViewDetails(vendor)}>
+              <Eye className="mr-2 h-4 w-4" /> View Details
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => handleEditVendor(vendor)}>
+              <Edit className="mr-2 h-4 w-4" /> Edit
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => handleManageSubscription(vendor)}>
+              <Crown className="mr-2 h-4 w-4" /> Manage Subscription
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => handleToggleStatus(vendor)}>
+              {vendor.isActive ? (
+                <Ban className="mr-2 h-4 w-4" />
+              ) : (
+                <CheckCircle2 className="mr-2 h-4 w-4" />
+              )}
+              {vendor.isActive ? "Deactivate" : "Activate"}
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              className="text-red-600"
+              onClick={() => handleDeleteVendor(vendor)}
+            >
+              <Trash2 className="mr-2 h-4 w-4" /> Delete
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </CardHeader>
+      <CardContent className="flex-grow space-y-3">
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <Phone className="h-4 w-4" />
+          <span>{vendor.user?.phone || "No phone"}</span>
+        </div>
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <CreditCard className="h-4 w-4" />
+          <span>{vendor.waveNumber || "No Wave number"}</span>
+        </div>
+        <div className="flex items-center gap-2">
+          {getStatusBadge(vendor.isActive)}
+          {vendor.subscription?.isTrial && (
+            <Badge variant="outline" className="border-blue-500 text-blue-500">
+              Trial
+            </Badge>
+          )}
+        </div>
+        <div className="mt-2 space-y-1">
+          {getBusinessNames(vendor)
+            .slice(0, 2)
+            .map((name) => (
+              <div
+                key={name}
+                className="flex items-center gap-2 text-xs text-muted-foreground"
+              >
+                <Store className="h-3 w-3 flex-shrink-0" />
+                <span className="truncate">{name}</span>
+              </div>
+            ))}
+          {getBusinessNames(vendor).length > 2 && (
+            <p className="text-xs text-muted-foreground">
+              + {getBusinessNames(vendor).length - 2} more
+            </p>
+          )}
+        </div>
+      </CardContent>
+      <CardFooter className="flex justify-between text-sm text-muted-foreground">
+        <span>Businesses</span>
+        <div className="flex items-center gap-2">
+          <TooltipProvider>
+            {vendor.restaurants?.length > 0 && (
+              <Tooltip>
+                <TooltipTrigger>
+                  <UtensilsCrossed className="h-4 w-4" />
+                </TooltipTrigger>
+                <TooltipContent>
+                  {vendor.restaurants.length} Restaurant(s)
+                </TooltipContent>
+              </Tooltip>
+            )}
+            {vendor.shops?.length > 0 && (
+              <Tooltip>
+                <TooltipTrigger>
+                  <Package className="h-4 w-4" />
+                </TooltipTrigger>
+                <TooltipContent>{vendor.shops.length} Shop(s)</TooltipContent>
+              </Tooltip>
+            )}
+            {vendor.pharmacies?.length > 0 && (
+              <Tooltip>
+                <TooltipTrigger>
+                  <Pill className="h-4 w-4" />
+                </TooltipTrigger>
+                <TooltipContent>
+                  {vendor.pharmacies.length} Pharmac(y/ies)
+                </TooltipContent>
+              </Tooltip>
+            )}
+          </TooltipProvider>
+          <Badge variant="secondary">{getTotalBusinesses(vendor)}</Badge>
+        </div>
+      </CardFooter>
+    </Card>
+  );
+
   return (
     <>
       <Header>
         <TopNav links={topNav} />
-        <div className="ms-auto flex items-center space-x-4">
-          <SearchInput />
+        <div className="ms-auto flex items-center space-x-2">
           <ThemeSwitch />
-          <ConfigDrawer />
           <ProfileDropdown />
         </div>
       </Header>
 
       <Main>
         <div className="space-y-6">
-          {/* Header */}
           <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div>
               <h1 className="text-3xl font-bold tracking-tight">Vendors</h1>
@@ -382,612 +521,481 @@ function VendorsPage() {
                 Manage all vendors and their businesses
               </p>
             </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => refetch()}
-              disabled={isLoading}
-            >
-              <RefreshCw className="mr-2 h-4 w-4" />
-              Refresh
-            </Button>
-          </div>
-
-          {/* Stats Cards */}
-          <div className="grid gap-4 md:grid-cols-5">
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">
-                  Total Vendors
-                </CardTitle>
-                <Building2 className="text-muted-foreground h-4 w-4" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{stats.totalVendors}</div>
-                <p className="text-muted-foreground text-xs">All vendors</p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">
-                  Active Vendors
-                </CardTitle>
-                <CheckCircle className="h-4 w-4 text-green-600" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{stats.activeVendors}</div>
-                <p className="text-muted-foreground text-xs">Active vendors</p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">
-                  Restaurants
-                </CardTitle>
-                <UtensilsCrossed className="h-4 w-4 text-orange-600" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">
-                  {stats.totalRestaurants}
-                </div>
-                <p className="text-muted-foreground text-xs">
-                  Total restaurants
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Shops</CardTitle>
-                <Package className="h-4 w-4 text-blue-600" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{stats.totalShops}</div>
-                <p className="text-muted-foreground text-xs">Total shops</p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">
-                  Pharmacies
-                </CardTitle>
-                <Pill className="h-4 w-4 text-red-600" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">
-                  {stats.totalPharmacies}
-                </div>
-                <p className="text-muted-foreground text-xs">
-                  Total pharmacies
-                </p>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Search */}
-          <div className="flex flex-col gap-4 md:flex-row">
-            <div className="relative flex-1">
-              <Search className="text-muted-foreground absolute top-3 left-3 h-4 w-4" />
-              <Input
-                placeholder="Search by vendor name, email, phone, or business..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10"
-              />
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => refetch()}
+                disabled={isLoading}
+              >
+                <RefreshCw
+                  className={cn("mr-2 h-4 w-4", isLoading && "animate-spin")}
+                />
+                Refresh
+              </Button>
             </div>
           </div>
 
-          {/* Vendors Table */}
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+            <StatCard
+              title="Total Vendors"
+              value={stats.totalVendors}
+              icon={Building2}
+            />
+            <StatCard
+              title="Active Vendors"
+              value={stats.activeVendors}
+              icon={CheckCircle}
+              iconColor="text-green-600"
+            />
+            <StatCard
+              title="Restaurants"
+              value={stats.totalRestaurants}
+              icon={UtensilsCrossed}
+              iconColor="text-orange-600"
+            />
+            <StatCard
+              title="Shops"
+              value={stats.totalShops}
+              icon={Package}
+              iconColor="text-blue-600"
+            />
+            <StatCard
+              title="Pharmacies"
+              value={stats.totalPharmacies}
+              icon={Pill}
+              iconColor="text-red-600"
+            />
+          </div>
+
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Store className="h-5 w-5" />
-                All Vendors ({filteredVendors.length})
-              </CardTitle>
-              <CardDescription>
-                Showing {filteredVendors.length} of {stats.totalVendors} vendors
-              </CardDescription>
+              <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                <div className="relative flex-1">
+                  <Search className="text-muted-foreground absolute top-3 left-3 h-4 w-4" />
+                  <Input
+                    placeholder="Search by name, email, phone, business..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-10"
+                  />
+                </div>
+                <div className="flex items-center gap-2">
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="outline" className="w-full md:w-auto">
+                        <Filter className="mr-2 h-4 w-4" />
+                        Filter:{" "}
+                        {filterStatus.charAt(0).toUpperCase() +
+                          filterStatus.slice(1)}
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={() => setFilterStatus("all")}>
+                        All
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => setFilterStatus("active")}
+                      >
+                        Active
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => setFilterStatus("inactive")}
+                      >
+                        Inactive
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                  <div className="flex items-center rounded-md bg-secondary p-1">
+                    <Button
+                      variant={viewMode === "grid" ? "primary" : "ghost"}
+                      size="sm"
+                      onClick={() => setViewMode("grid")}
+                    >
+                      <LayoutGrid className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant={viewMode === "list" ? "primary" : "ghost"}
+                      size="sm"
+                      onClick={() => setViewMode("list")}
+                    >
+                      <List className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              </div>
             </CardHeader>
             <CardContent>
               {isLoading ? (
-                <div className="flex items-center justify-center py-8">
-                  <p className="text-muted-foreground">Loading vendors...</p>
+                <div className="flex h-64 items-center justify-center">
+                  <RefreshCw className="h-8 w-8 animate-spin text-muted-foreground" />
                 </div>
-              ) : filteredVendors.length > 0 ? (
-                <div className="overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Vendor Name</TableHead>
-                        <TableHead>Contact</TableHead>
-                        <TableHead>Businesses</TableHead>
-                        <TableHead>Subscription</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead>Joined</TableHead>
-                        <TableHead className="text-right">Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {filteredVendors.map((vendor: VendorWithSubscription) => (
-                        <TableRow key={vendor.id}>
-                          <TableCell>
-                            <div className="flex items-center gap-3">
-                              <Avatar>
-                                <AvatarFallback>
-                                  {vendor.user?.fullName
-                                    ?.substring(0, 2)
-                                    .toUpperCase() || "VN"}
-                                </AvatarFallback>
-                              </Avatar>
-                              <div>
-                                <p className="font-medium">
-                                  {vendor.user?.fullName || "N/A"}
-                                </p>
-                                <div className="text-muted-foreground space-y-0.5 text-xs">
-                                  {vendor.restaurants &&
-                                    vendor.restaurants.length > 0 && (
-                                      <div className="flex items-center gap-1">
-                                        <UtensilsCrossed className="h-3 w-3" />
-                                        <span>
-                                          {vendor.restaurants[0].name}
-                                        </span>
-                                        {vendor.restaurants.length > 1 && (
-                                          <span className="text-[10px]">
-                                            +{vendor.restaurants.length - 1}{" "}
-                                            more
-                                          </span>
-                                        )}
-                                      </div>
-                                    )}
-                                  {vendor.shops && vendor.shops.length > 0 && (
-                                    <div className="flex items-center gap-1">
-                                      <Package className="h-3 w-3" />
-                                      <span>{vendor.shops[0].name}</span>
-                                      {vendor.shops.length > 1 && (
-                                        <span className="text-[10px]">
-                                          +{vendor.shops.length - 1} more
-                                        </span>
-                                      )}
-                                    </div>
-                                  )}
-                                  {vendor.pharmacies &&
-                                    vendor.pharmacies.length > 0 && (
-                                      <div className="flex items-center gap-1">
-                                        <Pill className="h-3 w-3" />
-                                        <span>{vendor.pharmacies[0].name}</span>
-                                        {vendor.pharmacies.length > 1 && (
-                                          <span className="text-[10px]">
-                                            +{vendor.pharmacies.length - 1} more
-                                          </span>
-                                        )}
-                                      </div>
-                                    )}
-                                  {getTotalBusinesses(vendor) === 0 && (
-                                    <span>No businesses</span>
-                                  )}
-                                </div>
-                              </div>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <div className="space-y-1">
-                              <div className="flex items-center gap-2 text-sm">
-                                <Phone className="h-3 w-3" />
-                                {vendor.user?.phone || "N/A"}
-                              </div>
-                              <div className="text-muted-foreground flex items-center gap-2 text-xs">
-                                <Mail className="h-3 w-3" />
-                                {vendor.user?.email || "N/A"}
-                              </div>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <div className="space-y-1 text-sm">
-                              {vendor.restaurants &&
-                                vendor.restaurants.length > 0 && (
-                                  <div className="flex items-center gap-1">
-                                    <UtensilsCrossed className="h-3 w-3 text-orange-600" />
-                                    <span>
-                                      {vendor.restaurants.length} Restaurants
-                                    </span>
-                                  </div>
-                                )}
-                              {vendor.shops && vendor.shops.length > 0 && (
-                                <div className="flex items-center gap-1">
-                                  <Package className="h-3 w-3 text-blue-600" />
-                                  <span>{vendor.shops.length} Shops</span>
-                                </div>
-                              )}
-                              {vendor.pharmacies &&
-                                vendor.pharmacies.length > 0 && (
-                                  <div className="flex items-center gap-1">
-                                    <Pill className="h-3 w-3 text-red-600" />
-                                    <span>
-                                      {vendor.pharmacies.length} Pharmacies
-                                    </span>
-                                  </div>
-                                )}
-                              {getTotalBusinesses(vendor) === 0 && (
-                                <span className="text-muted-foreground">
-                                  No businesses
-                                </span>
-                              )}
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            {vendor.subscription ? (
-                              <div className="space-y-1">
-                                <div className="flex items-center gap-1">
-                                  <Crown className="h-3 w-3 text-yellow-600" />
-                                  <span className="text-sm font-medium">
-                                    {vendor.subscription.packageName}
-                                  </span>
-                                </div>
-                                <div className="text-muted-foreground text-xs">
-                                  {vendor.subscription.status === "TRIAL" &&
-                                  vendor.subscription.isTrial ? (
-                                    <Badge
-                                      variant="outline"
-                                      className="text-xs"
-                                    >
-                                      Trial
-                                    </Badge>
-                                  ) : vendor.subscription.status ===
-                                    "ACTIVE" ? (
-                                    <span className="text-green-600">
-                                      Active
-                                    </span>
-                                  ) : (
-                                    <span className="text-gray-500">
-                                      {vendor.subscription.status}
-                                    </span>
-                                  )}
-                                </div>
-                              </div>
-                            ) : (
-                              <span className="text-muted-foreground text-xs">
-                                No subscription
-                              </span>
-                            )}
-                          </TableCell>
-                          <TableCell>
-                            {getStatusBadge(vendor.isActive)}
-                          </TableCell>
-                          <TableCell>
-                            <span className="text-sm">
-                              {new Date(vendor.createdAt).toLocaleDateString()}
-                            </span>
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon">
-                                  <MoreHorizontal className="h-4 w-4" />
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end">
-                                <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem
-                                  onClick={() => handleViewDetails(vendor)}
-                                >
-                                  <Eye className="mr-2 h-4 w-4" />
-                                  View Details
-                                </DropdownMenuItem>
-                                <DropdownMenuItem
-                                  onClick={() => handleEditVendor(vendor)}
-                                >
-                                  <Edit className="mr-2 h-4 w-4" />
-                                  Edit Vendor
-                                </DropdownMenuItem>
-                                <DropdownMenuItem
-                                  onClick={() =>
-                                    handleManageSubscription(vendor)
-                                  }
-                                >
-                                  <CreditCard className="mr-2 h-4 w-4" />
-                                  Manage Subscription
-                                </DropdownMenuItem>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem
-                                  onClick={() => handleToggleStatus(vendor)}
-                                >
-                                  {vendor.isActive ? (
-                                    <>
-                                      <Ban className="mr-2 h-4 w-4" />
-                                      Deactivate Vendor
-                                    </>
-                                  ) : (
-                                    <>
-                                      <CheckCircle2 className="mr-2 h-4 w-4" />
-                                      Activate Vendor
-                                    </>
-                                  )}
-                                </DropdownMenuItem>
-                                <DropdownMenuItem
-                                  onClick={() => handleDeleteVendor(vendor)}
-                                  className="text-red-600"
-                                >
-                                  <Trash2 className="mr-2 h-4 w-4" />
-                                  Delete Vendor
-                                </DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
+              ) : viewMode === "grid" ? (
+                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                  {filteredVendors.map((vendor) => (
+                    <VendorCard key={vendor.id} vendor={vendor} />
+                  ))}
                 </div>
               ) : (
-                <div className="flex flex-col items-center justify-center py-12">
-                  <Store className="text-muted-foreground mb-4 h-12 w-12" />
-                  <p className="text-muted-foreground">
-                    {allVendors.length === 0
-                      ? "No vendors registered yet"
-                      : "No vendors match your search"}
-                  </p>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Vendor</TableHead>
+                      <TableHead>Contact</TableHead>
+                      <TableHead>Businesses</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Subscription</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredVendors.map((vendor) => (
+                      <TableRow key={vendor.id}>
+                        <TableCell>
+                          <div className="flex items-center gap-3">
+                            <Avatar>
+                              <AvatarImage src={vendor.user?.avatarUrl || ""} />
+                              <AvatarFallback>
+                                {vendor.user?.fullName
+                                  ?.split(" ")
+                                  .map((n) => n[0])
+                                  .join("")}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div>
+                              <div className="font-medium">
+                                {vendor.user?.fullName}
+                              </div>
+                              <div className="text-sm text-muted-foreground">
+                                {vendor.id.slice(0, 8)}
+                              </div>
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div>{vendor.user?.phone}</div>
+                          <div className="text-sm text-muted-foreground">
+                            {vendor.user?.email}
+                          </div>
+                        </TableCell>
+                        <TableCell>{getTotalBusinesses(vendor)}</TableCell>
+                        <TableCell>{getStatusBadge(vendor.isActive)}</TableCell>
+                        <TableCell>
+                          {vendor.subscription ? (
+                            <div className="flex flex-col">
+                              <span
+                                className={cn(
+                                  "font-semibold",
+                                  vendor.subscription.status === "ACTIVE"
+                                    ? "text-green-600"
+                                    : "text-red-600",
+                                )}
+                              >
+                                {vendor.subscription.packageName}
+                              </span>
+                              <span className="text-xs text-muted-foreground">
+                                Ends:{" "}
+                                {new Date(
+                                  vendor.subscription.endDate,
+                                ).toLocaleDateString()}
+                              </span>
+                            </div>
+                          ) : (
+                            <Badge variant="outline">No Subscription</Badge>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon">
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem
+                                onClick={() => handleViewDetails(vendor)}
+                              >
+                                <Eye className="mr-2 h-4 w-4" /> View Details
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() => handleEditVendor(vendor)}
+                              >
+                                <Edit className="mr-2 h-4 w-4" /> Edit
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem
+                                onClick={() => handleManageSubscription(vendor)}
+                              >
+                                <Crown className="mr-2 h-4 w-4" /> Manage
+                                Subscription
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() => handleToggleStatus(vendor)}
+                              >
+                                {vendor.isActive ? (
+                                  <Ban className="mr-2 h-4 w-4" />
+                                ) : (
+                                  <CheckCircle2 className="mr-2 h-4 w-4" />
+                                )}
+                                {vendor.isActive ? "Deactivate" : "Activate"}
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem
+                                className="text-red-600"
+                                onClick={() => handleDeleteVendor(vendor)}
+                              >
+                                <Trash2 className="mr-2 h-4 w-4" /> Delete
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+              {filteredVendors.length === 0 && !isLoading && (
+                <div className="py-16 text-center text-muted-foreground">
+                  No vendors found.
                 </div>
               )}
             </CardContent>
           </Card>
-
-          {/* Vendor Details Dialog */}
-          <Dialog open={isDetailsOpen} onOpenChange={setIsDetailsOpen}>
-            <DialogContent className="max-h-[80vh] max-w-2xl overflow-y-auto">
-              <DialogHeader>
-                <DialogTitle>Vendor Details</DialogTitle>
-                <DialogDescription>
-                  Complete information about the vendor
-                </DialogDescription>
-              </DialogHeader>
-              {selectedVendor && (
-                <div className="space-y-6">
-                  <div className="flex items-start gap-4">
-                    <Avatar className="h-20 w-20">
-                      <AvatarFallback>
-                        {selectedVendor.user?.fullName
-                          ?.substring(0, 2)
-                          .toUpperCase() || "VN"}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="flex-1">
-                      <h3 className="text-2xl font-bold">
-                        {selectedVendor.user?.fullName || "N/A"}
-                      </h3>
-                      <p className="text-muted-foreground text-sm">
-                        {selectedVendor.userId}
-                      </p>
-                      <div className="mt-2">
-                        {getStatusBadge(selectedVendor.isActive)}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="grid gap-4 md:grid-cols-2">
-                    <div>
-                      <h4 className="mb-2 font-semibold">
-                        Contact Information
-                      </h4>
-                      <div className="space-y-2 text-sm">
-                        <div className="flex items-center gap-2">
-                          <Phone className="text-muted-foreground h-4 w-4" />
-                          {selectedVendor.user?.phone || "N/A"}
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Mail className="text-muted-foreground h-4 w-4" />
-                          {selectedVendor.user?.email || "N/A"}
-                        </div>
-                        {selectedVendor.waveNumber && (
-                          <div className="flex items-center gap-2">
-                            <CreditCard className="text-muted-foreground h-4 w-4" />
-                            Wave: {selectedVendor.waveNumber}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-
-                    <div>
-                      <h4 className="mb-2 font-semibold">Account Details</h4>
-                      <div className="space-y-2 text-sm">
-                        <div>
-                          <span className="text-muted-foreground">
-                            Member Since:
-                          </span>{" "}
-                          {new Date(
-                            selectedVendor.createdAt,
-                          ).toLocaleDateString()}
-                        </div>
-                        <div>
-                          <span className="text-muted-foreground">Status:</span>{" "}
-                          {selectedVendor.isActive ? "Active" : "Inactive"}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Restaurants */}
-                  {selectedVendor.restaurants &&
-                    selectedVendor.restaurants.length > 0 && (
-                      <div>
-                        <h4 className="mb-3 flex items-center gap-2 font-semibold">
-                          <UtensilsCrossed className="h-4 w-4 text-orange-600" />
-                          Restaurants ({selectedVendor.restaurants.length})
-                        </h4>
-                        <div className="space-y-2">
-                          {selectedVendor.restaurants.map((restaurant) => (
-                            <div
-                              key={restaurant.id}
-                              className="flex items-center gap-2 rounded-md bg-orange-50 p-2 text-sm"
-                            >
-                              <span className="flex-1">{restaurant.name}</span>
-                              <span className="text-muted-foreground text-xs">
-                                {restaurant.id}
-                              </span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                  {/* Shops */}
-                  {selectedVendor.shops && selectedVendor.shops.length > 0 && (
-                    <div>
-                      <h4 className="mb-3 flex items-center gap-2 font-semibold">
-                        <Package className="h-4 w-4 text-blue-600" />
-                        Shops ({selectedVendor.shops.length})
-                      </h4>
-                      <div className="space-y-2">
-                        {selectedVendor.shops.map((shop) => (
-                          <div
-                            key={shop.id}
-                            className="flex items-center gap-2 rounded-md bg-blue-50 p-2 text-sm"
-                          >
-                            <span className="flex-1">{shop.name}</span>
-                            <span className="text-muted-foreground text-xs">
-                              {shop.id}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Pharmacies */}
-                  {selectedVendor.pharmacies &&
-                    selectedVendor.pharmacies.length > 0 && (
-                      <div>
-                        <h4 className="mb-3 flex items-center gap-2 font-semibold">
-                          <Pill className="h-4 w-4 text-red-600" />
-                          Pharmacies ({selectedVendor.pharmacies.length})
-                        </h4>
-                        <div className="space-y-2">
-                          {selectedVendor.pharmacies.map((pharmacy) => (
-                            <div
-                              key={pharmacy.id}
-                              className="flex items-center gap-2 rounded-md bg-red-50 p-2 text-sm"
-                            >
-                              <span className="flex-1">{pharmacy.name}</span>
-                              <span className="text-muted-foreground text-xs">
-                                {pharmacy.id}
-                              </span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                  {getTotalBusinesses(selectedVendor) === 0 && (
-                    <div className="bg-muted text-muted-foreground rounded-md p-3 text-center text-sm">
-                      No businesses registered yet
-                    </div>
-                  )}
-                </div>
-              )}
-            </DialogContent>
-          </Dialog>
-
-          {/* Edit Vendor Dialog */}
-          <EditVendorDialog
-            vendor={selectedVendor}
-            open={isEditOpen}
-            onOpenChange={setIsEditOpen}
-            onSave={(data) => {
-              if (selectedVendor) {
-                updateVendorMutation.mutate({
-                  vendorId: selectedVendor.id,
-                  data,
-                });
-              }
-            }}
-          />
-
-          {/* Manage Subscription Dialog */}
-          <ManageSubscriptionDialog
-            vendor={selectedVendor}
-            packages={subscriptionPackages}
-            open={isSubscriptionOpen}
-            onOpenChange={setIsSubscriptionOpen}
-            onAssign={(packageId, durationDays) => {
-              if (selectedVendor) {
-                assignSubscriptionMutation.mutate({
-                  vendorId: selectedVendor.id,
-                  packageId,
-                  durationDays,
-                });
-              }
-            }}
-          />
-
-          {/* Deactivate/Activate Confirmation */}
-          <AlertDialog
-            open={isDeactivateOpen}
-            onOpenChange={setIsDeactivateOpen}
-          >
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>
-                  {selectedVendor?.isActive ? "Deactivate" : "Activate"} Vendor?
-                </AlertDialogTitle>
-                <AlertDialogDescription>
-                  {selectedVendor?.isActive
-                    ? "This will deactivate the vendor and prevent them from receiving orders. They can be reactivated later."
-                    : "This will activate the vendor and allow them to receive orders."}
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction onClick={confirmToggleStatus}>
-                  {selectedVendor?.isActive ? "Deactivate" : "Activate"}
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
-
-          {/* Delete Confirmation */}
-          <AlertDialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Delete Vendor?</AlertDialogTitle>
-                <AlertDialogDescription>
-                  This action cannot be undone. This will permanently delete the
-                  vendor and all associated data.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction
-                  onClick={confirmDelete}
-                  className="bg-red-600 hover:bg-red-700"
-                >
-                  Delete
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
         </div>
       </Main>
+
+      {/* Dialogs and Modals */}
+      <VendorDetailsDialog
+        vendor={selectedVendor}
+        isOpen={isDetailsOpen}
+        onClose={() => setIsDetailsOpen(false)}
+      />
+      <EditVendorDialog
+        vendor={selectedVendor}
+        isOpen={isEditOpen}
+        onClose={() => setIsEditOpen(false)}
+        onSave={(data) =>
+          selectedVendor &&
+          updateVendorMutation.mutate({ vendorId: selectedVendor.id, data })
+        }
+        isSaving={updateVendorMutation.isPending}
+      />
+      <SubscriptionDialog
+        vendor={selectedVendor}
+        packages={subscriptionPackages}
+        isOpen={isSubscriptionOpen}
+        onClose={() => setIsSubscriptionOpen(false)}
+        onAssign={(data) =>
+          selectedVendor &&
+          assignSubscriptionMutation.mutate({
+            vendorId: selectedVendor.id,
+            ...data,
+          })
+        }
+        isAssigning={assignSubscriptionMutation.isPending}
+      />
+      <DeactivateVendorDialog
+        isOpen={isDeactivateOpen}
+        onClose={() => setIsDeactivateOpen(false)}
+        onConfirm={confirmToggleStatus}
+        vendorName={selectedVendor?.user?.fullName || "this vendor"}
+        isActive={selectedVendor?.isActive || false}
+      />
+      <DeleteVendorDialog
+        isOpen={isDeleteOpen}
+        onClose={() => setIsDeleteOpen(false)}
+        onConfirm={confirmDelete}
+        vendorName={selectedVendor?.user?.fullName || "this vendor"}
+      />
     </>
   );
 }
 
-// Edit Vendor Dialog Component
-interface EditVendorDialogProps {
-  vendor: VendorWithSubscription | null;
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  onSave: (data: any) => void;
+const StatCard = ({ title, value, icon: Icon, iconColor }: any) => (
+  <Card>
+    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+      <CardTitle className="text-sm font-medium">{title}</CardTitle>
+      <Icon className={cn("h-4 w-4 text-muted-foreground", iconColor)} />
+    </CardHeader>
+    <CardContent>
+      <div className="text-2xl font-bold">{value}</div>
+    </CardContent>
+  </Card>
+);
+
+function VendorDetailsDialog({ vendor, isOpen, onClose }: any) {
+  if (!vendor) return null;
+
+  const allBusinesses = [
+    ...(vendor.restaurants?.map((r: any) => ({ ...r, type: "Restaurant" })) ||
+      []),
+    ...(vendor.shops?.map((s: any) => ({ ...s, type: "Shop" })) || []),
+    ...(vendor.pharmacies?.map((p: any) => ({ ...p, type: "Pharmacy" })) || []),
+  ];
+
+  const getBusinessIcon = (type: string) => {
+    switch (type) {
+      case "Restaurant":
+        return <UtensilsCrossed className="h-4 w-4 text-orange-500" />;
+      case "Shop":
+        return <Package className="h-4 w-4 text-blue-500" />;
+      case "Pharmacy":
+        return <Pill className="h-4 w-4 text-red-500" />;
+      default:
+        return <Store className="h-4 w-4 text-muted-foreground" />;
+    }
+  };
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="sm:max-w-2xl">
+        <DialogHeader>
+          <div className="flex items-start gap-4">
+            <Avatar className="h-16 w-16">
+              <AvatarImage
+                src={vendor.user?.avatarUrl || ""}
+                alt={vendor.user?.fullName}
+              />
+              <AvatarFallback className="text-2xl">
+                {vendor.user?.fullName
+                  ?.split(" ")
+                  .map((n: string) => n[0])
+                  .join("")}
+              </AvatarFallback>
+            </Avatar>
+            <div className="flex-1">
+              <DialogTitle className="text-2xl">
+                {vendor.user?.fullName}
+              </DialogTitle>
+              <DialogDescription>
+                Vendor ID: {vendor.id.slice(0, 8)}
+              </DialogDescription>
+              <div className="mt-2 flex items-center gap-2">
+                {vendor.isActive ? (
+                  <Badge className="bg-green-600 hover:bg-green-700">
+                    <CheckCircle2 className="mr-1 h-3 w-3" />
+                    Active
+                  </Badge>
+                ) : (
+                  <Badge variant="destructive">
+                    <Ban className="mr-1 h-3 w-3" />
+                    Inactive
+                  </Badge>
+                )}
+              </div>
+            </div>
+          </div>
+        </DialogHeader>
+        <div className="grid max-h-[60vh] grid-cols-1 gap-6 overflow-y-auto p-1 md:grid-cols-2">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Contact Information</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3 text-sm">
+              <div className="flex items-center gap-3">
+                <Mail className="h-4 w-4 text-muted-foreground" />
+                <span>{vendor.user?.email || "Not provided"}</span>
+              </div>
+              <div className="flex items-center gap-3">
+                <Phone className="h-4 w-4 text-muted-foreground" />
+                <span>{vendor.user?.phone || "Not provided"}</span>
+              </div>
+              <div className="flex items-center gap-3">
+                <CreditCard className="h-4 w-4 text-muted-foreground" />
+                <span>{vendor.waveNumber || "Not provided"}</span>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Subscription</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3 text-sm">
+              {vendor.subscription ? (
+                <>
+                  <div className="flex items-center gap-3">
+                    <Crown className="h-4 w-4 text-yellow-500" />
+                    <span className="font-semibold">
+                      {vendor.subscription.packageName}
+                    </span>
+                    {vendor.subscription.isTrial && (
+                      <Badge
+                        variant="outline"
+                        className="border-blue-500 text-blue-500"
+                      >
+                        Trial
+                      </Badge>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span
+                      className={cn(
+                        "h-2 w-2 rounded-full",
+                        vendor.subscription.status === "ACTIVE"
+                          ? "bg-green-500"
+                          : "bg-red-500",
+                      )}
+                    />
+                    <span>Status: {vendor.subscription.status}</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className="text-muted-foreground">End Date:</span>
+                    <span>
+                      {new Date(
+                        vendor.subscription.endDate,
+                      ).toLocaleDateString()}
+                    </span>
+                  </div>
+                </>
+              ) : (
+                <p className="text-muted-foreground">No active subscription.</p>
+              )}
+            </CardContent>
+          </Card>
+
+          <div className="md:col-span-2">
+            <h3 className="mb-2 font-semibold">
+              Businesses ({allBusinesses.length})
+            </h3>
+            <div className="space-y-2">
+              {allBusinesses.length > 0 ? (
+                allBusinesses.map((business: any) => (
+                  <div
+                    key={business.id}
+                    className="flex items-center gap-3 rounded-md border p-3"
+                  >
+                    {getBusinessIcon(business.type)}
+                    <div className="flex-1">
+                      <p className="font-medium">{business.name}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {business.type}
+                      </p>
+                    </div>
+                    <Badge variant="secondary">
+                      {business.isActive ? "Open" : "Closed"}
+                    </Badge>
+                  </div>
+                ))
+              ) : (
+                <p className="text-center text-sm text-muted-foreground">
+                  This vendor has not created any businesses yet.
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>
+            Close
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
 }
 
-function EditVendorDialog({
-  vendor,
-  open,
-  onOpenChange,
-  onSave,
-}: EditVendorDialogProps) {
+function EditVendorDialog({ vendor, isOpen, onClose, onSave, isSaving }: any) {
   const [formData, setFormData] = useState({
     fullName: "",
     email: "",
@@ -1006,75 +1014,68 @@ function EditVendorDialog({
     }
   }, [vendor]);
 
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     onSave(formData);
   };
 
+  if (!vendor) return null;
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Edit Vendor Details</DialogTitle>
-          <DialogDescription>
-            Update vendor information and contact details
-          </DialogDescription>
+          <DialogTitle>Edit {vendor.user?.fullName}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
+          <div>
             <Label htmlFor="fullName">Full Name</Label>
             <Input
               id="fullName"
+              name="fullName"
               value={formData.fullName}
-              onChange={(e) =>
-                setFormData({ ...formData, fullName: e.target.value })
-              }
-              placeholder="Vendor full name"
+              onChange={handleChange}
             />
           </div>
-          <div className="space-y-2">
+          <div>
             <Label htmlFor="email">Email</Label>
             <Input
               id="email"
+              name="email"
               type="email"
               value={formData.email}
-              onChange={(e) =>
-                setFormData({ ...formData, email: e.target.value })
-              }
-              placeholder="vendor@example.com"
+              onChange={handleChange}
             />
           </div>
-          <div className="space-y-2">
+          <div>
             <Label htmlFor="phone">Phone</Label>
             <Input
               id="phone"
+              name="phone"
               value={formData.phone}
-              onChange={(e) =>
-                setFormData({ ...formData, phone: e.target.value })
-              }
-              placeholder="+220 123 4567"
+              onChange={handleChange}
             />
           </div>
-          <div className="space-y-2">
+          <div>
             <Label htmlFor="waveNumber">Wave Number</Label>
             <Input
               id="waveNumber"
+              name="waveNumber"
               value={formData.waveNumber}
-              onChange={(e) =>
-                setFormData({ ...formData, waveNumber: e.target.value })
-              }
-              placeholder="e.g. 70123456"
+              onChange={handleChange}
             />
           </div>
           <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-            >
+            <Button variant="outline" onClick={onClose}>
               Cancel
             </Button>
-            <Button type="submit">Save Changes</Button>
+            <Button type="submit" disabled={isSaving}>
+              {isSaving ? "Saving..." : "Save Changes"}
+            </Button>
           </DialogFooter>
         </form>
       </DialogContent>
@@ -1082,115 +1083,120 @@ function EditVendorDialog({
   );
 }
 
-// Manage Subscription Dialog Component
-interface ManageSubscriptionDialogProps {
-  vendor: VendorWithSubscription | null;
-  packages: any[];
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  onAssign: (packageId: string, durationDays: number) => void;
-}
-
-function ManageSubscriptionDialog({
+function SubscriptionDialog({
   vendor,
   packages,
-  open,
-  onOpenChange,
+  isOpen,
+  onClose,
   onAssign,
-}: ManageSubscriptionDialogProps) {
+  isAssigning,
+}: any) {
   const [selectedPackage, setSelectedPackage] = useState("");
-  const [durationDays, setDurationDays] = useState("30");
+  const [duration, setDuration] = useState(30);
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = () => {
     if (selectedPackage) {
-      onAssign(selectedPackage, parseInt(durationDays));
+      onAssign({ packageId: selectedPackage, durationDays: duration });
     }
   };
 
+  if (!vendor) return null;
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Manage Vendor Subscription</DialogTitle>
-          <DialogDescription>
-            Assign or update subscription package for {vendor?.user?.fullName}
-          </DialogDescription>
+          <DialogTitle>Manage Subscription</DialogTitle>
+          <DialogDescription>For {vendor.user?.fullName}</DialogDescription>
         </DialogHeader>
-
-        {vendor?.subscription && (
-          <div className="mb-4 rounded-lg border p-4">
-            <h4 className="mb-2 font-semibold">Current Subscription</h4>
-            <div className="space-y-1 text-sm">
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Package:</span>
-                <span className="font-medium">
-                  {vendor.subscription.packageName}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Status:</span>
-                <Badge
-                  variant={
-                    vendor.subscription.status === "ACTIVE"
-                      ? "default"
-                      : "secondary"
-                  }
-                >
-                  {vendor.subscription.status}
-                </Badge>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Expires:</span>
-                <span>
-                  {new Date(vendor.subscription.endDate).toLocaleDateString()}
-                </span>
-              </div>
-            </div>
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="package">Subscription Package</Label>
-            <Select value={selectedPackage} onValueChange={setSelectedPackage}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select package" />
-              </SelectTrigger>
-              <SelectContent>
-                {packages.map((pkg) => (
-                  <SelectItem key={pkg.id} value={pkg.id}>
-                    {pkg.displayName} - GMD {pkg.price}/month
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="duration">Duration (Days)</Label>
-            <Input
-              id="duration"
-              type="number"
-              value={durationDays}
-              onChange={(e) => setDurationDays(e.target.value)}
-              placeholder="30"
-              min="1"
-            />
-          </div>
-          <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-            >
-              Cancel
-            </Button>
-            <Button type="submit" disabled={!selectedPackage}>
-              Assign Subscription
-            </Button>
-          </DialogFooter>
-        </form>
+        <div className="space-y-4">
+          <Select onValueChange={setSelectedPackage} value={selectedPackage}>
+            <SelectTrigger>
+              <SelectValue placeholder="Select a package" />
+            </SelectTrigger>
+            <SelectContent>
+              {packages.map((p: any) => (
+                <SelectItem key={p.id} value={p.id}>
+                  {p.name} - D{p.price} / {p.durationDays} days
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Input
+            type="number"
+            value={duration}
+            onChange={(e) => setDuration(Number(e.target.value))}
+            placeholder="Duration in days"
+          />
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button
+            onClick={handleSubmit}
+            disabled={isAssigning || !selectedPackage}
+          >
+            {isAssigning ? "Assigning..." : "Assign Subscription"}
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
+  );
+}
+
+function DeactivateVendorDialog({
+  isOpen,
+  onClose,
+  onConfirm,
+  vendorName,
+  isActive,
+}: any) {
+  return (
+    <AlertDialog open={isOpen} onOpenChange={onClose}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>
+            Are you sure you want to {isActive ? "deactivate" : "activate"}{" "}
+            {vendorName}?
+          </AlertDialogTitle>
+          <AlertDialogDescription>
+            This will {isActive ? "prevent" : "allow"} the vendor from receiving
+            orders.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogAction onClick={onConfirm}>Confirm</AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  );
+}
+
+function DeleteVendorDialog({ isOpen, onClose, onConfirm, vendorName }: any) {
+  return (
+    <AlertDialog open={isOpen} onOpenChange={onClose}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>
+            Are you sure you want to delete {vendorName}?
+          </AlertDialogTitle>
+          <AlertDialogDescription>
+            This action cannot be undone. This will permanently delete the
+            vendor and all associated data.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogAction
+            onClick={onConfirm}
+            className="bg-red-600 hover:bg-red-700"
+          >
+            Delete
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   );
 }

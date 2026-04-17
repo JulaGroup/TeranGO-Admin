@@ -18,6 +18,7 @@ import {
   Shield,
   DollarSign,
   Wallet,
+  Zap,
 } from "lucide-react";
 import { type SidebarData } from "../types";
 
@@ -36,6 +37,41 @@ export const sidebarData: SidebarData = {
           title: "Dashboard",
           url: "/admin",
           icon: LayoutDashboard,
+        },
+      ],
+    },
+    {
+      title: "TeranGO Official Store",
+      items: [
+        {
+          title: "Store Dashboard",
+          url: "/admin/terango-store",
+          icon: Crown,
+        },
+        {
+          title: "Store Orders",
+          url: "/admin/terango-store/orders",
+          icon: ShoppingCart,
+        },
+        {
+          title: "Store Settings",
+          url: "/admin/terango-store/settings",
+          icon: Shield,
+        },
+        {
+          title: "Product Management",
+          url: "/admin/terango-products",
+          icon: Package,
+        },
+      ],
+    },
+    {
+      title: "Delivery Services",
+      items: [
+        {
+          title: "Express Delivery",
+          url: "/express",
+          icon: Zap,
         },
       ],
     },
@@ -61,6 +97,16 @@ export const sidebarData: SidebarData = {
           title: "Orders",
           url: "/admin/orders",
           icon: ShoppingCart,
+        },
+        {
+          title: "Settlements",
+          url: "/admin/settlements",
+          icon: Wallet,
+        },
+        {
+          title: "Vendor Settlements",
+          url: "/admin/vendor-settlements",
+          icon: DollarSign,
         },
         {
           title: "Payments",
@@ -99,31 +145,7 @@ export const sidebarData: SidebarData = {
         },
       ],
     },
-    {
-      title: "TeranGO Official Store",
-      items: [
-        {
-          title: "Store Dashboard",
-          url: "/admin/terango-store",
-          icon: Crown,
-        },
-        {
-          title: "Store Orders",
-          url: "/admin/terango-store/orders",
-          icon: ShoppingCart,
-        },
-        {
-          title: "Store Settings",
-          url: "/admin/terango-store/settings",
-          icon: Shield,
-        },
-        {
-          title: "Product Management",
-          url: "/admin/terango-products",
-          icon: Package,
-        },
-      ],
-    },
+
     {
       title: "Product Management",
       items: [
@@ -186,3 +208,4 @@ export const sidebarData: SidebarData = {
     },
   ],
 };
+
