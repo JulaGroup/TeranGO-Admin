@@ -1416,7 +1416,7 @@ function DriversPage() {
                     )}
                   </div>
 
-                  <div className="grid gap-4 md:grid-cols-2">
+                  {/* <div className="grid gap-4 md:grid-cols-2">
                     <div className="space-y-2">
                       <Label htmlFor="thirdPartyRate">
                         Third-Party Rate (Commission)
@@ -1443,7 +1443,7 @@ function DriversPage() {
                         % of the delivery fee.
                       </p>
                     </div>
-                  </div>
+                  </div> */}
 
                   <div className="flex gap-3 border-t pt-4">
                     <Button

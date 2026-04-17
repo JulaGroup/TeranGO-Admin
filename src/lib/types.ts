@@ -38,6 +38,7 @@ export interface Vendor {
     phone?: string;
     phoneNumber?: string;
     email?: string;
+    avatarUrl?: string;
   };
 
   // Business info
@@ -160,7 +161,7 @@ export interface OrderItem {
   quantity: number;
   price: number;
   menuItem?: { name: string; imageUrl?: string };
-  product?: { name: string; imageUrl?: string };
+  product?: { _id?: string; name: string; imageUrl?: string };
   medicine?: { name: string; imageUrl?: string };
 }
 

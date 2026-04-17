@@ -319,7 +319,17 @@ function PaymentsPage() {
 }
 
 // Sub-components
-const StatCard = ({ title, value, icon: Icon, color }) => (
+const StatCard = ({
+  title,
+  value,
+  icon: Icon,
+  color,
+}: {
+  title: string;
+  value: string;
+  icon: React.ElementType;
+  color: string;
+}) => (
   <Card>
     <CardContent className="p-4">
       <div className="flex items-center justify-between">
@@ -336,7 +346,6 @@ const StatCard = ({ title, value, icon: Icon, color }) => (
 );
 
 const getStatusConfig = (status: string) => {
-  const s = status?.toUpperCase() || "PENDING";
   const configs = {
     PENDING: { icon: Clock, color: "text-yellow-600", bg: "bg-yellow-100" },
     SUCCEEDED: {
@@ -346,9 +355,11 @@ const getStatusConfig = (status: string) => {
     },
     FAILED: { icon: XCircle, color: "text-red-600", bg: "bg-red-100" },
   };
+
+  const s = (status?.toUpperCase() || "PENDING") as keyof typeof configs;
+
   return configs[s] || configs.PENDING;
 };
-
 const StatusBadge = ({ status }: { status: string }) => {
   const config = getStatusConfig(status);
   const Icon = config.icon;
@@ -366,7 +377,13 @@ const StatusBadge = ({ status }: { status: string }) => {
   );
 };
 
-const PaymentCard = ({ payment, onViewDetails }) => {
+const PaymentCard = ({
+  payment,
+  onViewDetails,
+}: {
+  payment: any;
+  onViewDetails: (payment: any) => void;
+}) => {
   const vendorName =
     payment.order?.restaurant?.name ||
     payment.order?.shop?.name ||
@@ -425,7 +442,13 @@ const PaymentCard = ({ payment, onViewDetails }) => {
   );
 };
 
-const PaymentTable = ({ payments, onViewDetails }) => (
+const PaymentTable = ({
+  payments,
+  onViewDetails,
+}: {
+  payments: any[];
+  onViewDetails: (payment: any) => void;
+}) => (
   <Card>
     <Table>
       <TableHeader>
@@ -481,7 +504,15 @@ const PaymentTable = ({ payments, onViewDetails }) => (
   </Card>
 );
 
-const Pagination = ({ currentPage, totalPages, onPageChange }) => (
+const Pagination = ({
+  currentPage,
+  totalPages,
+  onPageChange,
+}: {
+  currentPage: number;
+  totalPages: number;
+  onPageChange: (page: number) => void;
+}) => (
   <div className="flex items-center justify-center gap-2">
     <Button
       onClick={() => onPageChange(currentPage - 1)}
@@ -505,7 +536,15 @@ const Pagination = ({ currentPage, totalPages, onPageChange }) => (
   </div>
 );
 
-const PaymentDetailsDialog = ({ isOpen, setIsOpen, payment }) => {
+const PaymentDetailsDialog = ({
+  isOpen,
+  setIsOpen,
+  payment,
+}: {
+  isOpen: boolean;
+  setIsOpen: (isOpen: boolean) => void;
+  payment: any;
+}) => {
   const vendorName =
     payment.order?.restaurant?.name ||
     payment.order?.shop?.name ||
@@ -557,7 +596,13 @@ const PaymentDetailsDialog = ({ isOpen, setIsOpen, payment }) => {
   );
 };
 
-const InfoSection = ({ title, children }) => (
+const InfoSection = ({
+  title,
+  children,
+}: {
+  title: string;
+  children: React.ReactNode;
+}) => (
   <Card>
     <CardHeader className="pb-2">
       <CardTitle className="text-base">{title}</CardTitle>
@@ -566,7 +611,15 @@ const InfoSection = ({ title, children }) => (
   </Card>
 );
 
-const InfoRow = ({ label, value, isMonospace = false }) => (
+const InfoRow = ({
+  label,
+  value,
+  isMonospace = false,
+}: {
+  label: string;
+  value: string;
+  isMonospace?: boolean;
+}) => (
   <div className="flex justify-between">
     <p className="text-muted-foreground">{label}</p>
     <p className={cn("font-medium", isMonospace && "font-mono text-xs")}>

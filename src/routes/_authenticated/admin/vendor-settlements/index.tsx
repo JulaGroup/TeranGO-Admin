@@ -337,7 +337,7 @@ function VendorSettlementsPage() {
               {data?.totalPages > 1 && (
                 <div className="mt-4 flex items-center justify-between">
                   <p className="text-muted-foreground text-sm">
-                    Page {page} of {data.totalPages}
+                    Page {page} of {data?.totalPages}
                   </p>
                   <div className="flex gap-2">
                     <Button
@@ -351,7 +351,7 @@ function VendorSettlementsPage() {
                     <Button
                       variant="outline"
                       size="sm"
-                      disabled={page >= data.totalPages}
+                      disabled={page >= data?.totalPages}
                       onClick={() => setPage((p) => p + 1)}
                     >
                       <ChevronRight className="h-4 w-4" />

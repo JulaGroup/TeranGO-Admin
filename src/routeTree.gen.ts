@@ -389,6 +389,7 @@ const AuthenticatedAdminAnalyticsAnalyticsIndexRoute =
   } as any)
 
 export interface FileRoutesByFullPath {
+  '/': typeof AuthenticatedIndexRoute
   '/forgot-password': typeof authForgotPasswordRoute
   '/login': typeof authLoginRoute
   '/otp': typeof authOtpRoute
@@ -397,7 +398,6 @@ export interface FileRoutesByFullPath {
   '/sign-up': typeof authSignUpRoute
   '/unauthorized': typeof authUnauthorizedRoute
   '/express': typeof AuthenticatedExpressRoute
-  '/': typeof AuthenticatedIndexRoute
   '/admin/delivery-settings': typeof AuthenticatedAdminDeliverySettingsRoute
   '/vendor/dashboard': typeof VendorVendorDashboardRoute
   '/vendor/menu': typeof VendorVendorMenuRoute
@@ -405,47 +405,48 @@ export interface FileRoutesByFullPath {
   '/vendor/payouts': typeof VendorVendorPayoutsRoute
   '/vendor/profile': typeof VendorVendorProfileRoute
   '/vendor/settings': typeof VendorVendorSettingsRoute
-  '/admin': typeof AuthenticatedAdminIndexRoute
-  '/analytics': typeof AuthenticatedAnalyticsIndexRoute
-  '/categories': typeof AuthenticatedCategoriesIndexRoute
-  '/customers': typeof AuthenticatedCustomersIndexRoute
-  '/drivers': typeof AuthenticatedDriversIndexRoute
-  '/orders': typeof AuthenticatedOrdersIndexRoute
-  '/payments': typeof AuthenticatedPaymentsIndexRoute
-  '/reports': typeof AuthenticatedReportsIndexRoute
-  '/subcategories': typeof AuthenticatedSubcategoriesIndexRoute
-  '/vendors': typeof AuthenticatedVendorsIndexRoute
-  '/subscription': typeof VendorSubscriptionIndexRoute
-  '/vendor': typeof VendorVendorIndexRoute
+  '/admin/': typeof AuthenticatedAdminIndexRoute
+  '/analytics/': typeof AuthenticatedAnalyticsIndexRoute
+  '/categories/': typeof AuthenticatedCategoriesIndexRoute
+  '/customers/': typeof AuthenticatedCustomersIndexRoute
+  '/drivers/': typeof AuthenticatedDriversIndexRoute
+  '/orders/': typeof AuthenticatedOrdersIndexRoute
+  '/payments/': typeof AuthenticatedPaymentsIndexRoute
+  '/reports/': typeof AuthenticatedReportsIndexRoute
+  '/subcategories/': typeof AuthenticatedSubcategoriesIndexRoute
+  '/vendors/': typeof AuthenticatedVendorsIndexRoute
+  '/subscription/': typeof VendorSubscriptionIndexRoute
+  '/vendor/': typeof VendorVendorIndexRoute
   '/admin/drivers/$driverId': typeof AuthenticatedAdminDriversDriverIdRoute
   '/admin/terango-store/orders': typeof AuthenticatedAdminTerangoStoreOrdersRoute
   '/admin/terango-store/settings': typeof AuthenticatedAdminTerangoStoreSettingsRoute
-  '/admin/advertisements': typeof AuthenticatedAdminAdvertisementsIndexRoute
-  '/admin/analytics': typeof AuthenticatedAdminAnalyticsIndexRoute
-  '/admin/broadcasts': typeof AuthenticatedAdminBroadcastsIndexRoute
-  '/admin/categories': typeof AuthenticatedAdminCategoriesIndexRoute
-  '/admin/customers': typeof AuthenticatedAdminCustomersIndexRoute
-  '/admin/drivers': typeof AuthenticatedAdminDriversIndexRoute
-  '/admin/express': typeof AuthenticatedAdminExpressIndexRoute
-  '/admin/featured': typeof AuthenticatedAdminFeaturedIndexRoute
-  '/admin/notifications': typeof AuthenticatedAdminNotificationsIndexRoute
-  '/admin/orders': typeof AuthenticatedAdminOrdersIndexRoute
-  '/admin/payments': typeof AuthenticatedAdminPaymentsIndexRoute
-  '/admin/promocodes': typeof AuthenticatedAdminPromocodesIndexRoute
-  '/admin/reports': typeof AuthenticatedAdminReportsIndexRoute
-  '/admin/settings': typeof AuthenticatedAdminSettingsIndexRoute
-  '/admin/settlements': typeof AuthenticatedAdminSettlementsIndexRoute
-  '/admin/subcategories': typeof AuthenticatedAdminSubcategoriesIndexRoute
-  '/admin/subscriptions': typeof AuthenticatedAdminSubscriptionsIndexRoute
-  '/admin/terango-products': typeof AuthenticatedAdminTerangoProductsIndexRoute
-  '/admin/terango-store': typeof AuthenticatedAdminTerangoStoreIndexRoute
-  '/admin/vendor-applications': typeof AuthenticatedAdminVendorApplicationsIndexRoute
-  '/admin/vendor-settlements': typeof AuthenticatedAdminVendorSettlementsIndexRoute
-  '/admin/vendors': typeof AuthenticatedAdminVendorsIndexRoute
-  '/admin/analytics/analytics': typeof AuthenticatedAdminAnalyticsAnalyticsIndexRoute
+  '/admin/advertisements/': typeof AuthenticatedAdminAdvertisementsIndexRoute
+  '/admin/analytics/': typeof AuthenticatedAdminAnalyticsIndexRoute
+  '/admin/broadcasts/': typeof AuthenticatedAdminBroadcastsIndexRoute
+  '/admin/categories/': typeof AuthenticatedAdminCategoriesIndexRoute
+  '/admin/customers/': typeof AuthenticatedAdminCustomersIndexRoute
+  '/admin/drivers/': typeof AuthenticatedAdminDriversIndexRoute
+  '/admin/express/': typeof AuthenticatedAdminExpressIndexRoute
+  '/admin/featured/': typeof AuthenticatedAdminFeaturedIndexRoute
+  '/admin/notifications/': typeof AuthenticatedAdminNotificationsIndexRoute
+  '/admin/orders/': typeof AuthenticatedAdminOrdersIndexRoute
+  '/admin/payments/': typeof AuthenticatedAdminPaymentsIndexRoute
+  '/admin/promocodes/': typeof AuthenticatedAdminPromocodesIndexRoute
+  '/admin/reports/': typeof AuthenticatedAdminReportsIndexRoute
+  '/admin/settings/': typeof AuthenticatedAdminSettingsIndexRoute
+  '/admin/settlements/': typeof AuthenticatedAdminSettlementsIndexRoute
+  '/admin/subcategories/': typeof AuthenticatedAdminSubcategoriesIndexRoute
+  '/admin/subscriptions/': typeof AuthenticatedAdminSubscriptionsIndexRoute
+  '/admin/terango-products/': typeof AuthenticatedAdminTerangoProductsIndexRoute
+  '/admin/terango-store/': typeof AuthenticatedAdminTerangoStoreIndexRoute
+  '/admin/vendor-applications/': typeof AuthenticatedAdminVendorApplicationsIndexRoute
+  '/admin/vendor-settlements/': typeof AuthenticatedAdminVendorSettlementsIndexRoute
+  '/admin/vendors/': typeof AuthenticatedAdminVendorsIndexRoute
+  '/admin/analytics/analytics/': typeof AuthenticatedAdminAnalyticsAnalyticsIndexRoute
   '/admin/vendors/index/MODERN': typeof AuthenticatedAdminVendorsIndexMODERNRoute
 }
 export interface FileRoutesByTo {
+  '/': typeof AuthenticatedIndexRoute
   '/forgot-password': typeof authForgotPasswordRoute
   '/login': typeof authLoginRoute
   '/otp': typeof authOtpRoute
@@ -454,7 +455,6 @@ export interface FileRoutesByTo {
   '/sign-up': typeof authSignUpRoute
   '/unauthorized': typeof authUnauthorizedRoute
   '/express': typeof AuthenticatedExpressRoute
-  '/': typeof AuthenticatedIndexRoute
   '/admin/delivery-settings': typeof AuthenticatedAdminDeliverySettingsRoute
   '/vendor/dashboard': typeof VendorVendorDashboardRoute
   '/vendor/menu': typeof VendorVendorMenuRoute
@@ -565,6 +565,7 @@ export interface FileRoutesById {
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
+    | '/'
     | '/forgot-password'
     | '/login'
     | '/otp'
@@ -573,7 +574,6 @@ export interface FileRouteTypes {
     | '/sign-up'
     | '/unauthorized'
     | '/express'
-    | '/'
     | '/admin/delivery-settings'
     | '/vendor/dashboard'
     | '/vendor/menu'
@@ -581,47 +581,48 @@ export interface FileRouteTypes {
     | '/vendor/payouts'
     | '/vendor/profile'
     | '/vendor/settings'
-    | '/admin'
-    | '/analytics'
-    | '/categories'
-    | '/customers'
-    | '/drivers'
-    | '/orders'
-    | '/payments'
-    | '/reports'
-    | '/subcategories'
-    | '/vendors'
-    | '/subscription'
-    | '/vendor'
+    | '/admin/'
+    | '/analytics/'
+    | '/categories/'
+    | '/customers/'
+    | '/drivers/'
+    | '/orders/'
+    | '/payments/'
+    | '/reports/'
+    | '/subcategories/'
+    | '/vendors/'
+    | '/subscription/'
+    | '/vendor/'
     | '/admin/drivers/$driverId'
     | '/admin/terango-store/orders'
     | '/admin/terango-store/settings'
-    | '/admin/advertisements'
-    | '/admin/analytics'
-    | '/admin/broadcasts'
-    | '/admin/categories'
-    | '/admin/customers'
-    | '/admin/drivers'
-    | '/admin/express'
-    | '/admin/featured'
-    | '/admin/notifications'
-    | '/admin/orders'
-    | '/admin/payments'
-    | '/admin/promocodes'
-    | '/admin/reports'
-    | '/admin/settings'
-    | '/admin/settlements'
-    | '/admin/subcategories'
-    | '/admin/subscriptions'
-    | '/admin/terango-products'
-    | '/admin/terango-store'
-    | '/admin/vendor-applications'
-    | '/admin/vendor-settlements'
-    | '/admin/vendors'
-    | '/admin/analytics/analytics'
+    | '/admin/advertisements/'
+    | '/admin/analytics/'
+    | '/admin/broadcasts/'
+    | '/admin/categories/'
+    | '/admin/customers/'
+    | '/admin/drivers/'
+    | '/admin/express/'
+    | '/admin/featured/'
+    | '/admin/notifications/'
+    | '/admin/orders/'
+    | '/admin/payments/'
+    | '/admin/promocodes/'
+    | '/admin/reports/'
+    | '/admin/settings/'
+    | '/admin/settlements/'
+    | '/admin/subcategories/'
+    | '/admin/subscriptions/'
+    | '/admin/terango-products/'
+    | '/admin/terango-store/'
+    | '/admin/vendor-applications/'
+    | '/admin/vendor-settlements/'
+    | '/admin/vendors/'
+    | '/admin/analytics/analytics/'
     | '/admin/vendors/index/MODERN'
   fileRoutesByTo: FileRoutesByTo
   to:
+    | '/'
     | '/forgot-password'
     | '/login'
     | '/otp'
@@ -630,7 +631,6 @@ export interface FileRouteTypes {
     | '/sign-up'
     | '/unauthorized'
     | '/express'
-    | '/'
     | '/admin/delivery-settings'
     | '/vendor/dashboard'
     | '/vendor/menu'
@@ -755,14 +755,14 @@ declare module '@tanstack/react-router' {
     '/_vendor': {
       id: '/_vendor'
       path: ''
-      fullPath: ''
+      fullPath: '/'
       preLoaderRoute: typeof VendorRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated': {
       id: '/_authenticated'
       path: ''
-      fullPath: ''
+      fullPath: '/'
       preLoaderRoute: typeof AuthenticatedRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
@@ -832,84 +832,84 @@ declare module '@tanstack/react-router' {
     '/_vendor/vendor/': {
       id: '/_vendor/vendor/'
       path: '/vendor'
-      fullPath: '/vendor'
+      fullPath: '/vendor/'
       preLoaderRoute: typeof VendorVendorIndexRouteImport
       parentRoute: typeof VendorRoute
     }
     '/_vendor/subscription/': {
       id: '/_vendor/subscription/'
       path: '/subscription'
-      fullPath: '/subscription'
+      fullPath: '/subscription/'
       preLoaderRoute: typeof VendorSubscriptionIndexRouteImport
       parentRoute: typeof VendorRoute
     }
     '/_authenticated/vendors/': {
       id: '/_authenticated/vendors/'
       path: '/vendors'
-      fullPath: '/vendors'
+      fullPath: '/vendors/'
       preLoaderRoute: typeof AuthenticatedVendorsIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/subcategories/': {
       id: '/_authenticated/subcategories/'
       path: '/subcategories'
-      fullPath: '/subcategories'
+      fullPath: '/subcategories/'
       preLoaderRoute: typeof AuthenticatedSubcategoriesIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/reports/': {
       id: '/_authenticated/reports/'
       path: '/reports'
-      fullPath: '/reports'
+      fullPath: '/reports/'
       preLoaderRoute: typeof AuthenticatedReportsIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/payments/': {
       id: '/_authenticated/payments/'
       path: '/payments'
-      fullPath: '/payments'
+      fullPath: '/payments/'
       preLoaderRoute: typeof AuthenticatedPaymentsIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/orders/': {
       id: '/_authenticated/orders/'
       path: '/orders'
-      fullPath: '/orders'
+      fullPath: '/orders/'
       preLoaderRoute: typeof AuthenticatedOrdersIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/drivers/': {
       id: '/_authenticated/drivers/'
       path: '/drivers'
-      fullPath: '/drivers'
+      fullPath: '/drivers/'
       preLoaderRoute: typeof AuthenticatedDriversIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/customers/': {
       id: '/_authenticated/customers/'
       path: '/customers'
-      fullPath: '/customers'
+      fullPath: '/customers/'
       preLoaderRoute: typeof AuthenticatedCustomersIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/categories/': {
       id: '/_authenticated/categories/'
       path: '/categories'
-      fullPath: '/categories'
+      fullPath: '/categories/'
       preLoaderRoute: typeof AuthenticatedCategoriesIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/analytics/': {
       id: '/_authenticated/analytics/'
       path: '/analytics'
-      fullPath: '/analytics'
+      fullPath: '/analytics/'
       preLoaderRoute: typeof AuthenticatedAnalyticsIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/admin/': {
       id: '/_authenticated/admin/'
       path: '/admin'
-      fullPath: '/admin'
+      fullPath: '/admin/'
       preLoaderRoute: typeof AuthenticatedAdminIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
@@ -965,154 +965,154 @@ declare module '@tanstack/react-router' {
     '/_authenticated/admin/vendors/': {
       id: '/_authenticated/admin/vendors/'
       path: '/admin/vendors'
-      fullPath: '/admin/vendors'
+      fullPath: '/admin/vendors/'
       preLoaderRoute: typeof AuthenticatedAdminVendorsIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/admin/vendor-settlements/': {
       id: '/_authenticated/admin/vendor-settlements/'
       path: '/admin/vendor-settlements'
-      fullPath: '/admin/vendor-settlements'
+      fullPath: '/admin/vendor-settlements/'
       preLoaderRoute: typeof AuthenticatedAdminVendorSettlementsIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/admin/vendor-applications/': {
       id: '/_authenticated/admin/vendor-applications/'
       path: '/admin/vendor-applications'
-      fullPath: '/admin/vendor-applications'
+      fullPath: '/admin/vendor-applications/'
       preLoaderRoute: typeof AuthenticatedAdminVendorApplicationsIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/admin/terango-store/': {
       id: '/_authenticated/admin/terango-store/'
       path: '/admin/terango-store'
-      fullPath: '/admin/terango-store'
+      fullPath: '/admin/terango-store/'
       preLoaderRoute: typeof AuthenticatedAdminTerangoStoreIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/admin/terango-products/': {
       id: '/_authenticated/admin/terango-products/'
       path: '/admin/terango-products'
-      fullPath: '/admin/terango-products'
+      fullPath: '/admin/terango-products/'
       preLoaderRoute: typeof AuthenticatedAdminTerangoProductsIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/admin/subscriptions/': {
       id: '/_authenticated/admin/subscriptions/'
       path: '/admin/subscriptions'
-      fullPath: '/admin/subscriptions'
+      fullPath: '/admin/subscriptions/'
       preLoaderRoute: typeof AuthenticatedAdminSubscriptionsIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/admin/subcategories/': {
       id: '/_authenticated/admin/subcategories/'
       path: '/admin/subcategories'
-      fullPath: '/admin/subcategories'
+      fullPath: '/admin/subcategories/'
       preLoaderRoute: typeof AuthenticatedAdminSubcategoriesIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/admin/settlements/': {
       id: '/_authenticated/admin/settlements/'
       path: '/admin/settlements'
-      fullPath: '/admin/settlements'
+      fullPath: '/admin/settlements/'
       preLoaderRoute: typeof AuthenticatedAdminSettlementsIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/admin/settings/': {
       id: '/_authenticated/admin/settings/'
       path: '/admin/settings'
-      fullPath: '/admin/settings'
+      fullPath: '/admin/settings/'
       preLoaderRoute: typeof AuthenticatedAdminSettingsIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/admin/reports/': {
       id: '/_authenticated/admin/reports/'
       path: '/admin/reports'
-      fullPath: '/admin/reports'
+      fullPath: '/admin/reports/'
       preLoaderRoute: typeof AuthenticatedAdminReportsIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/admin/promocodes/': {
       id: '/_authenticated/admin/promocodes/'
       path: '/admin/promocodes'
-      fullPath: '/admin/promocodes'
+      fullPath: '/admin/promocodes/'
       preLoaderRoute: typeof AuthenticatedAdminPromocodesIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/admin/payments/': {
       id: '/_authenticated/admin/payments/'
       path: '/admin/payments'
-      fullPath: '/admin/payments'
+      fullPath: '/admin/payments/'
       preLoaderRoute: typeof AuthenticatedAdminPaymentsIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/admin/orders/': {
       id: '/_authenticated/admin/orders/'
       path: '/admin/orders'
-      fullPath: '/admin/orders'
+      fullPath: '/admin/orders/'
       preLoaderRoute: typeof AuthenticatedAdminOrdersIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/admin/notifications/': {
       id: '/_authenticated/admin/notifications/'
       path: '/admin/notifications'
-      fullPath: '/admin/notifications'
+      fullPath: '/admin/notifications/'
       preLoaderRoute: typeof AuthenticatedAdminNotificationsIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/admin/featured/': {
       id: '/_authenticated/admin/featured/'
       path: '/admin/featured'
-      fullPath: '/admin/featured'
+      fullPath: '/admin/featured/'
       preLoaderRoute: typeof AuthenticatedAdminFeaturedIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/admin/express/': {
       id: '/_authenticated/admin/express/'
       path: '/admin/express'
-      fullPath: '/admin/express'
+      fullPath: '/admin/express/'
       preLoaderRoute: typeof AuthenticatedAdminExpressIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/admin/drivers/': {
       id: '/_authenticated/admin/drivers/'
       path: '/admin/drivers'
-      fullPath: '/admin/drivers'
+      fullPath: '/admin/drivers/'
       preLoaderRoute: typeof AuthenticatedAdminDriversIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/admin/customers/': {
       id: '/_authenticated/admin/customers/'
       path: '/admin/customers'
-      fullPath: '/admin/customers'
+      fullPath: '/admin/customers/'
       preLoaderRoute: typeof AuthenticatedAdminCustomersIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/admin/categories/': {
       id: '/_authenticated/admin/categories/'
       path: '/admin/categories'
-      fullPath: '/admin/categories'
+      fullPath: '/admin/categories/'
       preLoaderRoute: typeof AuthenticatedAdminCategoriesIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/admin/broadcasts/': {
       id: '/_authenticated/admin/broadcasts/'
       path: '/admin/broadcasts'
-      fullPath: '/admin/broadcasts'
+      fullPath: '/admin/broadcasts/'
       preLoaderRoute: typeof AuthenticatedAdminBroadcastsIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/admin/analytics/': {
       id: '/_authenticated/admin/analytics/'
       path: '/admin/analytics'
-      fullPath: '/admin/analytics'
+      fullPath: '/admin/analytics/'
       preLoaderRoute: typeof AuthenticatedAdminAnalyticsIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/admin/advertisements/': {
       id: '/_authenticated/admin/advertisements/'
       path: '/admin/advertisements'
-      fullPath: '/admin/advertisements'
+      fullPath: '/admin/advertisements/'
       preLoaderRoute: typeof AuthenticatedAdminAdvertisementsIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
@@ -1147,7 +1147,7 @@ declare module '@tanstack/react-router' {
     '/_authenticated/admin/analytics/analytics/': {
       id: '/_authenticated/admin/analytics/analytics/'
       path: '/admin/analytics/analytics'
-      fullPath: '/admin/analytics/analytics'
+      fullPath: '/admin/analytics/analytics/'
       preLoaderRoute: typeof AuthenticatedAdminAnalyticsAnalyticsIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
