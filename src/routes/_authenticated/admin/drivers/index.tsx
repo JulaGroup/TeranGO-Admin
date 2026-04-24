@@ -71,6 +71,7 @@ import { TopNav } from "@/components/layout/top-nav";
 import { ProfileDropdown } from "@/components/profile-dropdown";
 import { Search as SearchInput } from "@/components/search";
 import { ThemeSwitch } from "@/components/theme-switch";
+import { DriverMap } from "@/components/driver-map";
 import type { Driver } from "@/lib/types";
 
 const topNav = [
@@ -439,6 +440,9 @@ function DriversPage() {
               </div>
             </CardContent>
           </Card>
+
+          {/* Real-Time Driver Map */}
+          <DriverMap className="mb-6" height="500px" />
 
           {/* Drivers Table */}
           <Card>

@@ -82,6 +82,12 @@ interface SystemSettings {
   weightPricingEnabled: boolean;
   distancePricingEnabled: boolean;
 
+  // Central hub coordinates for driver dispatch
+  hubLatitude: number;
+  hubLongitude: number;
+  hubName: string;
+  useHubBasedDistance: boolean;
+
   // Third-party driver split rate
   thirdPartyDriverRate: number;
 }
@@ -137,7 +143,11 @@ function DeliverySettingsPage() {
     setFormData((prev) => ({
       ...prev,
       [field]:
-        typeof value === "boolean" ? value : parseFloat(value as string) || 0,
+        typeof value === "boolean" 
+          ? value 
+          : field === "hubName"
+            ? value
+            : parseFloat(value as string) || 0,
     }));
   };
 
@@ -359,7 +369,7 @@ function DeliverySettingsPage() {
               {/* Zone 1 */}
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <Label>Zone 1 — Central</Label>
+                  <Label>Zone 1</Label>
                   <Badge
                     variant="outline"
                     className="bg-green-50 text-green-700"
@@ -386,7 +396,7 @@ function DeliverySettingsPage() {
               {/* Zone 2 */}
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <Label>Zone 2 — Greater Banjul</Label>
+                  <Label>Zone 2</Label>
                   <Badge variant="outline" className="bg-blue-50 text-blue-700">
                     Bakau, Fajara, Kotu, Kololi
                   </Badge>
@@ -410,7 +420,7 @@ function DeliverySettingsPage() {
               {/* Zone 3 */}
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <Label>Zone 3 — West Coast</Label>
+                  <Label>Zone 3</Label>
                   <Badge
                     variant="outline"
                     className="bg-orange-50 text-orange-700"
@@ -741,6 +751,120 @@ function DeliverySettingsPage() {
                     weight. <strong>This also applies to gift orders</strong>{" "}
                     when Weight-Based Pricing is enabled above.
                   </span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Hub-Based Distance Calculation */}
+          <Card className="md:col-span-2">
+            <CardHeader>
+              <div className="flex items-center gap-2">
+                <MapPin className="h-5 w-5 text-purple-500" />
+                <CardTitle>Hub-Based Distance Calculation</CardTitle>
+              </div>
+              <CardDescription>
+                Configure central hub location for accurate driver distance calculations. 
+                When enabled, delivery fees are calculated as: Hub → Vendor → Customer (two-leg journey).
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {/* Hub coordinates */}
+              <div className="grid gap-6 md:grid-cols-2">
+                <div className="space-y-4">
+                  <div>
+                    <Label htmlFor="hubName">Hub Name</Label>
+                    <Input
+                      id="hubName"
+                      type="text"
+                      value={isEditing && formData.hubName !== undefined ? formData.hubName : settings?.hubName || ""}
+                      onChange={(e) => handleInputChange("hubName" as any, e.target.value)}
+                      disabled={!isEditing}
+                      placeholder="TeranGO Central Hub"
+                      className="mt-1"
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="hubLatitude">Hub Latitude</Label>
+                    <Input
+                      id="hubLatitude"
+                      type="number"
+                      step="0.000001"
+                      value={getNumericValue("hubLatitude" as keyof SystemSettings)}
+                      onChange={(e) => handleInputChange("hubLatitude" as any, e.target.value)}
+                      disabled={!isEditing}
+                      placeholder="13.406444"
+                      className="mt-1"
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="hubLongitude">Hub Longitude</Label>
+                    <Input
+                      id="hubLongitude"
+                      type="number"
+                      step="0.000001"
+                      value={getNumericValue("hubLongitude" as keyof SystemSettings)}
+                      onChange={(e) => handleInputChange("hubLongitude" as any, e.target.value)}
+                      disabled={!isEditing}
+                      placeholder="-16.729975"
+                      className="mt-1"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <div className="rounded-lg border bg-purple-50 p-4">
+                    <div className="flex items-start gap-3">
+                      <Info className="h-5 w-5 text-purple-600 mt-0.5" />
+                      <div className="space-y-2 text-sm">
+                        <p className="font-semibold text-purple-900">How Hub-Based Distance Works:</p>
+                        <ul className="space-y-1 text-purple-800 list-disc list-inside">
+                          <li><strong>Enabled:</strong> Distance = (Hub → Vendor) + (Vendor → Customer)</li>
+                          <li><strong>Disabled:</strong> Distance = Vendor → Customer only</li>
+                        </ul>
+                        <p className="text-purple-700 mt-2">
+                          Enable this because drivers start from the hub, pick up orders at vendors, then deliver to customers.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between p-4 rounded-lg border bg-muted/40">
+                    <div>
+                      <Label htmlFor="useHubBasedDistance" className="text-base font-medium">
+                        Use Hub-Based Distance
+                      </Label>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        Calculate delivery distance from hub instead of vendor
+                      </p>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        id="useHubBasedDistance"
+                        checked={isEditing && formData.useHubBasedDistance !== undefined 
+                          ? Boolean(formData.useHubBasedDistance) 
+                          : Boolean(settings?.useHubBasedDistance)}
+                        onChange={(e) => handleInputChange("useHubBasedDistance" as any, e.target.checked)}
+                        disabled={!isEditing}
+                        className="sr-only peer"
+                      />
+                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-purple-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
+                    </label>
+                  </div>
+
+                  {(isEditing ? formData.useHubBasedDistance : settings?.useHubBasedDistance) && (
+                    <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
+                      <div className="flex items-center gap-2 text-sm text-green-800">
+                        <span className="font-semibold">✅ Hub-based distance is active</span>
+                      </div>
+                      <p className="text-xs text-green-700 mt-1">
+                        All delivery fees now include: Hub ({getNumericValue("hubLatitude" as keyof SystemSettings).toFixed(6)}, {getNumericValue("hubLongitude" as keyof SystemSettings).toFixed(6)}) → Vendor → Customer
+                      </p>
+                    </div>
+                  )}
                 </div>
               </div>
             </CardContent>

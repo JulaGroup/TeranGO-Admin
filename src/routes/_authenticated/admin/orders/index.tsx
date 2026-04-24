@@ -6,55 +6,45 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import {
   Search,
-  MoreHorizontal,
   Eye,
   ShoppingCart,
   Clock,
-  CheckCircle2,
+  CheckCircle,
   Truck,
   MapPin,
+  Phone,
   User,
   Store,
-  Banknote,
   RefreshCw,
   XCircle,
   Package,
-  ChevronLeft,
-  ChevronRight,
-  List,
-  LayoutGrid,
+  ChefHat,
+  Filter,
   Inbox,
   Gift,
 } from "lucide-react";
 import { toast } from "sonner";
 import { adminApi } from "@/lib/api";
 import type { Order, Driver } from "@/lib/types";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
-  CardFooter,
 } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -70,9 +60,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { cn } from "@/lib/utils";
-import { Separator } from "@/components/ui/separator";
-import { AxiosError } from "axios";
+
+import type { AxiosError } from "axios";
 
 export const Route = createFileRoute("/_authenticated/admin/orders/")({
   component: OrdersPage,
@@ -116,22 +105,47 @@ const normalizeOrder = (order: RawOrder): Order => {
   } as Order;
 };
 
+const ORDER_STATUSES = [
+  { value: "PENDING", label: "Pending", color: "bg-yellow-500", icon: Clock },
+  { value: "CONFIRMED", label: "Confirmed", color: "bg-blue-500", icon: CheckCircle },
+  { value: "PREPARING", label: "Preparing", color: "bg-purple-500", icon: ChefHat },
+  { value: "READY", label: "Ready", color: "bg-green-500", icon: Package },
+  { value: "IN_TRANSIT", label: "In Transit", color: "bg-indigo-500", icon: Truck },
+  { value: "DELIVERED", label: "Delivered", color: "bg-green-600", icon: CheckCircle },
+  { value: "CANCELLED", label: "Cancelled", color: "bg-red-500", icon: XCircle },
+];
+
+const getStatusBadge = (status: string) => {
+  const statusConfig = ORDER_STATUSES.find(
+    (s) => s.value === status?.toUpperCase(),
+  );
+  const Icon = statusConfig?.icon || Package;
+  return (
+    <Badge
+      className={`${statusConfig?.color || "bg-gray-500"} flex items-center gap-1 text-white`}
+    >
+      <Icon className="h-3 w-3" />
+      {statusConfig?.label || status}
+    </Badge>
+  );
+};
+
 function OrdersPage() {
   const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [viewLayout, setViewLayout] = useState<"grid" | "list">("grid");
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const [isAssignDriverOpen, setIsAssignDriverOpen] = useState(false);
+  const [selectedDriverId, setSelectedDriverId] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
 
-  const { data: ordersResponse, isLoading } = useQuery({
+  const { data: ordersResponse, isLoading, refetch } = useQuery({
     queryKey: ["orders", currentPage, statusFilter, searchQuery],
     queryFn: async () => {
       const response = await adminApi.getOrders({
         page: currentPage,
-        limit: 12, // Adjusted for grid layout
+        limit: 20,
         status: statusFilter === "all" ? undefined : statusFilter,
         search: searchQuery || undefined,
       });
@@ -146,21 +160,22 @@ function OrdersPage() {
 
   const paginationInfo = useMemo(
     () =>
-      ordersResponse?.pagination || { page: 1, limit: 12, total: 0, pages: 0 },
+      ordersResponse?.pagination || { page: 1, limit: 20, total: 0, pages: 0 },
     [ordersResponse?.pagination],
   );
 
   const stats = useMemo(() => {
-    if (ordersResponse?.stats) {
-      return {
-        total: paginationInfo.total,
-        ...ordersResponse.stats,
-      };
-    }
-    return { total: paginationInfo.total };
-  }, [ordersResponse?.stats, paginationInfo.total]);
+    const base = ordersResponse?.stats || {};
+    return {
+      total: paginationInfo.total,
+      pending: base.pending || orders.filter((o) => o.status === "PENDING").length,
+      preparing: base.preparing || orders.filter((o) => ["CONFIRMED", "PREPARING"].includes(o.status)).length,
+      ready: base.ready || orders.filter((o) => o.status === "READY").length,
+      delivered: base.delivered || orders.filter((o) => o.status === "DELIVERED").length,
+    };
+  }, [ordersResponse?.stats, orders, paginationInfo.total]);
 
-  const { data: drivers = [] } = useQuery<Driver[]>({
+  const { data: driversData } = useQuery<Driver[]>({
     queryKey: ["compatible-drivers", selectedOrder?._id],
     queryFn: async () => {
       if (!selectedOrder?._id) return [];
@@ -172,12 +187,15 @@ function OrdersPage() {
     enabled: isAssignDriverOpen,
   });
 
+  const drivers: Driver[] = driversData || [];
+
   const updateStatusMutation = useMutation({
     mutationFn: ({ orderId, status }: { orderId: string; status: string }) =>
       adminApi.updateOrderStatus(orderId, status),
     onSuccess: () => {
       toast.success("Order status updated");
       queryClient.invalidateQueries({ queryKey: ["orders"] });
+      setIsDetailsOpen(false);
     },
     onError: (error: AxiosError<{ message: string }>) => {
       const message =
@@ -200,6 +218,7 @@ function OrdersPage() {
       toast.success("Driver assigned successfully");
       queryClient.invalidateQueries({ queryKey: ["orders"] });
       setIsAssignDriverOpen(false);
+      setSelectedDriverId("");
     },
     onError: (error: AxiosError<{ message: string }>) => {
       const message =
@@ -217,647 +236,584 @@ function OrdersPage() {
 
   const handleAssignDriverClick = (order: Order) => {
     setSelectedOrder(order);
+    setSelectedDriverId(order.driver?.id || "");
     setIsAssignDriverOpen(true);
   };
 
-  if (isLoading && orders.length === 0) {
-    return (
-      <div className="flex h-[60vh] items-center justify-center">
-        <div className="text-center">
-          <div className="border-primary mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-b-2"></div>
-          <p className="text-muted-foreground">Loading orders...</p>
-        </div>
-      </div>
+  const handleDriverAssign = () => {
+    if (selectedOrder && selectedDriverId) {
+      assignDriverMutation.mutate({
+        orderId: selectedOrder._id || selectedOrder.id,
+        driverId: selectedDriverId,
+      });
+    }
+  };
+
+  // Filter orders locally by search
+  const filteredOrders = useMemo(() => {
+    if (!searchQuery) return orders;
+    const q = searchQuery.toLowerCase();
+    return orders.filter(
+      (o) =>
+        o.id?.toLowerCase().includes(q) ||
+        o.user?.name?.toLowerCase().includes(q) ||
+        o.vendor?.shopName?.toLowerCase().includes(q),
     );
-  }
+  }, [orders, searchQuery]);
 
   return (
-    <div className="container mx-auto space-y-6 p-4 md:p-6">
-      <header className="flex flex-col items-start justify-between gap-4 md:flex-row md:items-center">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Orders</h1>
-          <p className="text-muted-foreground">
-            Track and manage all customer orders.
-          </p>
+    <div className="space-y-6 p-4 md:p-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="rounded-lg bg-linear-to-br from-blue-500 to-blue-600 p-3">
+            <ShoppingCart className="h-6 w-6 text-white" />
+          </div>
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">Orders</h1>
+            <p className="text-muted-foreground">
+              Track and manage all customer orders
+            </p>
+          </div>
         </div>
         <Button
-          onClick={() =>
-            queryClient.invalidateQueries({ queryKey: ["orders"] })
-          }
+          onClick={() => refetch()}
           variant="outline"
-          className="flex items-center gap-2"
+          size="sm"
           disabled={isLoading}
         >
-          <RefreshCw className={cn("h-4 w-4", isLoading && "animate-spin")} />
+          <RefreshCw className={`mr-2 h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
           Refresh
         </Button>
-      </header>
-
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <StatCard
-          title="Total Orders"
-          value={stats.total}
-          icon={ShoppingCart}
-          color="bg-blue-500"
-        />
-        <StatCard
-          title="Pending"
-          value={stats.pending || 0}
-          icon={Clock}
-          color="bg-yellow-500"
-        />
-        <StatCard
-          title="In Transit"
-          value={stats.in_transit || 0}
-          icon={Truck}
-          color="bg-purple-500"
-        />
-        <StatCard
-          title="Delivered"
-          value={stats.delivered || 0}
-          icon={CheckCircle2}
-          color="bg-green-500"
-        />
       </div>
 
+      {/* Stats Cards */}
+      <div className="grid gap-4 md:grid-cols-5">
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-muted-foreground text-sm font-medium">
+              Total Orders
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.total}</div>
+          </CardContent>
+        </Card>
+        <Card className="border-yellow-200 bg-yellow-50/50 dark:border-yellow-800 dark:bg-yellow-900/10">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-yellow-700 dark:text-yellow-500">
+              Pending
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-yellow-700 dark:text-yellow-500">
+              {stats.pending}
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-muted-foreground text-sm font-medium">
+              Preparing
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-purple-600">
+              {stats.preparing}
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-muted-foreground text-sm font-medium">
+              Ready
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-blue-600">
+              {stats.ready}
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-muted-foreground text-sm font-medium">
+              Delivered
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-green-600">
+              {stats.delivered}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Filters */}
       <Card>
-        <CardContent className="p-4">
-          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <CardContent className="pt-6">
+          <div className="flex flex-col gap-4 md:flex-row md:items-center">
             <div className="relative flex-1">
-              <Search className="text-muted-foreground absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 transform" />
+              <Search className="text-muted-foreground absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2" />
               <Input
-                placeholder="Search by Order ID, customer, vendor..."
+                placeholder="Search by order ID, customer, vendor..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-10"
               />
             </div>
             <div className="flex items-center gap-2">
+              <Filter className="text-muted-foreground h-4 w-4" />
               <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-full md:w-[200px]">
+                <SelectTrigger className="w-45">
                   <SelectValue placeholder="Filter by status" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Statuses</SelectItem>
-                  <SelectItem value="PENDING">Pending</SelectItem>
-                  <SelectItem value="CONFIRMED">Confirmed</SelectItem>
-                  <SelectItem value="PREPARING">Preparing</SelectItem>
-                  <SelectItem value="READY">Ready</SelectItem>
-                  <SelectItem value="IN_TRANSIT">In Transit</SelectItem>
-                  <SelectItem value="DELIVERED">Delivered</SelectItem>
-                  <SelectItem value="CANCELLED">Cancelled</SelectItem>
+                  <SelectItem value="all">All Orders</SelectItem>
+                  {ORDER_STATUSES.map((s) => (
+                    <SelectItem key={s.value} value={s.value}>
+                      {s.label}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
-              <div className="flex items-center rounded-md bg-gray-100 p-1 dark:bg-gray-800">
-                <Button
-                  variant={viewLayout === "grid" ? "secondary" : "ghost"}
-                  size="sm"
-                  onClick={() => setViewLayout("grid")}
-                >
-                  <LayoutGrid className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant={viewLayout === "list" ? "secondary" : "ghost"}
-                  size="sm"
-                  onClick={() => setViewLayout("list")}
-                >
-                  <List className="h-4 w-4" />
-                </Button>
-              </div>
             </div>
           </div>
         </CardContent>
       </Card>
 
-      {orders.length > 0 ? (
-        <>
-          {viewLayout === "grid" ? (
-            <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-              {orders.map((order: Order) => (
-                <OrderCard
-                  key={order.id}
-                  order={order}
-                  onViewDetails={handleViewDetails}
-                  onAssignDriver={handleAssignDriverClick}
-                  onUpdateStatus={updateStatusMutation.mutate}
-                />
-              ))}
+      {/* Orders Table */}
+      <Card>
+        <CardContent className="pt-6">
+          {isLoading ? (
+            <div className="flex justify-center py-8">
+              <RefreshCw className="text-muted-foreground h-8 w-8 animate-spin" />
             </div>
+          ) : filteredOrders.length > 0 ? (
+            <>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Order</TableHead>
+                    <TableHead>Customer</TableHead>
+                    <TableHead>Vendor</TableHead>
+                    <TableHead>Items</TableHead>
+                    <TableHead>Amount</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Driver</TableHead>
+                    <TableHead>Date</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredOrders.map((order) => (
+                    <TableRow key={order.id}>
+                      <TableCell className="font-medium">
+                        TG{order.id?.slice(-4).toUpperCase()}
+                      </TableCell>
+                      <TableCell>
+                        <div>
+                          <p className="font-medium flex items-center gap-1">
+                            {order.user?.name || "Guest"}
+                            {order.isGiftOrder && (
+                              <span title="Gift order" className="text-base leading-none">
+                                🎁
+                              </span>
+                            )}
+                          </p>
+                          <p className="text-muted-foreground text-xs">
+                            {order.user?.phoneNumber || order.user?.phone}
+                          </p>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        {order.vendor?.shopName || order.vendor?.businessName || "N/A"}
+                      </TableCell>
+                      <TableCell>
+                        {order.items?.length || 0} items
+                      </TableCell>
+                      <TableCell className="font-medium">
+                        D{order.totalAmount?.toFixed(2) || "0.00"}
+                      </TableCell>
+                      <TableCell>{getStatusBadge(order.status)}</TableCell>
+                      <TableCell>
+                        {order.driver ? (
+                          <div className="flex items-center gap-1">
+                            <span className="text-sm">{order.driver.name}</span>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-6 px-1 text-xs text-blue-600 hover:text-blue-800"
+                              onClick={() => handleAssignDriverClick(order)}
+                              title="Change driver"
+                            >
+                              <RefreshCw className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        ) : (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleAssignDriverClick(order)}
+                            disabled={
+                              order.status === "CANCELLED" ||
+                              order.status === "DELIVERED"
+                            }
+                          >
+                            <Truck className="mr-1 h-3 w-3" />
+                            Assign
+                          </Button>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {format(new Date(order.createdAt), "MMM dd, yyyy")}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleViewDetails(order)}
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+
+              {/* Pagination */}
+              {paginationInfo.pages > 1 && (
+                <div className="flex items-center justify-center gap-2 pt-4">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={currentPage === 1}
+                    onClick={() => setCurrentPage((p) => p - 1)}
+                  >
+                    Previous
+                  </Button>
+                  <span className="text-muted-foreground text-sm">
+                    Page {paginationInfo.page} of {paginationInfo.pages}
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={currentPage >= paginationInfo.pages}
+                    onClick={() => setCurrentPage((p) => p + 1)}
+                  >
+                    Next
+                  </Button>
+                </div>
+              )}
+            </>
           ) : (
-            <OrderTable
-              orders={orders}
-              onViewDetails={handleViewDetails}
-              onAssignDriver={handleAssignDriverClick}
-              onUpdateStatus={updateStatusMutation.mutate}
-            />
+            <div className="flex flex-col items-center justify-center py-12 text-center">
+              <Inbox className="h-12 w-12 text-gray-400" />
+              <h3 className="mt-4 text-lg font-semibold">No Orders Found</h3>
+              <p className="text-muted-foreground mt-1">
+                Try adjusting your search or filters.
+              </p>
+            </div>
           )}
-          <Pagination
-            currentPage={paginationInfo.page}
-            totalPages={paginationInfo.pages}
-            onPageChange={setCurrentPage}
-          />
-        </>
-      ) : (
-        <div className="flex h-64 flex-col items-center justify-center rounded-lg border-2 border-dashed bg-gray-50 dark:bg-gray-800/50">
-          <Inbox className="h-12 w-12 text-gray-400" />
-          <h3 className="mt-4 text-lg font-semibold">No Orders Found</h3>
-          <p className="text-muted-foreground mt-1">
-            Try adjusting your search or filters.
-          </p>
-        </div>
-      )}
+        </CardContent>
+      </Card>
 
-      {selectedOrder && (
-        <OrderDetailsDialog
-          isOpen={isDetailsOpen}
-          setIsOpen={setIsDetailsOpen}
-          order={selectedOrder}
-        />
-      )}
+      {/* Order Details Dialog */}
+      <Dialog open={isDetailsOpen} onOpenChange={setIsDetailsOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Order Details</DialogTitle>
+            <DialogDescription>
+              Order TG{selectedOrder?.id?.slice(-4).toUpperCase()}
+            </DialogDescription>
+          </DialogHeader>
 
-      {selectedOrder && (
-        <AssignDriverDialog
-          isOpen={isAssignDriverOpen}
-          setIsOpen={setIsAssignDriverOpen}
-          order={selectedOrder}
-          drivers={drivers}
-          onAssign={assignDriverMutation.mutate}
-          isAssigning={assignDriverMutation.isPending}
-        />
-      )}
+          {selectedOrder && (
+            <div className="space-y-4 max-h-[70vh] overflow-y-auto pr-1">
+              {/* Customer Info */}
+              <div>
+                <h3 className="mb-2 flex items-center gap-2 font-semibold">
+                  <User className="h-4 w-4" />
+                  {selectedOrder.isGiftOrder ? "Ordering Customer" : "Customer Information"}
+                </h3>
+                <div className="space-y-1 rounded-lg border p-3">
+                  <p className="flex items-center gap-2 text-sm">
+                    <span className="text-muted-foreground">Name:</span>
+                    {selectedOrder.user?.name || "N/A"}
+                  </p>
+                  <p className="flex items-center gap-2 text-sm">
+                    <Phone className="h-3 w-3" />
+                    <span className="text-muted-foreground">Phone:</span>
+                    {selectedOrder.user?.phoneNumber || selectedOrder.user?.phone || "N/A"}
+                  </p>
+                </div>
+              </div>
+
+              {/* Vendor Info */}
+              <div>
+                <h3 className="mb-2 flex items-center gap-2 font-semibold">
+                  <Store className="h-4 w-4" />
+                  Vendor
+                </h3>
+                <div className="space-y-1 rounded-lg border p-3">
+                  <p className="flex items-center gap-2 text-sm">
+                    <span className="text-muted-foreground">Name:</span>
+                    {selectedOrder.vendor?.shopName || selectedOrder.vendor?.businessName || "N/A"}
+                  </p>
+                  <p className="flex items-center gap-2 text-sm">
+                    <Phone className="h-3 w-3" />
+                    <span className="text-muted-foreground">Phone:</span>
+                    {selectedOrder.vendor?.phoneNumber || "N/A"}
+                  </p>
+                </div>
+              </div>
+
+              {/* Delivery */}
+              {selectedOrder.deliveryAddress && (
+                <div>
+                  <h3 className="mb-2 flex items-center gap-2 font-semibold">
+                    <MapPin className="h-4 w-4" />
+                    Delivery Address
+                  </h3>
+                  <div className="rounded-lg border p-3 text-sm">
+                    {typeof selectedOrder.deliveryAddress === "string"
+                      ? selectedOrder.deliveryAddress
+                      : selectedOrder.deliveryAddress?.street ?? "No address provided"}
+                  </div>
+                </div>
+              )}
+
+              {/* Gift Recipient */}
+              {selectedOrder.isGiftOrder && (
+                <div className="rounded-lg border border-pink-200 bg-linear-to-r from-pink-50 to-rose-50 p-3">
+                  <h3 className="mb-2 flex items-center gap-2 font-semibold text-pink-800">
+                    <Gift className="h-4 w-4" />
+                    Gift Recipient
+                  </h3>
+                  <div className="space-y-1 text-sm">
+                    {selectedOrder.recipientName && (
+                      <p className="flex items-center gap-2">
+                        <span className="text-muted-foreground w-20">Recipient:</span>
+                        <span className="font-medium">{selectedOrder.recipientName}</span>
+                      </p>
+                    )}
+                    {selectedOrder.recipientPhone && (
+                      <p className="flex items-center gap-2">
+                        <Phone className="h-3 w-3 text-pink-500" />
+                        <span className="text-muted-foreground w-20">Phone:</span>
+                        <span className="font-medium">{selectedOrder.recipientPhone}</span>
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Order Items */}
+              <div>
+                <h3 className="mb-2 flex items-center gap-2 font-semibold">
+                  <Package className="h-4 w-4" />
+                  Order Items
+                </h3>
+                <div className="space-y-2">
+                  {selectedOrder.items?.map((item) => (
+                    <div
+                      key={item.product?._id || item._id}
+                      className="flex items-center justify-between rounded-lg border p-3"
+                    >
+                      <div>
+                        <p className="font-medium">{item.product?.name || "Product"}</p>
+                        <p className="text-muted-foreground text-sm">
+                          Qty: {item.quantity} × D{item.price?.toFixed(2)}
+                        </p>
+                      </div>
+                      <p className="font-medium">
+                        D{(item.price * item.quantity).toFixed(2)}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Order Summary */}
+              <div className="bg-muted rounded-lg border p-3">
+                <div className="mt-2 flex items-center justify-between border-t pt-2">
+                  <span className="font-semibold">Total</span>
+                  <span className="text-lg font-bold">
+                    D{selectedOrder.totalAmount?.toFixed(2)}
+                  </span>
+                </div>
+              </div>
+
+              {/* Order Info */}
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <span className="text-muted-foreground">Status:</span>{" "}
+                  {getStatusBadge(selectedOrder.status)}
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Payment:</span>{" "}
+                  <Badge variant="outline">{selectedOrder.paymentMethod || "N/A"}</Badge>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Created:</span>{" "}
+                  {format(new Date(selectedOrder.createdAt), "PPpp")}
+                </div>
+              </div>
+
+              {/* Assigned Driver */}
+              {selectedOrder.driver && (
+                <div className="rounded-lg border p-4 bg-linear-to-r from-blue-50 to-indigo-50">
+                  <div className="flex items-center justify-between mb-3">
+                    <h4 className="font-semibold text-gray-800 flex items-center gap-2">
+                      <Truck className="h-4 w-4 text-blue-600" />
+                      Assigned Driver
+                    </h4>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="text-xs"
+                      onClick={() => {
+                        setIsDetailsOpen(false);
+                        handleAssignDriverClick(selectedOrder);
+                      }}
+                    >
+                      <RefreshCw className="mr-1 h-3 w-3" />
+                      Change
+                    </Button>
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-full bg-linear-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white font-bold text-lg border-2 border-blue-200 shadow-md">
+                      {selectedOrder.driver.name?.charAt(0)?.toUpperCase()}
+                    </div>
+                    <div className="flex-1 space-y-1 text-sm">
+                      <p className="font-semibold text-gray-800">
+                        {selectedOrder.driver.name}
+                      </p>
+                      <p className="text-gray-600 flex items-center gap-1">
+                        <Phone className="h-3 w-3" />
+                        {selectedOrder.driver.phone || selectedOrder.driver.phoneNumber}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Status Update */}
+              <div>
+                <h3 className="mb-2 font-semibold">Update Status</h3>
+                <div className="flex flex-wrap gap-2">
+                  {ORDER_STATUSES.map((s) => (
+                    <Button
+                      key={s.value}
+                      variant={selectedOrder.status === s.value ? "default" : "outline"}
+                      size="sm"
+                      disabled={
+                        updateStatusMutation.isPending ||
+                        selectedOrder.status === s.value
+                      }
+                      onClick={() =>
+                        updateStatusMutation.mutate({
+                          orderId: selectedOrder._id || selectedOrder.id,
+                          status: s.value,
+                        })
+                      }
+                    >
+                      {s.label}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Assign Driver Dialog */}
+      <Dialog open={isAssignDriverOpen} onOpenChange={setIsAssignDriverOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {selectedOrder?.driver ? "Change Driver" : "Assign Driver"}
+            </DialogTitle>
+            <DialogDescription>
+              {selectedOrder?.driver
+                ? `Currently assigned: ${selectedOrder.driver.name}. Select a different driver.`
+                : `Select a driver for order TG${selectedOrder?.id?.slice(-4).toUpperCase()}`}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Available Drivers</Label>
+              <Select value={selectedDriverId} onValueChange={setSelectedDriverId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a driver" />
+                </SelectTrigger>
+                <SelectContent>
+                  {drivers.map((driver) => {
+                    const driverName =
+                      driver.name ||
+                      driver.user?.fullName ||
+                      driver.user?.name ||
+                      "Unknown";
+                    return (
+                      <SelectItem key={driver.id} value={driver.id || ""} className="py-3">
+                        <div className="flex items-center gap-3">
+                          {driver.profileImageUrl ? (
+                            <img
+                              src={driver.profileImageUrl}
+                              alt={driverName}
+                              className="w-8 h-8 rounded-full object-cover border border-gray-200"
+                            />
+                          ) : (
+                            <div className="w-8 h-8 rounded-full bg-linear-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white font-medium text-sm">
+                              {driverName.charAt(0).toUpperCase()}
+                            </div>
+                          )}
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <span className="font-medium">{driverName}</span>
+                              {driver.vehicleType && (
+                                <span className="text-xs bg-gray-100 px-2 py-0.5 rounded">
+                                  {driver.vehicleType === "BIKE" && "🏍️ Bike"}
+                                  {driver.vehicleType === "KEKE_CARGO" && "🛺 Keke"}
+                                  {driver.vehicleType === "CAR" && "🚗 Car"}
+                                  {driver.vehicleType === "VAN" && "🚐 Van"}
+                                  {driver.vehicleType === "LORRY" && "🚛 Lorry"}
+                                </span>
+                              )}
+                              {driver.isAvailable && (
+                                <span className="w-2 h-2 bg-green-400 rounded-full" title="Available" />
+                              )}
+                            </div>
+                            <div className="text-xs text-gray-500">
+                              {driver.user?.phone || driver.user?.phoneNumber || driver.phoneNumber}
+                            </div>
+                          </div>
+                        </div>
+                      </SelectItem>
+                    );
+                  })}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsAssignDriverOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleDriverAssign}
+              disabled={!selectedDriverId || assignDriverMutation.isPending}
+            >
+              {assignDriverMutation.isPending ? "Assigning..." : "Assign Driver"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
 
-// Sub-components
-const StatCard = ({
-  title,
-  value,
-  icon: Icon,
-  color,
-}: {
-  title: string;
-  value: string;
-  icon: any;
-  color: string;
-}) => (
-  <Card>
-    <CardContent className="p-4">
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="text-sm font-medium text-muted-foreground">{title}</p>
-          <p className="text-2xl font-bold">{value}</p>
-        </div>
-        <div className={`rounded-full p-3 ${color}`}>
-          <Icon className="h-6 w-6 text-white" />
-        </div>
-      </div>
-    </CardContent>
-  </Card>
-);
-
-const getStatusConfig = (status: string) => {
-  const configs = {
-    pending: { icon: Clock, color: "text-yellow-600", bg: "bg-yellow-100" },
-    confirmed: {
-      icon: CheckCircle2,
-      color: "text-blue-600",
-      bg: "bg-blue-100",
-    },
-    preparing: { icon: Store, color: "text-orange-600", bg: "bg-orange-100" },
-    ready: { icon: Package, color: "text-purple-600", bg: "bg-purple-100" },
-    in_transit: { icon: Truck, color: "text-indigo-600", bg: "bg-indigo-100" },
-    delivered: {
-      icon: CheckCircle2,
-      color: "text-green-600",
-      bg: "bg-green-100",
-    },
-    cancelled: { icon: XCircle, color: "text-red-600", bg: "bg-red-100" },
-  };
-
-  const s = (status?.toLowerCase() || "pending") as keyof typeof configs;
-
-  return configs[s] || configs.pending;
-};
-const StatusBadge = ({ status }: { status: string }) => {
-  const config = getStatusConfig(status);
-  const Icon = config.icon;
-  return (
-    <Badge className={cn("flex items-center gap-1.5", config.bg, config.color)}>
-      <Icon className="h-3 w-3" />
-      {status.replace("_", " ")}
-    </Badge>
-  );
-};
-
-const OrderCard = ({
-  order,
-  onViewDetails,
-  onAssignDriver,
-  onUpdateStatus,
-}: {
-  order: Order;
-  onViewDetails: (order: Order) => void;
-  onAssignDriver: (order: Order) => void;
-  onUpdateStatus: (orderId: string, status: string) => void;
-}) => (
-  <Card className="flex flex-col justify-between transition-all hover:shadow-lg">
-    <CardHeader>
-      <div className="flex items-start justify-between">
-        <div>
-          <CardTitle className="text-base">
-            ID: TG{order.id?.slice(-4).toUpperCase()}
-          </CardTitle>
-          <CardDescription>
-            {format(new Date(order.createdAt), "MMM dd, yyyy, HH:mm")}
-          </CardDescription>
-        </div>
-        <StatusBadge status={order.status} />
-      </div>
-    </CardHeader>
-    <CardContent className="space-y-3 text-sm">
-      <div className="flex items-center gap-2">
-        <Avatar className="h-8 w-8">
-          <AvatarFallback>{order.user?.name?.charAt(0) || "U"}</AvatarFallback>
-        </Avatar>
-        <div>
-          <p className="font-medium">{order.user?.name || "Guest"}</p>
-          <p className="text-xs text-muted-foreground">
-            {order.user?.phoneNumber}
-          </p>
-        </div>
-      </div>
-      <div className="flex items-center gap-2">
-        <Store className="h-4 w-4 text-muted-foreground" />
-        <span>{order.vendor?.shopName || "Unknown Vendor"}</span>
-      </div>
-      <div className="flex items-center gap-2">
-        <Banknote className="h-4 w-4 text-muted-foreground" />
-        <span className="font-semibold">
-          D{order.totalAmount?.toFixed(2) || "0.00"}
-        </span>
-      </div>
-    </CardContent>
-    <CardFooter className="flex justify-between">
-      <p className="text-xs text-muted-foreground">
-        {order.items?.length || 0} items
-      </p>
-      <div className="flex items-center gap-2">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => onViewDetails(order)}
-        >
-          <Eye className="mr-2 h-4 w-4" />
-          Details
-        </Button>
-        <OrderActions
-          order={order}
-          onAssignDriver={onAssignDriver}
-          onUpdateStatus={onUpdateStatus}
-        />
-      </div>
-    </CardFooter>
-  </Card>
-);
-
-const OrderTable = ({
-  orders,
-  onViewDetails,
-  onAssignDriver,
-  onUpdateStatus,
-}: {
-  orders: Order[];
-  onViewDetails: (order: Order) => void;
-  onAssignDriver: (order: Order) => void;
-  onUpdateStatus: (orderId: string, status: string) => void;
-}) => (
-  <Card>
-    <Table>
-      <TableHeader>
-        <TableRow>
-          <TableHead>Order</TableHead>
-          <TableHead>Customer</TableHead>
-          <TableHead>Vendor</TableHead>
-          <TableHead>Amount</TableHead>
-          <TableHead>Status</TableHead>
-          <TableHead>Driver</TableHead>
-          <TableHead className="text-right">Actions</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {orders.map((order) => (
-          <TableRow key={order.id}>
-            <TableCell>
-              <div className="font-medium">
-                TG{order.id?.slice(-4).toUpperCase()}
-              </div>
-              <div className="text-xs text-muted-foreground">
-                {format(new Date(order.createdAt), "PP")}
-              </div>
-            </TableCell>
-            <TableCell>{order.user?.name || "Guest"}</TableCell>
-            <TableCell>{order.vendor?.shopName || "Unknown"}</TableCell>
-            <TableCell>D{order.totalAmount?.toFixed(2)}</TableCell>
-            <TableCell>
-              <StatusBadge status={order.status} />
-            </TableCell>
-            <TableCell>{order.driver?.name || "Unassigned"}</TableCell>
-            <TableCell className="text-right">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => onViewDetails(order)}
-              >
-                <Eye className="h-4 w-4" />
-              </Button>
-              <OrderActions
-                order={order}
-                onAssignDriver={onAssignDriver}
-                onUpdateStatus={onUpdateStatus}
-              />
-            </TableCell>
-          </TableRow>
-        ))}
-      </TableBody>
-    </Table>
-  </Card>
-);
-
-const OrderActions = ({
-  order,
-  onAssignDriver,
-  onUpdateStatus,
-}: {
-  order: Order;
-  onAssignDriver: (order: Order) => void;
-  onUpdateStatus: (orderId: string, status: string) => void;
-}) => {
-  const status = order.status?.toLowerCase();
-  const items = [];
-
-  if (status === "pending") {
-    items.push({ label: "Confirm", status: "CONFIRMED", icon: CheckCircle2 });
-  }
-  if (status === "confirmed") {
-    items.push({ label: "Prepare", status: "PREPARING", icon: Store });
-  }
-  if (status === "preparing") {
-    items.push({ label: "Ready", status: "READY", icon: Package });
-  }
-  if (status === "ready" && !order.driver) {
-    items.push({
-      label: "Assign Driver",
-      action: () => onAssignDriver(order),
-      icon: Truck,
-    });
-  }
-  if (status === "ready" && order.driver) {
-    items.push({ label: "Dispatch", status: "IN_TRANSIT", icon: Truck });
-  }
-  if (status !== "delivered" && status !== "cancelled") {
-    items.push({ label: "Deliver", status: "DELIVERED", icon: CheckCircle2 });
-  }
-  if (status !== "cancelled" && status !== "delivered") {
-    items.push({
-      label: "Cancel",
-      status: "CANCELLED",
-      icon: XCircle,
-      isDestructive: true,
-    });
-  }
-
-  return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon">
-          <MoreHorizontal className="h-4 w-4" />
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end">
-        <DropdownMenuLabel>Actions</DropdownMenuLabel>
-        <DropdownMenuSeparator />
-        {items.map((item) => (
-          <DropdownMenuItem
-            key={item.label}
-            onClick={() =>
-              item.action
-                ? item.action()
-                : onUpdateStatus({ orderId: order.id, status: item.status })
-            }
-            className={cn(item.isDestructive && "text-red-500")}
-          >
-            <item.icon className="mr-2 h-4 w-4" />
-            {item.label}
-          </DropdownMenuItem>
-        ))}
-      </DropdownMenuContent>
-    </DropdownMenu>
-  );
-};
-
-const Pagination = ({
-  currentPage,
-  totalPages,
-  onPageChange,
-}: {
-  currentPage: number;
-  totalPages: number;
-  onPageChange: (page: number) => void;
-}) => (
-  <div className="flex items-center justify-center gap-2">
-    <Button
-      onClick={() => onPageChange(currentPage - 1)}
-      disabled={currentPage === 1}
-      variant="outline"
-      size="sm"
-    >
-      <ChevronLeft className="h-4 w-4" />
-    </Button>
-    <span className="text-sm text-muted-foreground">
-      Page {currentPage} of {totalPages}
-    </span>
-    <Button
-      onClick={() => onPageChange(currentPage + 1)}
-      disabled={currentPage === totalPages}
-      variant="outline"
-      size="sm"
-    >
-      <ChevronRight className="h-4 w-4" />
-    </Button>
-  </div>
-);
-
-const OrderDetailsDialog = ({
-  isOpen,
-  setIsOpen,
-  order,
-}: {
-  isOpen: boolean;
-  setIsOpen: (isOpen: boolean) => void;
-  order: Order;
-}) => (
-  <Dialog open={isOpen} onOpenChange={setIsOpen}>
-    <DialogContent className="max-w-2xl">
-      <DialogHeader>
-        <DialogTitle className="text-xl">
-          Order TG{order.id?.slice(-4).toUpperCase()}
-        </DialogTitle>
-        <div className="flex items-center justify-between pt-2">
-          <StatusBadge status={order.status} />
-          <p className="text-sm text-muted-foreground">
-            {format(new Date(order.createdAt), "PPpp")}
-          </p>
-        </div>
-      </DialogHeader>
-      <div className="grid gap-6 py-4">
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-          <InfoCard
-            icon={User}
-            title="Customer"
-            data={[
-              { label: "Name", value: order.user?.name || "N/A" },
-              { label: "Phone", value: order.user?.phoneNumber || "N/A" },
-            ]}
-          />
-          <InfoCard
-            icon={Store}
-            title="Vendor"
-            data={[
-              {
-                label: "Name",
-                value:
-                  order.vendor?.shopName || order.vendor?.businessName || "N/A",
-              },
-              { label: "Phone", value: order.vendor?.phoneNumber || "N/A" },
-            ]}
-          />
-        </div>
-        {order.isGiftOrder && (
-          <InfoCard
-            icon={Gift}
-            title="Gift Recipient"
-            data={[
-              { label: "Name", value: order.recipientName || "N/A" },
-              { label: "Phone", value: order.recipientPhone || "N/A" },
-            ]}
-          />
-        )}
-        <InfoCard
-          icon={MapPin}
-          title="Delivery"
-          data={[
-            {
-              label: "Address",
-              value:
-                typeof order.deliveryAddress === "string"
-                  ? order.deliveryAddress
-                  : (order.deliveryAddress?.street ?? "No address provided"),
-            },
-            { label: "Driver", value: order.driver?.name || "Unassigned" },
-          ]}
-        />
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Order Items</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {order.items?.map((item) => (
-              <div key={item.product?._id} className="flex justify-between">
-                <p>
-                  {item.quantity} x {item.product?.name}
-                </p>
-                <p>D{(item.price * item.quantity).toFixed(2)}</p>
-              </div>
-            ))}
-            <Separator className="my-2" />
-            <div className="flex justify-between font-bold">
-              <p>Total</p>
-              <p>D{order.totalAmount?.toFixed(2)}</p>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    </DialogContent>
-  </Dialog>
-);
-
-const AssignDriverDialog = ({
-  isOpen,
-  setIsOpen,
-  order,
-  drivers,
-  onAssign,
-  isAssigning,
-}: {
-  isOpen: boolean;
-  setIsOpen: (isOpen: boolean) => void;
-  order: Order;
-  drivers: Driver[];
-  onAssign: (data: { orderId: string; driverId: string }) => void;
-  isAssigning: boolean;
-}) => {
-  const [selectedDriverId, setSelectedDriverId] = useState(
-    order.driver?.id || "",
-  );
-  return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Assign Driver</DialogTitle>
-        </DialogHeader>
-        <div className="py-4">
-          <p>
-            Select a driver for order{" "}
-            <strong>TG{order.id?.slice(-4).toUpperCase()}</strong>.
-          </p>
-          <Select value={selectedDriverId} onValueChange={setSelectedDriverId}>
-            <SelectTrigger className="mt-4">
-              <SelectValue placeholder="Select a driver" />
-            </SelectTrigger>
-            <SelectContent>
-              {drivers.map((driver) => (
-                <SelectItem key={driver.id} value={driver.id || ""}>
-                  {driver.name} ({driver.vehicleType})
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-        <Button
-          onClick={() =>
-            onAssign({ orderId: order.id, driverId: selectedDriverId } as any)
-          }
-          disabled={!selectedDriverId || isAssigning}
-        >
-          {isAssigning ? "Assigning..." : "Assign Driver"}
-        </Button>
-      </DialogContent>
-    </Dialog>
-  );
-};
-
-const InfoCard = ({
-  icon: Icon,
-  title,
-  data,
-}: {
-  icon: any;
-  title: string;
-  data: { label: string; value: string }[];
-}) => (
-  <Card>
-    <CardHeader className="flex-row items-center gap-2 space-y-0 pb-2">
-      <Icon className="h-4 w-4 text-muted-foreground" />
-      <CardTitle className="text-base">{title}</CardTitle>
-    </CardHeader>
-    <CardContent className="space-y-1 text-sm">
-      {data.map((item) => (
-        <div key={item.label} className="flex justify-between">
-          <p className="text-muted-foreground">{item.label}</p>
-          <p className="font-medium">{item.value || "N/A"}</p>
-        </div>
-      ))}
-    </CardContent>
-  </Card>
-);

@@ -147,7 +147,19 @@ interface ShopProductFormState {
   isAvailable: boolean;
 }
 
-const MEAL_TIMES = ["BREAKFAST", "LUNCH", "DINNER", "SNACK"];
+const MEAL_TIMES = [
+  "APPETIZERS",
+  "SOUPS",
+  "SALADS",
+  "STARTER",
+  "MAIN_COURSE",
+  "BREAKFAST",
+  "LUNCH",
+  "DINNER",
+  "SIDES",
+  "DESSERTS",
+  "BEVERAGES",
+];
 
 function VendorMenu() {
   const queryClient = useQueryClient();
@@ -653,540 +665,562 @@ function VendorMenu() {
   return (
     <div className="flex-1 p-6 md:p-8 bg-zinc-50 dark:bg-zinc-950 min-h-screen">
       <div className="max-w-7xl mx-auto space-y-8">
-      {viewSwitcher}
-      {/* Header */}
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <div className="space-y-1">
-          <h1 className="text-3xl font-bold tracking-tight text-zinc-950 dark:text-zinc-50">Menu Management</h1>
-          <p className="text-zinc-500 dark:text-zinc-400 mt-1 text-sm">
-            Control the catalog of published items for{" "}
-            <span className="font-medium text-orange-600 dark:text-orange-500">
-              {restaurant.name}
-            </span>
-          </p>
-        </div>
-        <div className="flex items-center gap-3">
-          <Button onClick={() => refetch()} variant="outline" className="shadow-sm border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-zinc-600 dark:text-zinc-400" size="sm">
-            <RefreshCw className="mr-2 h-4 w-4" />
-            Refresh List
-          </Button>
-          <Button onClick={() => setModalOpen(true)} size="sm" className="bg-zinc-900 hover:bg-zinc-800 text-white dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-200 shadow-sm">
-            <Plus className="mr-2 h-4 w-4 text-orange-500" />
-            Add Menu Item
-          </Button>
-        </div>
-      </div>
-
-      {/* Search */}
-      <Card className="rounded-2xl border-zinc-200 dark:border-zinc-800 shadow-sm overflow-hidden bg-white dark:bg-zinc-900">
-        <CardContent className="p-6">
-          <div className="relative">
-            <Search className="text-muted-foreground absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2" />
-            <Input
-              placeholder="Search menu items by name..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10"
-            />
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Menu Items Grid */}
-      {isLoading ? (
-        <div className="flex min-h-[300px] items-center justify-center">
-          <RefreshCw className="text-muted-foreground h-8 w-8 animate-spin" />
-        </div>
-      ) : filteredItems && filteredItems.length > 0 ? (
-        <div className="grid gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-          {filteredItems.map((item) => (
-            <Card
-              key={item.id}
-              className="group overflow-hidden transition-shadow hover:shadow-lg"
-            >
-              <CardContent className="p-0">
-                {/* Image Section */}
-                <div className="bg-muted relative aspect-video overflow-hidden">
-                  {item.imageUrl ? (
-                    <img
-                      src={item.imageUrl}
-                      alt={item.name}
-                      className="h-full w-full object-cover transition-transform group-hover:scale-105"
-                    />
-                  ) : (
-                    <div className="flex h-full items-center justify-center">
-                      <ImageIcon className="text-muted-foreground h-12 w-12" />
-                    </div>
-                  )}
-                  {!item.isAvailable && (
-                    <Badge
-                      className="absolute right-2 top-2"
-                      variant="secondary"
-                    >
-                      Unavailable
-                    </Badge>
-                  )}
-                  {item.isAvailable && (
-                    <Badge className="absolute right-2 top-2 bg-green-600 hover:bg-green-700">
-                      Available
-                    </Badge>
-                  )}
-                </div>
-
-                {/* Content Section */}
-                <div className="space-y-4 p-5">
-                  {/* Title and Price */}
-                  <div className="space-y-2">
-                    <div className="flex items-start justify-between gap-2">
-                      <h3 className="line-clamp-1 font-semibold leading-tight">
-                        {item.name}
-                      </h3>
-                      {item.mealTime && (
-                        <Badge variant="outline" className="shrink-0 text-xs">
-                          {item.mealTime}
-                        </Badge>
-                      )}
-                    </div>
-                    {item.description && (
-                      <p className="text-muted-foreground line-clamp-2 text-sm">
-                        {item.description}
-                      </p>
-                    )}
-                  </div>
-
-                  {/* Price and Details */}
-                  <div className="flex items-end justify-between">
-                    <div>
-                      <div className="flex items-baseline gap-2">
-                        <span className="text-2xl font-bold">
-                          D{item.price.toFixed(2)}
-                        </span>
-                        {item.discountedPrice && (
-                          <span className="text-muted-foreground text-sm line-through">
-                            D{item.discountedPrice.toFixed(2)}
-                          </span>
-                        )}
-                      </div>
-                      {item.preparationTime && (
-                        <p className="text-muted-foreground mt-1 text-xs">
-                          Prep time: {item.preparationTime} min
-                        </p>
-                      )}
-                    </div>
-                  </div>
-
-                  <Separator />
-
-                  {/* Actions */}
-                  <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleEdit(item)}
-                      className="flex-1"
-                    >
-                      <Edit className="mr-2 h-3.5 w-3.5" />
-                      Edit
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleDelete(item.id)}
-                      className="flex-1 text-destructive hover:bg-destructive hover:text-destructive-foreground"
-                    >
-                      <Trash2 className="mr-2 h-3.5 w-3.5" />
-                      Delete
-                    </Button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      ) : (
-        <Card className="border-dashed">
-          <CardContent className="flex min-h-[300px] flex-col items-center justify-center p-8 text-center">
-            <div className="bg-muted mb-4 rounded-full p-4">
-              <Search className="text-muted-foreground h-8 w-8" />
-            </div>
-            <h3 className="mb-2 text-lg font-semibold">No menu items found</h3>
-            <p className="text-muted-foreground mb-4 max-w-sm text-sm">
-              {searchQuery
-                ? "Try adjusting your search terms"
-                : "Get started by adding your first menu item"}
+        {viewSwitcher}
+        {/* Header */}
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <div className="space-y-1">
+            <h1 className="text-3xl font-bold tracking-tight text-zinc-950 dark:text-zinc-50">
+              Menu Management
+            </h1>
+            <p className="text-zinc-500 dark:text-zinc-400 mt-1 text-sm">
+              Control the catalog of published items for{" "}
+              <span className="font-medium text-orange-600 dark:text-orange-500">
+                {restaurant.name}
+              </span>
             </p>
-            {!searchQuery && (
-              <Button onClick={() => setModalOpen(true)} size="sm">
-                <Plus className="mr-2 h-4 w-4" />
-                Add Menu Item
-              </Button>
-            )}
+          </div>
+          <div className="flex items-center gap-3">
+            <Button
+              onClick={() => refetch()}
+              variant="outline"
+              className="shadow-sm border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-zinc-600 dark:text-zinc-400"
+              size="sm"
+            >
+              <RefreshCw className="mr-2 h-4 w-4" />
+              Refresh List
+            </Button>
+            <Button
+              onClick={() => setModalOpen(true)}
+              size="sm"
+              className="bg-zinc-900 hover:bg-zinc-800 text-white dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-200 shadow-sm"
+            >
+              <Plus className="mr-2 h-4 w-4 text-orange-500" />
+              Add Menu Item
+            </Button>
+          </div>
+        </div>
+
+        {/* Search */}
+        <Card className="rounded-2xl border-zinc-200 dark:border-zinc-800 shadow-sm overflow-hidden bg-white dark:bg-zinc-900">
+          <CardContent className="p-6">
+            <div className="relative">
+              <Search className="text-muted-foreground absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2" />
+              <Input
+                placeholder="Search menu items by name..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10"
+              />
+            </div>
           </CardContent>
         </Card>
-      )}
 
-      {/* Add/Edit Dialog */}
-      <Dialog open={modalOpen} onOpenChange={setModalOpen}>
-        <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="text-2xl">
-              {editMode ? "Edit Menu Item" : "Add New Menu Item"}
-            </DialogTitle>
-            <DialogDescription>
-              {editMode
-                ? "Update the details of your menu item below"
-                : "Fill in the details to add a new item to your menu"}
-            </DialogDescription>
-          </DialogHeader>
+        {/* Menu Items Grid */}
+        {isLoading ? (
+          <div className="flex min-h-[300px] items-center justify-center">
+            <RefreshCw className="text-muted-foreground h-8 w-8 animate-spin" />
+          </div>
+        ) : filteredItems && filteredItems.length > 0 ? (
+          <div className="grid gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+            {filteredItems.map((item) => (
+              <Card
+                key={item.id}
+                className="group overflow-hidden transition-shadow hover:shadow-lg"
+              >
+                <CardContent className="p-0">
+                  {/* Image Section */}
+                  <div className="bg-muted relative aspect-video overflow-hidden">
+                    {item.imageUrl ? (
+                      <img
+                        src={item.imageUrl}
+                        alt={item.name}
+                        className="h-full w-full object-cover transition-transform group-hover:scale-105"
+                      />
+                    ) : (
+                      <div className="flex h-full items-center justify-center">
+                        <ImageIcon className="text-muted-foreground h-12 w-12" />
+                      </div>
+                    )}
+                    {!item.isAvailable && (
+                      <Badge
+                        className="absolute right-2 top-2"
+                        variant="secondary"
+                      >
+                        Unavailable
+                      </Badge>
+                    )}
+                    {item.isAvailable && (
+                      <Badge className="absolute right-2 top-2 bg-green-600 hover:bg-green-700">
+                        Available
+                      </Badge>
+                    )}
+                  </div>
 
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Image Upload */}
-            <div className="space-y-3">
-              <Label className="text-base">Item Image</Label>
-              {imagePreview ? (
-                <div className="relative">
-                  <img
-                    src={imagePreview}
-                    alt="Preview"
-                    className="h-48 w-full rounded-lg object-cover"
-                  />
-                  {imageUploading && (
-                    <div className="absolute inset-0 flex items-center justify-center rounded-lg bg-black/50">
-                      <div className="text-center">
-                        <RefreshCw className="mx-auto h-8 w-8 animate-spin text-white" />
-                        <p className="mt-2 text-sm font-medium text-white">
-                          Uploading to Cloudinary...
+                  {/* Content Section */}
+                  <div className="space-y-4 p-5">
+                    {/* Title and Price */}
+                    <div className="space-y-2">
+                      <div className="flex items-start justify-between gap-2">
+                        <h3 className="line-clamp-1 font-semibold leading-tight">
+                          {item.name}
+                        </h3>
+                        {item.mealTime && (
+                          <Badge variant="outline" className="shrink-0 text-xs">
+                            {item.mealTime}
+                          </Badge>
+                        )}
+                      </div>
+                      {item.description && (
+                        <p className="text-muted-foreground line-clamp-2 text-sm">
+                          {item.description}
                         </p>
+                      )}
+                    </div>
+
+                    {/* Price and Details */}
+                    <div className="flex items-end justify-between">
+                      <div>
+                        <div className="flex items-baseline gap-2">
+                          <span className="text-2xl font-bold">
+                            D{item.price.toFixed(2)}
+                          </span>
+                          {item.discountedPrice && (
+                            <span className="text-muted-foreground text-sm line-through">
+                              D{item.discountedPrice.toFixed(2)}
+                            </span>
+                          )}
+                        </div>
+                        {item.preparationTime && (
+                          <p className="text-muted-foreground mt-1 text-xs">
+                            Prep time: {item.preparationTime} min
+                          </p>
+                        )}
                       </div>
                     </div>
-                  )}
-                  {!imageUploading && (
-                    <Button
-                      type="button"
-                      variant="destructive"
-                      size="sm"
-                      className="absolute right-2 top-2"
-                      onClick={handleRemoveImage}
-                    >
-                      <X className="mr-1 h-3.5 w-3.5" />
-                      Remove
-                    </Button>
-                  )}
-                </div>
-              ) : (
-                <div className="border-muted-foreground/25 hover:border-muted-foreground/50 flex h-48 cursor-pointer items-center justify-center rounded-lg border-2 border-dashed transition-colors">
-                  <label
-                    htmlFor="image-upload"
-                    className="flex cursor-pointer flex-col items-center gap-2"
-                  >
-                    {imageUploading ? (
-                      <>
-                        <RefreshCw className="text-primary h-10 w-10 animate-spin" />
-                        <span className="text-primary text-sm font-medium">
-                          Uploading to Cloudinary...
-                        </span>
-                      </>
-                    ) : (
-                      <>
-                        <ImageIcon className="text-muted-foreground h-10 w-10" />
-                        <span className="text-muted-foreground text-sm">
-                          Click to upload image
-                        </span>
-                        <span className="text-muted-foreground text-xs">
-                          JPG, PNG up to 5MB
-                        </span>
-                      </>
-                    )}
-                    <Input
-                      id="image-upload"
-                      type="file"
-                      accept="image/*"
-                      onChange={handleImageChange}
-                      className="hidden"
-                      disabled={imageUploading}
+
+                    <Separator />
+
+                    {/* Actions */}
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleEdit(item)}
+                        className="flex-1"
+                      >
+                        <Edit className="mr-2 h-3.5 w-3.5" />
+                        Edit
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleDelete(item.id)}
+                        className="flex-1 text-destructive hover:bg-destructive hover:text-destructive-foreground"
+                      >
+                        <Trash2 className="mr-2 h-3.5 w-3.5" />
+                        Delete
+                      </Button>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        ) : (
+          <Card className="border-dashed">
+            <CardContent className="flex min-h-[300px] flex-col items-center justify-center p-8 text-center">
+              <div className="bg-muted mb-4 rounded-full p-4">
+                <Search className="text-muted-foreground h-8 w-8" />
+              </div>
+              <h3 className="mb-2 text-lg font-semibold">
+                No menu items found
+              </h3>
+              <p className="text-muted-foreground mb-4 max-w-sm text-sm">
+                {searchQuery
+                  ? "Try adjusting your search terms"
+                  : "Get started by adding your first menu item"}
+              </p>
+              {!searchQuery && (
+                <Button onClick={() => setModalOpen(true)} size="sm">
+                  <Plus className="mr-2 h-4 w-4" />
+                  Add Menu Item
+                </Button>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Add/Edit Dialog */}
+        <Dialog open={modalOpen} onOpenChange={setModalOpen}>
+          <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="text-2xl">
+                {editMode ? "Edit Menu Item" : "Add New Menu Item"}
+              </DialogTitle>
+              <DialogDescription>
+                {editMode
+                  ? "Update the details of your menu item below"
+                  : "Fill in the details to add a new item to your menu"}
+              </DialogDescription>
+            </DialogHeader>
+
+            <form onSubmit={handleSubmit} className="space-y-6">
+              {/* Image Upload */}
+              <div className="space-y-3">
+                <Label className="text-base">Item Image</Label>
+                {imagePreview ? (
+                  <div className="relative">
+                    <img
+                      src={imagePreview}
+                      alt="Preview"
+                      className="h-48 w-full rounded-lg object-cover"
                     />
-                  </label>
-                </div>
-              )}
-            </div>
+                    {imageUploading && (
+                      <div className="absolute inset-0 flex items-center justify-center rounded-lg bg-black/50">
+                        <div className="text-center">
+                          <RefreshCw className="mx-auto h-8 w-8 animate-spin text-white" />
+                          <p className="mt-2 text-sm font-medium text-white">
+                            Uploading to Cloudinary...
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                    {!imageUploading && (
+                      <Button
+                        type="button"
+                        variant="destructive"
+                        size="sm"
+                        className="absolute right-2 top-2"
+                        onClick={handleRemoveImage}
+                      >
+                        <X className="mr-1 h-3.5 w-3.5" />
+                        Remove
+                      </Button>
+                    )}
+                  </div>
+                ) : (
+                  <div className="border-muted-foreground/25 hover:border-muted-foreground/50 flex h-48 cursor-pointer items-center justify-center rounded-lg border-2 border-dashed transition-colors">
+                    <label
+                      htmlFor="image-upload"
+                      className="flex cursor-pointer flex-col items-center gap-2"
+                    >
+                      {imageUploading ? (
+                        <>
+                          <RefreshCw className="text-primary h-10 w-10 animate-spin" />
+                          <span className="text-primary text-sm font-medium">
+                            Uploading to Cloudinary...
+                          </span>
+                        </>
+                      ) : (
+                        <>
+                          <ImageIcon className="text-muted-foreground h-10 w-10" />
+                          <span className="text-muted-foreground text-sm">
+                            Click to upload image
+                          </span>
+                          <span className="text-muted-foreground text-xs">
+                            JPG, PNG up to 5MB
+                          </span>
+                        </>
+                      )}
+                      <Input
+                        id="image-upload"
+                        type="file"
+                        accept="image/*"
+                        onChange={handleImageChange}
+                        className="hidden"
+                        disabled={imageUploading}
+                      />
+                    </label>
+                  </div>
+                )}
+              </div>
 
-            <Separator />
+              <Separator />
 
-            {/* Name */}
-            <div className="space-y-2">
-              <Label htmlFor="name" className="text-sm font-medium">
-                Item Name <span className="text-destructive">*</span>
-              </Label>
-              <Input
-                id="name"
-                placeholder="e.g., Chicken Yassa"
-                value={formData.name}
-                onChange={(e) => handleFieldChange("name", e.target.value)}
-                onBlur={() => handleFieldBlur("name")}
-                required
-                maxLength={100}
-                className={
-                  formErrors.name && touchedFields.name
-                    ? "border-destructive"
-                    : ""
-                }
-              />
-              {formErrors.name && touchedFields.name && (
-                <p className="text-destructive text-sm">{formErrors.name}</p>
-              )}
-            </div>
-
-            {/* Description */}
-            <div className="space-y-2">
-              <Label htmlFor="description" className="text-sm font-medium">
-                Description
-              </Label>
-              <Textarea
-                id="description"
-                placeholder="Describe your dish..."
-                value={formData.description}
-                onChange={(e) =>
-                  setFormData({ ...formData, description: e.target.value })
-                }
-                rows={3}
-                className="resize-none"
-              />
-            </div>
-
-            {/* Price */}
-            <div className="grid gap-4 sm:grid-cols-2">
+              {/* Name */}
               <div className="space-y-2">
-                <Label htmlFor="price" className="text-sm font-medium">
-                  Price (D) <span className="text-destructive">*</span>
+                <Label htmlFor="name" className="text-sm font-medium">
+                  Item Name <span className="text-destructive">*</span>
                 </Label>
                 <Input
-                  id="price"
+                  id="name"
+                  placeholder="e.g., Chicken Yassa"
+                  value={formData.name}
+                  onChange={(e) => handleFieldChange("name", e.target.value)}
+                  onBlur={() => handleFieldBlur("name")}
+                  required
+                  maxLength={100}
+                  className={
+                    formErrors.name && touchedFields.name
+                      ? "border-destructive"
+                      : ""
+                  }
+                />
+                {formErrors.name && touchedFields.name && (
+                  <p className="text-destructive text-sm">{formErrors.name}</p>
+                )}
+              </div>
+
+              {/* Description */}
+              <div className="space-y-2">
+                <Label htmlFor="description" className="text-sm font-medium">
+                  Description
+                </Label>
+                <Textarea
+                  id="description"
+                  placeholder="Describe your dish..."
+                  value={formData.description}
+                  onChange={(e) =>
+                    setFormData({ ...formData, description: e.target.value })
+                  }
+                  rows={3}
+                  className="resize-none"
+                />
+              </div>
+
+              {/* Price */}
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="price" className="text-sm font-medium">
+                    Price (D) <span className="text-destructive">*</span>
+                  </Label>
+                  <Input
+                    id="price"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    max="999999"
+                    placeholder="0.00"
+                    value={formData.price}
+                    onChange={(e) => handleFieldChange("price", e.target.value)}
+                    onBlur={() => handleFieldBlur("price")}
+                    required
+                    className={
+                      formErrors.price && touchedFields.price
+                        ? "border-destructive"
+                        : ""
+                    }
+                  />
+                  {formErrors.price && touchedFields.price && (
+                    <p className="text-destructive text-sm">
+                      {formErrors.price}
+                    </p>
+                  )}
+                </div>
+                <div className="space-y-2">
+                  <Label
+                    htmlFor="preparationTime"
+                    className="text-sm font-medium"
+                  >
+                    Preparation Time (minutes){" "}
+                    <span className="text-destructive">*</span>
+                  </Label>
+                  <Input
+                    id="preparationTime"
+                    type="number"
+                    min="1"
+                    max="480"
+                    placeholder="e.g., 30"
+                    value={formData.preparationTime}
+                    onChange={(e) =>
+                      handleFieldChange("preparationTime", e.target.value)
+                    }
+                    onBlur={() => handleFieldBlur("preparationTime")}
+                    required
+                    className={
+                      formErrors.preparationTime &&
+                      touchedFields.preparationTime
+                        ? "border-destructive"
+                        : ""
+                    }
+                  />
+                  {formErrors.preparationTime &&
+                    touchedFields.preparationTime && (
+                      <p className="text-destructive text-sm">
+                        {formErrors.preparationTime}
+                      </p>
+                    )}
+                </div>
+              </div>
+
+              {/* Discounted Price with preview */}
+              <div className="space-y-2">
+                <Label
+                  htmlFor="discountedPrice"
+                  className="text-sm font-medium"
+                >
+                  Discounted Price (D){" "}
+                  <span className="text-muted-foreground text-xs font-normal">
+                    (Optional)
+                  </span>
+                </Label>
+                <Input
+                  id="discountedPrice"
                   type="number"
                   step="0.01"
                   min="0"
                   max="999999"
                   placeholder="0.00"
-                  value={formData.price}
-                  onChange={(e) => handleFieldChange("price", e.target.value)}
-                  onBlur={() => handleFieldBlur("price")}
-                  required
-                  className={
-                    formErrors.price && touchedFields.price
-                      ? "border-destructive"
-                      : ""
-                  }
-                />
-                {formErrors.price && touchedFields.price && (
-                  <p className="text-destructive text-sm">{formErrors.price}</p>
-                )}
-              </div>
-              <div className="space-y-2">
-                <Label
-                  htmlFor="preparationTime"
-                  className="text-sm font-medium"
-                >
-                  Preparation Time (minutes){" "}
-                  <span className="text-destructive">*</span>
-                </Label>
-                <Input
-                  id="preparationTime"
-                  type="number"
-                  min="1"
-                  max="480"
-                  placeholder="e.g., 30"
-                  value={formData.preparationTime}
+                  value={formData.discountedPrice}
                   onChange={(e) =>
-                    handleFieldChange("preparationTime", e.target.value)
+                    handleFieldChange("discountedPrice", e.target.value)
                   }
-                  onBlur={() => handleFieldBlur("preparationTime")}
-                  required
+                  onBlur={() => handleFieldBlur("discountedPrice")}
                   className={
-                    formErrors.preparationTime && touchedFields.preparationTime
+                    formErrors.discountedPrice && touchedFields.discountedPrice
                       ? "border-destructive"
                       : ""
                   }
                 />
-                {formErrors.preparationTime &&
-                  touchedFields.preparationTime && (
+                {formErrors.discountedPrice &&
+                  touchedFields.discountedPrice && (
                     <p className="text-destructive text-sm">
-                      {formErrors.preparationTime}
+                      {formErrors.discountedPrice}
                     </p>
                   )}
+                {/* Discount Preview */}
+                {formData.discountedPrice &&
+                  parseFloat(formData.discountedPrice) > 0 &&
+                  formData.price &&
+                  parseFloat(formData.price) > 0 &&
+                  parseFloat(formData.discountedPrice) <
+                    parseFloat(formData.price) && (
+                    <div className="flex items-center gap-2 rounded-lg border border-green-200 bg-green-50 p-3">
+                      <Badge
+                        variant="outline"
+                        className="bg-green-600 text-white"
+                      >
+                        {Math.round(
+                          ((parseFloat(formData.price) -
+                            parseFloat(formData.discountedPrice)) /
+                            parseFloat(formData.price)) *
+                            100,
+                        )}
+                        % OFF
+                      </Badge>
+                      <p className="text-green-700 text-sm">
+                        Customers will see this discount badge
+                      </p>
+                    </div>
+                  )}
               </div>
-            </div>
 
-            {/* Discounted Price with preview */}
-            <div className="space-y-2">
-              <Label htmlFor="discountedPrice" className="text-sm font-medium">
-                Discounted Price (D){" "}
-                <span className="text-muted-foreground text-xs font-normal">
-                  (Optional)
-                </span>
-              </Label>
-              <Input
-                id="discountedPrice"
-                type="number"
-                step="0.01"
-                min="0"
-                max="999999"
-                placeholder="0.00"
-                value={formData.discountedPrice}
-                onChange={(e) =>
-                  handleFieldChange("discountedPrice", e.target.value)
-                }
-                onBlur={() => handleFieldBlur("discountedPrice")}
-                className={
-                  formErrors.discountedPrice && touchedFields.discountedPrice
-                    ? "border-destructive"
-                    : ""
-                }
-              />
-              {formErrors.discountedPrice && touchedFields.discountedPrice && (
-                <p className="text-destructive text-sm">
-                  {formErrors.discountedPrice}
-                </p>
-              )}
-              {/* Discount Preview */}
-              {formData.discountedPrice &&
-                parseFloat(formData.discountedPrice) > 0 &&
-                formData.price &&
-                parseFloat(formData.price) > 0 &&
-                parseFloat(formData.discountedPrice) <
-                  parseFloat(formData.price) && (
-                  <div className="flex items-center gap-2 rounded-lg border border-green-200 bg-green-50 p-3">
-                    <Badge
-                      variant="outline"
-                      className="bg-green-600 text-white"
-                    >
-                      {Math.round(
-                        ((parseFloat(formData.price) -
-                          parseFloat(formData.discountedPrice)) /
-                          parseFloat(formData.price)) *
-                          100,
-                      )}
-                      % OFF
-                    </Badge>
-                    <p className="text-green-700 text-sm">
-                      Customers will see this discount badge
-                    </p>
-                  </div>
+              {/* Meal Time - Required */}
+              <div className="space-y-2">
+                <Label htmlFor="mealTime" className="text-sm font-medium">
+                  Meal Time <span className="text-destructive">*</span>
+                </Label>
+                <Select
+                  value={formData.mealTime}
+                  onValueChange={(value) => {
+                    handleFieldChange("mealTime", value);
+                    setTouchedFields((prev) => ({ ...prev, mealTime: true }));
+                  }}
+                >
+                  <SelectTrigger
+                    id="mealTime"
+                    className={
+                      formErrors.mealTime && touchedFields.mealTime
+                        ? "border-destructive"
+                        : ""
+                    }
+                  >
+                    <SelectValue placeholder="Select meal time" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {MEAL_TIMES.map((time) => (
+                      <SelectItem key={time} value={time}>
+                        {time.charAt(0) + time.slice(1).toLowerCase()}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {formErrors.mealTime && touchedFields.mealTime && (
+                  <p className="text-destructive text-sm">
+                    {formErrors.mealTime}
+                  </p>
                 )}
-            </div>
+              </div>
 
-            {/* Meal Time - Required */}
-            <div className="space-y-2">
-              <Label htmlFor="mealTime" className="text-sm font-medium">
-                Meal Time <span className="text-destructive">*</span>
-              </Label>
-              <Select
-                value={formData.mealTime}
-                onValueChange={(value) => {
-                  handleFieldChange("mealTime", value);
-                  setTouchedFields((prev) => ({ ...prev, mealTime: true }));
-                }}
-              >
-                <SelectTrigger
-                  id="mealTime"
-                  className={
-                    formErrors.mealTime && touchedFields.mealTime
-                      ? "border-destructive"
-                      : ""
+              {/* Sub Category - Optional */}
+              <div className="space-y-2">
+                <Label htmlFor="subCategory" className="text-sm font-medium">
+                  Category{" "}
+                  <span className="text-muted-foreground text-xs font-normal">
+                    (Optional)
+                  </span>
+                </Label>
+                <Select
+                  value={formData.subCategoryId || undefined}
+                  onValueChange={(value) =>
+                    setFormData({
+                      ...formData,
+                      subCategoryId: value === "none" ? "" : value,
+                    })
                   }
                 >
-                  <SelectValue placeholder="Select meal time" />
-                </SelectTrigger>
-                <SelectContent>
-                  {MEAL_TIMES.map((time) => (
-                    <SelectItem key={time} value={time}>
-                      {time.charAt(0) + time.slice(1).toLowerCase()}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {formErrors.mealTime && touchedFields.mealTime && (
-                <p className="text-destructive text-sm">
-                  {formErrors.mealTime}
-                </p>
-              )}
-            </div>
-
-            {/* Sub Category - Optional */}
-            <div className="space-y-2">
-              <Label htmlFor="subCategory" className="text-sm font-medium">
-                Category{" "}
-                <span className="text-muted-foreground text-xs font-normal">
-                  (Optional)
-                </span>
-              </Label>
-              <Select
-                value={formData.subCategoryId || undefined}
-                onValueChange={(value) =>
-                  setFormData({
-                    ...formData,
-                    subCategoryId: value === "none" ? "" : value,
-                  })
-                }
-              >
-                <SelectTrigger id="subCategory">
-                  <SelectValue placeholder="Select a category" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">None</SelectItem>
-                  {subCategories?.map((cat) => (
-                    <SelectItem key={cat.id} value={cat.id}>
-                      {cat.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <Separator />
-
-            {/* Availability */}
-            <div className="bg-muted/50 flex items-center justify-between rounded-lg border p-4">
-              <div className="space-y-0.5">
-                <Label htmlFor="available" className="text-base font-medium">
-                  Available for Customers
-                </Label>
-                <p className="text-muted-foreground text-sm">
-                  Toggle to make this item visible in your menu
-                </p>
+                  <SelectTrigger id="subCategory">
+                    <SelectValue placeholder="Select a category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">None</SelectItem>
+                    {subCategories?.map((cat) => (
+                      <SelectItem key={cat.id} value={cat.id}>
+                        {cat.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
-              <Switch
-                id="available"
-                checked={formData.isAvailable}
-                onCheckedChange={(checked) =>
-                  setFormData({ ...formData, isAvailable: checked })
-                }
-              />
-            </div>
 
-            <DialogFooter className="gap-2 sm:gap-0">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={handleCloseModal}
-              >
-                Cancel
-              </Button>
-              <Button
-                type="submit"
-                disabled={createMutation.isPending || updateMutation.isPending}
-              >
-                {createMutation.isPending || updateMutation.isPending ? (
-                  <>
-                    <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-                    Saving...
-                  </>
-                ) : (
-                  <>{editMode ? "Update Item" : "Create Item"}</>
-                )}
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
+              <Separator />
+
+              {/* Availability */}
+              <div className="bg-muted/50 flex items-center justify-between rounded-lg border p-4">
+                <div className="space-y-0.5">
+                  <Label htmlFor="available" className="text-base font-medium">
+                    Available for Customers
+                  </Label>
+                  <p className="text-muted-foreground text-sm">
+                    Toggle to make this item visible in your menu
+                  </p>
+                </div>
+                <Switch
+                  id="available"
+                  checked={formData.isAvailable}
+                  onCheckedChange={(checked) =>
+                    setFormData({ ...formData, isAvailable: checked })
+                  }
+                />
+              </div>
+
+              <DialogFooter className="gap-2 sm:gap-0">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handleCloseModal}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={
+                    createMutation.isPending || updateMutation.isPending
+                  }
+                >
+                  {createMutation.isPending || updateMutation.isPending ? (
+                    <>
+                      <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                      Saving...
+                    </>
+                  ) : (
+                    <>{editMode ? "Update Item" : "Create Item"}</>
+                  )}
+                </Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );
@@ -1528,359 +1562,370 @@ function ShopProductManager({ shop }: { shop: VendorShop }) {
   return (
     <div className="flex-1 p-6 md:p-8 bg-zinc-50 dark:bg-zinc-950 min-h-screen">
       <div className="max-w-7xl mx-auto space-y-8">
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <div className="space-y-1">
-          <h1 className="text-3xl font-bold tracking-tight text-zinc-950 dark:text-zinc-50">
-            Product Management
-          </h1>
-          <p className="text-zinc-500 dark:text-zinc-400 mt-1 text-sm">
-            Manage products for{" "}
-            <span className="font-medium text-orange-600 dark:text-orange-500">{shop.name}</span>
-          </p>
-        </div>
-        <div className="flex items-center gap-3">
-          <Button onClick={() => refetch()} variant="outline" size="sm" className="shadow-sm border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-zinc-600 dark:text-zinc-400">
-            <RefreshCw className="mr-2 h-4 w-4" />
-            Refresh
-          </Button>
-          <Button onClick={handleAddProduct} size="sm" className="bg-zinc-900 hover:bg-zinc-800 text-white dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-200 shadow-sm">
-            <Plus className="mr-2 h-4 w-4 text-orange-500" />
-            Add Product
-          </Button>
-        </div>
-      </div>
-
-      <Card className="rounded-2xl border-zinc-200 dark:border-zinc-800 shadow-sm overflow-hidden bg-white dark:bg-zinc-900">
-        <CardContent className="p-6">
-          <div className="relative">
-            <Search className="text-muted-foreground absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2" />
-            <Input
-              placeholder="Search products by name..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10"
-            />
-          </div>
-        </CardContent>
-      </Card>
-
-      {isLoading ? (
-        <ProductsGridSkeleton count={12} />
-      ) : filteredProducts.length > 0 ? (
-        <div className="grid gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-          {filteredProducts.map((product) => {
-            const toggling =
-              availabilityMutation.isPending &&
-              availabilityMutation.variables?.id === product.id;
-            const deleting =
-              deleteProductMutation.isPending &&
-              deleteProductMutation.variables === product.id;
-
-            return (
-              <ProductCard
-                key={product.id}
-                product={product}
-                onEdit={handleEditProduct}
-                onDelete={handleDelete}
-                onToggleAvailability={handleToggleAvailability}
-                isToggling={toggling}
-                isDeleting={deleting}
-              />
-            );
-          })}
-        </div>
-      ) : (
-        <Card className="border-dashed">
-          <CardContent className="flex min-h-[400px] flex-col items-center justify-center p-8 text-center">
-            <div className="bg-muted mb-4 rounded-full p-4">
-              <Search className="text-muted-foreground h-8 w-8" />
-            </div>
-            <h3 className="mb-2 text-lg font-semibold">No products found</h3>
-            <p className="text-muted-foreground mb-4 max-w-sm text-sm">
-              {searchQuery
-                ? "Try adjusting your search terms"
-                : "Get started by adding your first product"}
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <div className="space-y-1">
+            <h1 className="text-3xl font-bold tracking-tight text-zinc-950 dark:text-zinc-50">
+              Product Management
+            </h1>
+            <p className="text-zinc-500 dark:text-zinc-400 mt-1 text-sm">
+              Manage products for{" "}
+              <span className="font-medium text-orange-600 dark:text-orange-500">
+                {shop.name}
+              </span>
             </p>
-            {!searchQuery && (
-              <Button onClick={handleAddProduct} size="sm">
-                <Plus className="mr-2 h-4 w-4" />
-                Add Product
-              </Button>
-            )}
+          </div>
+          <div className="flex items-center gap-3">
+            <Button
+              onClick={() => refetch()}
+              variant="outline"
+              size="sm"
+              className="shadow-sm border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-zinc-600 dark:text-zinc-400"
+            >
+              <RefreshCw className="mr-2 h-4 w-4" />
+              Refresh
+            </Button>
+            <Button
+              onClick={handleAddProduct}
+              size="sm"
+              className="bg-zinc-900 hover:bg-zinc-800 text-white dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-200 shadow-sm"
+            >
+              <Plus className="mr-2 h-4 w-4 text-orange-500" />
+              Add Product
+            </Button>
+          </div>
+        </div>
+
+        <Card className="rounded-2xl border-zinc-200 dark:border-zinc-800 shadow-sm overflow-hidden bg-white dark:bg-zinc-900">
+          <CardContent className="p-6">
+            <div className="relative">
+              <Search className="text-muted-foreground absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2" />
+              <Input
+                placeholder="Search products by name..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10"
+              />
+            </div>
           </CardContent>
         </Card>
-      )}
 
-      {/* Load more trigger */}
-      {filteredProducts.length > 0 && (
-        <div ref={loadMoreRef} className="flex justify-center py-4">
-          {isFetchingNextPage && (
-            <div className="grid w-full gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-              <ProductsGridSkeleton count={3} />
-            </div>
-          )}
-          {!hasNextPage &&
-            !isFetchingNextPage &&
-            filteredProducts.length >= PRODUCTS_PER_PAGE && (
-              <p className="text-muted-foreground text-sm">
-                All products loaded ({filteredProducts.length} total)
+        {isLoading ? (
+          <ProductsGridSkeleton count={12} />
+        ) : filteredProducts.length > 0 ? (
+          <div className="grid gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+            {filteredProducts.map((product) => {
+              const toggling =
+                availabilityMutation.isPending &&
+                availabilityMutation.variables?.id === product.id;
+              const deleting =
+                deleteProductMutation.isPending &&
+                deleteProductMutation.variables === product.id;
+
+              return (
+                <ProductCard
+                  key={product.id}
+                  product={product}
+                  onEdit={handleEditProduct}
+                  onDelete={handleDelete}
+                  onToggleAvailability={handleToggleAvailability}
+                  isToggling={toggling}
+                  isDeleting={deleting}
+                />
+              );
+            })}
+          </div>
+        ) : (
+          <Card className="border-dashed">
+            <CardContent className="flex min-h-[400px] flex-col items-center justify-center p-8 text-center">
+              <div className="bg-muted mb-4 rounded-full p-4">
+                <Search className="text-muted-foreground h-8 w-8" />
+              </div>
+              <h3 className="mb-2 text-lg font-semibold">No products found</h3>
+              <p className="text-muted-foreground mb-4 max-w-sm text-sm">
+                {searchQuery
+                  ? "Try adjusting your search terms"
+                  : "Get started by adding your first product"}
               </p>
-            )}
-        </div>
-      )}
-
-      <Dialog
-        open={modalOpen}
-        onOpenChange={(open) =>
-          open ? setModalOpen(true) : handleCloseModal()
-        }
-      >
-        <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="text-2xl">
-              {editMode ? "Edit Product" : "Add New Product"}
-            </DialogTitle>
-            <DialogDescription>
-              {editMode
-                ? "Update product details for your shop"
-                : "Fill in the details to add a new product to your shop"}
-            </DialogDescription>
-          </DialogHeader>
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Image Upload */}
-            <div className="space-y-3">
-              <Label className="text-base">Product Image</Label>
-              {imagePreview ? (
-                <div className="relative">
-                  <img
-                    src={imagePreview}
-                    alt="Product preview"
-                    className="h-48 w-full rounded-lg object-cover"
-                  />
-                  {imageUploading && (
-                    <div className="absolute inset-0 flex items-center justify-center rounded-lg bg-black/50">
-                      <div className="text-center">
-                        <RefreshCw className="mx-auto h-8 w-8 animate-spin text-white" />
-                        <p className="mt-2 text-sm font-medium text-white">
-                          Uploading to Cloudinary...
-                        </p>
-                      </div>
-                    </div>
-                  )}
-                  {!imageUploading && (
-                    <Button
-                      type="button"
-                      variant="destructive"
-                      size="sm"
-                      className="absolute right-2 top-2"
-                      onClick={handleRemoveImage}
-                      disabled={isSaving}
-                    >
-                      <X className="mr-1 h-3.5 w-3.5" />
-                      Remove
-                    </Button>
-                  )}
-                </div>
-              ) : (
-                <div className="border-muted-foreground/25 hover:border-muted-foreground/50 flex h-48 cursor-pointer items-center justify-center rounded-lg border-2 border-dashed transition-colors">
-                  <label
-                    htmlFor="product-image-upload"
-                    className="flex cursor-pointer flex-col items-center gap-2"
-                  >
-                    {imageUploading ? (
-                      <>
-                        <RefreshCw className="text-primary h-10 w-10 animate-spin" />
-                        <span className="text-primary text-sm font-medium">
-                          Uploading to Cloudinary...
-                        </span>
-                      </>
-                    ) : (
-                      <>
-                        <ImageIcon className="text-muted-foreground h-10 w-10" />
-                        <span className="text-muted-foreground text-sm">
-                          Click to upload image
-                        </span>
-                        <span className="text-muted-foreground text-xs">
-                          JPG, PNG up to 5MB
-                        </span>
-                      </>
-                    )}
-                    <Input
-                      id="product-image-upload"
-                      type="file"
-                      accept="image/*"
-                      onChange={handleImageChange}
-                      disabled={isSaving || imageUploading}
-                      className="hidden"
-                    />
-                  </label>
-                </div>
+              {!searchQuery && (
+                <Button onClick={handleAddProduct} size="sm">
+                  <Plus className="mr-2 h-4 w-4" />
+                  Add Product
+                </Button>
               )}
-            </div>
+            </CardContent>
+          </Card>
+        )}
 
-            <Separator />
+        {/* Load more trigger */}
+        {filteredProducts.length > 0 && (
+          <div ref={loadMoreRef} className="flex justify-center py-4">
+            {isFetchingNextPage && (
+              <div className="grid w-full gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+                <ProductsGridSkeleton count={3} />
+              </div>
+            )}
+            {!hasNextPage &&
+              !isFetchingNextPage &&
+              filteredProducts.length >= PRODUCTS_PER_PAGE && (
+                <p className="text-muted-foreground text-sm">
+                  All products loaded ({filteredProducts.length} total)
+                </p>
+              )}
+          </div>
+        )}
 
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="productName" className="text-sm font-medium">
-                  Product Name <span className="text-destructive">*</span>
-                </Label>
-                <Input
-                  id="productName"
-                  placeholder="e.g., Laptop Stand"
-                  value={formData.name}
-                  onChange={(e) =>
-                    setFormData({ ...formData, name: e.target.value })
-                  }
-                  disabled={isSaving}
-                />
+        <Dialog
+          open={modalOpen}
+          onOpenChange={(open) =>
+            open ? setModalOpen(true) : handleCloseModal()
+          }
+        >
+          <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="text-2xl">
+                {editMode ? "Edit Product" : "Add New Product"}
+              </DialogTitle>
+              <DialogDescription>
+                {editMode
+                  ? "Update product details for your shop"
+                  : "Fill in the details to add a new product to your shop"}
+              </DialogDescription>
+            </DialogHeader>
+            <form onSubmit={handleSubmit} className="space-y-6">
+              {/* Image Upload */}
+              <div className="space-y-3">
+                <Label className="text-base">Product Image</Label>
+                {imagePreview ? (
+                  <div className="relative">
+                    <img
+                      src={imagePreview}
+                      alt="Product preview"
+                      className="h-48 w-full rounded-lg object-cover"
+                    />
+                    {imageUploading && (
+                      <div className="absolute inset-0 flex items-center justify-center rounded-lg bg-black/50">
+                        <div className="text-center">
+                          <RefreshCw className="mx-auto h-8 w-8 animate-spin text-white" />
+                          <p className="mt-2 text-sm font-medium text-white">
+                            Uploading to Cloudinary...
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                    {!imageUploading && (
+                      <Button
+                        type="button"
+                        variant="destructive"
+                        size="sm"
+                        className="absolute right-2 top-2"
+                        onClick={handleRemoveImage}
+                        disabled={isSaving}
+                      >
+                        <X className="mr-1 h-3.5 w-3.5" />
+                        Remove
+                      </Button>
+                    )}
+                  </div>
+                ) : (
+                  <div className="border-muted-foreground/25 hover:border-muted-foreground/50 flex h-48 cursor-pointer items-center justify-center rounded-lg border-2 border-dashed transition-colors">
+                    <label
+                      htmlFor="product-image-upload"
+                      className="flex cursor-pointer flex-col items-center gap-2"
+                    >
+                      {imageUploading ? (
+                        <>
+                          <RefreshCw className="text-primary h-10 w-10 animate-spin" />
+                          <span className="text-primary text-sm font-medium">
+                            Uploading to Cloudinary...
+                          </span>
+                        </>
+                      ) : (
+                        <>
+                          <ImageIcon className="text-muted-foreground h-10 w-10" />
+                          <span className="text-muted-foreground text-sm">
+                            Click to upload image
+                          </span>
+                          <span className="text-muted-foreground text-xs">
+                            JPG, PNG up to 5MB
+                          </span>
+                        </>
+                      )}
+                      <Input
+                        id="product-image-upload"
+                        type="file"
+                        accept="image/*"
+                        onChange={handleImageChange}
+                        disabled={isSaving || imageUploading}
+                        className="hidden"
+                      />
+                    </label>
+                  </div>
+                )}
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="productPrice" className="text-sm font-medium">
-                  Price (D) <span className="text-destructive">*</span>
-                </Label>
-                <Input
-                  id="productPrice"
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  placeholder="0.00"
-                  value={formData.price}
-                  onChange={(e) =>
-                    setFormData({ ...formData, price: e.target.value })
-                  }
-                  disabled={isSaving}
-                />
+
+              <Separator />
+
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="productName" className="text-sm font-medium">
+                    Product Name <span className="text-destructive">*</span>
+                  </Label>
+                  <Input
+                    id="productName"
+                    placeholder="e.g., Laptop Stand"
+                    value={formData.name}
+                    onChange={(e) =>
+                      setFormData({ ...formData, name: e.target.value })
+                    }
+                    disabled={isSaving}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="productPrice" className="text-sm font-medium">
+                    Price (D) <span className="text-destructive">*</span>
+                  </Label>
+                  <Input
+                    id="productPrice"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    placeholder="0.00"
+                    value={formData.price}
+                    onChange={(e) =>
+                      setFormData({ ...formData, price: e.target.value })
+                    }
+                    disabled={isSaving}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label
+                    htmlFor="discountedPrice"
+                    className="text-sm font-medium"
+                  >
+                    Discounted Price (D)
+                  </Label>
+                  <Input
+                    id="discountedPrice"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    placeholder="0.00"
+                    value={formData.discountedPrice}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        discountedPrice: e.target.value,
+                      })
+                    }
+                    disabled={isSaving}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="stock" className="text-sm font-medium">
+                    Stock Quantity
+                  </Label>
+                  <Input
+                    id="stock"
+                    type="number"
+                    min="0"
+                    placeholder="0"
+                    value={formData.stock}
+                    onChange={(e) =>
+                      setFormData({ ...formData, stock: e.target.value })
+                    }
+                    disabled={isSaving}
+                  />
+                </div>
               </div>
+
               <div className="space-y-2">
-                <Label
-                  htmlFor="discountedPrice"
-                  className="text-sm font-medium"
-                >
-                  Discounted Price (D)
+                <Label htmlFor="subCategory" className="text-sm font-medium">
+                  Category
                 </Label>
-                <Input
-                  id="discountedPrice"
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  placeholder="0.00"
-                  value={formData.discountedPrice}
-                  onChange={(e) =>
+                <Select
+                  value={formData.subCategoryId}
+                  onValueChange={(value) =>
                     setFormData({
                       ...formData,
-                      discountedPrice: e.target.value,
+                      subCategoryId: value === "none" ? "" : value,
                     })
                   }
                   disabled={isSaving}
+                >
+                  <SelectTrigger id="subCategory">
+                    <SelectValue placeholder="Select a category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">None</SelectItem>
+                    {subCategories.map((subCategory) => (
+                      <SelectItem key={subCategory.id} value={subCategory.id}>
+                        {subCategory.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="description" className="text-sm font-medium">
+                  Description
+                </Label>
+                <Textarea
+                  id="description"
+                  value={formData.description}
+                  onChange={(e) =>
+                    setFormData({ ...formData, description: e.target.value })
+                  }
+                  rows={4}
+                  placeholder="Describe your product..."
+                  disabled={isSaving}
+                  className="resize-none"
                 />
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="stock" className="text-sm font-medium">
-                  Stock Quantity
-                </Label>
-                <Input
-                  id="stock"
-                  type="number"
-                  min="0"
-                  placeholder="0"
-                  value={formData.stock}
-                  onChange={(e) =>
-                    setFormData({ ...formData, stock: e.target.value })
+
+              <Separator />
+
+              <div className="bg-muted/50 flex items-center justify-between rounded-lg border p-4">
+                <div className="space-y-0.5">
+                  <Label className="text-base font-medium">
+                    Available for Ordering
+                  </Label>
+                  <p className="text-muted-foreground text-sm">
+                    Toggle to make this product visible to customers
+                  </p>
+                </div>
+                <Switch
+                  checked={formData.isAvailable}
+                  onCheckedChange={(checked) =>
+                    setFormData({ ...formData, isAvailable: checked })
                   }
                   disabled={isSaving}
                 />
               </div>
-            </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="subCategory" className="text-sm font-medium">
-                Category
-              </Label>
-              <Select
-                value={formData.subCategoryId}
-                onValueChange={(value) =>
-                  setFormData({
-                    ...formData,
-                    subCategoryId: value === "none" ? "" : value,
-                  })
-                }
-                disabled={isSaving}
-              >
-                <SelectTrigger id="subCategory">
-                  <SelectValue placeholder="Select a category" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">None</SelectItem>
-                  {subCategories.map((subCategory) => (
-                    <SelectItem key={subCategory.id} value={subCategory.id}>
-                      {subCategory.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="description" className="text-sm font-medium">
-                Description
-              </Label>
-              <Textarea
-                id="description"
-                value={formData.description}
-                onChange={(e) =>
-                  setFormData({ ...formData, description: e.target.value })
-                }
-                rows={4}
-                placeholder="Describe your product..."
-                disabled={isSaving}
-                className="resize-none"
-              />
-            </div>
-
-            <Separator />
-
-            <div className="bg-muted/50 flex items-center justify-between rounded-lg border p-4">
-              <div className="space-y-0.5">
-                <Label className="text-base font-medium">
-                  Available for Ordering
-                </Label>
-                <p className="text-muted-foreground text-sm">
-                  Toggle to make this product visible to customers
-                </p>
-              </div>
-              <Switch
-                checked={formData.isAvailable}
-                onCheckedChange={(checked) =>
-                  setFormData({ ...formData, isAvailable: checked })
-                }
-                disabled={isSaving}
-              />
-            </div>
-
-            <DialogFooter className="gap-2 sm:gap-0">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={handleCloseModal}
-                disabled={isSaving}
-              >
-                Cancel
-              </Button>
-              <Button type="submit" disabled={isSaving}>
-                {isSaving ? (
-                  <>
-                    <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-                    Saving...
-                  </>
-                ) : (
-                  <>{editMode ? "Update Product" : "Create Product"}</>
-                )}
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
+              <DialogFooter className="gap-2 sm:gap-0">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handleCloseModal}
+                  disabled={isSaving}
+                >
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={isSaving}>
+                  {isSaving ? (
+                    <>
+                      <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                      Saving...
+                    </>
+                  ) : (
+                    <>{editMode ? "Update Product" : "Create Product"}</>
+                  )}
+                </Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );

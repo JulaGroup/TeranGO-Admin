@@ -1,5 +1,5 @@
 // @ts-nocheck
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import {
@@ -24,10 +24,17 @@ import {
   Filter,
   List,
   LayoutGrid,
+  MapPin,
+  Map as MapIcon,
+  Save,
+  Upload,
+  Image as ImageIcon,
+  X,
+  Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { adminApi, api } from "@/lib/api";
-import { Vendor } from "@/lib/types";
+import Vendor from "@/lib/types";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -67,6 +74,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -94,6 +102,10 @@ import { TopNav } from "@/components/layout/top-nav";
 import { ProfileDropdown } from "@/components/profile-dropdown";
 import { ThemeSwitch } from "@/components/theme-switch";
 import { cn } from "@/lib/utils";
+import {
+  VendorLocationsMap,
+  VendorBusiness,
+} from "@/components/vendor-locations-map";
 
 const topNav = [
   { title: "Overview", href: "/admin", isActive: false },
@@ -101,6 +113,38 @@ const topNav = [
   { title: "Drivers", href: "/admin/drivers", isActive: false },
   { title: "Settings", href: "#", isActive: false },
 ];
+
+// Cloudinary configuration - matching menu management
+const CLOUDINARY_CLOUD_NAME = "dkpi5ij2t";
+const CLOUDINARY_UPLOAD_PRESET = "unsigned_preset";
+
+// Helper function to upload image to Cloudinary
+async function uploadToCloudinary(file: File): Promise<string> {
+  try {
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("upload_preset", CLOUDINARY_UPLOAD_PRESET);
+
+    const cloudinaryUrl = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`;
+
+    console.log("☁️ Uploading to Cloudinary...");
+    const response = await fetch(cloudinaryUrl, {
+      method: "POST",
+      body: formData,
+    });
+
+    if (!response.ok) {
+      throw new Error("Upload failed");
+    }
+
+    const data = await response.json();
+    console.log("✅ Upload successful:", data.secure_url);
+    return data.secure_url;
+  } catch (error) {
+    console.error("❌ Error uploading to Cloudinary:", error);
+    throw new Error("Failed to upload image to Cloudinary");
+  }
+}
 
 export const Route = createFileRoute("/_authenticated/admin/vendors/")({
   component: VendorsPage,
@@ -118,7 +162,7 @@ interface VendorWithSubscription extends Vendor {
 function VendorsPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
-  const [viewMode, setViewMode] = useState("grid"); // 'grid' or 'list'
+  const [viewMode, setViewMode] = useState("grid"); // 'grid', 'list', or 'map'
   const [allVendors, setAllVendors] = useState<VendorWithSubscription[]>([]);
   const [filteredVendors, setFilteredVendors] = useState<
     VendorWithSubscription[]
@@ -131,6 +175,16 @@ function VendorsPage() {
   const [isDeactivateOpen, setIsDeactivateOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [subscriptionPackages, setSubscriptionPackages] = useState<any[]>([]);
+  const [isEditLocationOpen, setIsEditLocationOpen] = useState(false);
+  const [selectedBusiness, setSelectedBusiness] = useState<any>(null);
+  const [selectedLocation, setSelectedLocation] = useState<{
+    lat: number;
+    lng: number;
+    address?: string;
+    city?: string;
+  } | null>(null);
+  const [editedBusinessName, setEditedBusinessName] = useState("");
+  const [isGeocodingLocation, setIsGeocodingLocation] = useState(false);
   const [stats, setStats] = useState({
     totalVendors: 0,
     activeVendors: 0,
@@ -308,6 +362,57 @@ function VendorsPage() {
     },
   });
 
+  const updateBusinessLocationMutation = useMutation({
+    mutationFn: async ({
+      businessType,
+      businessId,
+      businessName,
+      latitude,
+      longitude,
+      address,
+      city,
+    }: {
+      businessType: string;
+      businessId: string;
+      businessName: string;
+      latitude: number;
+      longitude: number;
+      address?: string;
+      city?: string;
+    }) => {
+      const endpoint =
+        businessType === "Restaurant"
+          ? "/api/restaurants"
+          : businessType === "Shop"
+            ? "/api/shops"
+            : "/api/pharmacies";
+
+      const response = await api.put(`${endpoint}/${businessId}/details`, {
+        name: businessName,
+        latitude,
+        longitude,
+        address: address || "",
+        city: city || "",
+      });
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["vendors-all"] });
+      refetch(); // Force immediate refetch
+      refetch(); // Force immediate refetch
+      toast.success("Business location updated successfully");
+      setIsEditLocationOpen(false);
+      setSelectedBusiness(null);
+      setSelectedLocation(null);
+      setEditedBusinessName("");
+    },
+    onError: (error: any) => {
+      toast.error(
+        error.response?.data?.message || "Failed to update business location",
+      );
+    },
+  });
+
   const handleViewDetails = (vendor: Vendor) => {
     setSelectedVendor(vendor);
     setIsDetailsOpen(true);
@@ -317,6 +422,131 @@ function VendorsPage() {
     setSelectedVendor(vendor);
     setIsEditOpen(true);
   };
+
+  const handleEditBusinessLocation = (business: any) => {
+    setSelectedBusiness(business);
+    setEditedBusinessName(business.name); // Initialize with current name
+    setSelectedLocation(
+      business.latitude && business.longitude
+        ? { lat: business.latitude, lng: business.longitude }
+        : null,
+    );
+    setIsEditLocationOpen(true);
+  };
+
+  const handleMapClick = async (lat: number, lng: number) => {
+    // Set coordinates immediately
+    setSelectedLocation({ lat, lng });
+    setIsGeocodingLocation(true);
+
+    try {
+      // Reverse geocode to get address and city
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&addressdetails=1`,
+        {
+          headers: {
+            "User-Agent": "TeranGO Admin Panel",
+          },
+        },
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        const address = data.display_name || "";
+        const city =
+          data.address?.city ||
+          data.address?.town ||
+          data.address?.village ||
+          data.address?.county ||
+          data.address?.state ||
+          "";
+
+        setSelectedLocation({ lat, lng, address, city });
+        toast.success("Location details fetched");
+      }
+    } catch (error) {
+      console.error("Reverse geocoding failed:", error);
+      toast.warning(
+        "Could not fetch address automatically. You can still save the coordinates.",
+      );
+    } finally {
+      setIsGeocodingLocation(false);
+    }
+  };
+
+  const handleSaveBusinessLocation = () => {
+    if (!selectedBusiness || !selectedLocation) return;
+    if (!editedBusinessName.trim()) {
+      toast.error("Business name is required");
+      return;
+    }
+
+    updateBusinessLocationMutation.mutate({
+      businessType: selectedBusiness.type,
+      businessId: selectedBusiness.id,
+      businessName: editedBusinessName.trim(),
+      latitude: selectedLocation.lat,
+      longitude: selectedLocation.lng,
+      address: selectedLocation.address,
+      city: selectedLocation.city,
+    });
+  };
+
+  const handleCloseLocationDialog = () => {
+    setIsEditLocationOpen(false);
+    setSelectedBusiness(null);
+    setSelectedLocation(null);
+    setEditedBusinessName("");
+    setIsGeocodingLocation(false);
+  };
+
+  // Convert all vendor businesses to VendorBusiness format for map (memoized)
+  const allBusinessesForMap = useMemo(() => {
+    const businesses: VendorBusiness[] = [];
+
+    filteredVendors.forEach((vendor) => {
+      // Add restaurants
+      vendor.restaurants?.forEach((restaurant) => {
+        businesses.push({
+          id: restaurant.id,
+          name: restaurant.name,
+          type: "Restaurant",
+          latitude: restaurant.latitude,
+          longitude: restaurant.longitude,
+          address: restaurant.address,
+          vendorName: vendor.user?.fullName,
+        });
+      });
+
+      // Add shops
+      vendor.shops?.forEach((shop) => {
+        businesses.push({
+          id: shop.id,
+          name: shop.name,
+          type: "Shop",
+          latitude: shop.latitude,
+          longitude: shop.longitude,
+          address: shop.address,
+          vendorName: vendor.user?.fullName,
+        });
+      });
+
+      // Add pharmacies
+      vendor.pharmacies?.forEach((pharmacy) => {
+        businesses.push({
+          id: pharmacy.id,
+          name: pharmacy.name,
+          type: "Pharmacy",
+          latitude: pharmacy.latitude,
+          longitude: pharmacy.longitude,
+          address: pharmacy.address,
+          vendorName: vendor.user?.fullName,
+        });
+      });
+    });
+
+    return businesses;
+  }, [filteredVendors]);
 
   const handleManageSubscription = (vendor: VendorWithSubscription) => {
     setSelectedVendor(vendor);
@@ -374,12 +604,29 @@ function VendorsPage() {
     ];
   };
 
-  const VendorCard = ({ vendor }: { vendor: VendorWithSubscription }) => (
+  const getBusinessImage = (vendor: VendorWithSubscription) => {
+    // Get the first available business image
+    const firstRestaurant = vendor.restaurants?.[0];
+    const firstShop = vendor.shops?.[0];
+    const firstPharmacy = vendor.pharmacies?.[0];
+    
+    return (
+      firstRestaurant?.imageUrl ||
+      firstShop?.imageUrl ||
+      firstPharmacy?.imageUrl ||
+      null
+    );
+  };
+
+  const VendorCard = ({ vendor }: { vendor: VendorWithSubscription }) => {
+    const businessImage = getBusinessImage(vendor);
+    
+    return (
     <Card className="flex flex-col transition-all hover:shadow-lg">
       <CardHeader className="flex flex-row items-start gap-4 space-y-0">
         <Avatar className="h-12 w-12">
           <AvatarImage
-            src={vendor.user?.avatarUrl as string}
+            src={businessImage || vendor.user?.avatarUrl || ""}
             alt={vendor.user?.fullName}
           />
           <AvatarFallback>
@@ -503,7 +750,8 @@ function VendorsPage() {
         </div>
       </CardFooter>
     </Card>
-  );
+    );
+  };
 
   return (
     <>
@@ -624,6 +872,13 @@ function VendorsPage() {
                     >
                       <List className="h-4 w-4" />
                     </Button>
+                    <Button
+                      variant={viewMode === "map" ? "primary" : "ghost"}
+                      size="sm"
+                      onClick={() => setViewMode("map")}
+                    >
+                      <MapIcon className="h-4 w-4" />
+                    </Button>
                   </div>
                 </div>
               </div>
@@ -639,7 +894,7 @@ function VendorsPage() {
                     <VendorCard key={vendor.id} vendor={vendor} />
                   ))}
                 </div>
-              ) : (
+              ) : viewMode === "list" ? (
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -657,7 +912,7 @@ function VendorsPage() {
                         <TableCell>
                           <div className="flex items-center gap-3">
                             <Avatar>
-                              <AvatarImage src={vendor.user?.avatarUrl || ""} />
+                              <AvatarImage src={getBusinessImage(vendor) || vendor.user?.avatarUrl || ""} />
                               <AvatarFallback>
                                 {vendor.user?.fullName
                                   ?.split(" ")
@@ -756,6 +1011,98 @@ function VendorsPage() {
                     ))}
                   </TableBody>
                 </Table>
+              ) : (
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between p-4 bg-muted/40 rounded-lg">
+                    <div className="flex items-center gap-2">
+                      <MapPin className="h-5 w-5 text-primary" />
+                      <div>
+                        <h3 className="font-semibold">Business Locations</h3>
+                        <p className="text-sm text-muted-foreground">
+                          Click on a business marker to edit its location
+                        </p>
+                      </div>
+                    </div>
+                    <Badge variant="outline">
+                      {
+                        allBusinessesForMap.filter(
+                          (b) => b.latitude && b.longitude,
+                        ).length
+                      }{" "}
+                      / {allBusinessesForMap.length} with coordinates
+                    </Badge>
+                  </div>
+                  <VendorLocationsMap
+                    key={allBusinessesForMap.length}
+                    businesses={allBusinessesForMap}
+                    onMapClick={(lat, lng) => {
+                      // When map is clicked in map view mode, find businesses without coordinates
+                      const businessesWithoutCoords =
+                        allBusinessesForMap.filter(
+                          (b) => !b.latitude || !b.longitude,
+                        );
+                      if (businessesWithoutCoords.length > 0) {
+                        toast.info(
+                          "Select a business from the list below to set its location",
+                        );
+                      }
+                    }}
+                    clickable={false}
+                  />
+
+                  {/* List of businesses without coordinates */}
+                  <div className="mt-4">
+                    <h4 className="text-sm font-semibold mb-2">
+                      Businesses Missing Coordinates
+                    </h4>
+                    <div className="grid gap-2 md:grid-cols-2 lg:grid-cols-3">
+                      {allBusinessesForMap
+                        .filter((b) => !b.latitude || !b.longitude)
+                        .map((business) => (
+                          <Card key={business.id} className="p-3">
+                            <div className="flex items-start justify-between gap-2">
+                              <div className="flex items-start gap-2">
+                                {business.type === "Restaurant" && (
+                                  <UtensilsCrossed className="h-4 w-4 text-orange-500 mt-0.5" />
+                                )}
+                                {business.type === "Shop" && (
+                                  <Package className="h-4 w-4 text-blue-500 mt-0.5" />
+                                )}
+                                {business.type === "Pharmacy" && (
+                                  <Pill className="h-4 w-4 text-red-500 mt-0.5" />
+                                )}
+                                <div>
+                                  <p className="text-sm font-medium">
+                                    {business.name}
+                                  </p>
+                                  <p className="text-xs text-muted-foreground">
+                                    {business.vendorName}
+                                  </p>
+                                </div>
+                              </div>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() =>
+                                  handleEditBusinessLocation(business)
+                                }
+                              >
+                                <MapPin className="h-3 w-3 mr-1" />
+                                Set Location
+                              </Button>
+                            </div>
+                          </Card>
+                        ))}
+                    </div>
+                    {allBusinessesForMap.filter(
+                      (b) => !b.latitude || !b.longitude,
+                    ).length === 0 && (
+                      <p className="text-sm text-muted-foreground text-center py-4">
+                        All businesses have coordinates! 🎉
+                      </p>
+                    )}
+                  </div>
+                </div>
               )}
               {filteredVendors.length === 0 && !isLoading && (
                 <div className="py-16 text-center text-muted-foreground">
@@ -810,6 +1157,17 @@ function VendorsPage() {
         onConfirm={confirmDelete}
         vendorName={selectedVendor?.user?.fullName || "this vendor"}
       />
+      <EditBusinessLocationDialog
+        business={selectedBusiness}
+        isOpen={isEditLocationOpen}
+        onClose={handleCloseLocationDialog}
+        onSave={handleSaveBusinessLocation}
+        isSaving={updateBusinessLocationMutation.isPending}
+        selectedLocation={selectedLocation}
+        onMapClick={handleMapClick}
+        editedName={editedBusinessName}
+        onNameChange={setEditedBusinessName}
+      />
     </>
   );
 }
@@ -836,6 +1194,12 @@ function VendorDetailsDialog({ vendor, isOpen, onClose }: any) {
     ...(vendor.pharmacies?.map((p: any) => ({ ...p, type: "Pharmacy" })) || []),
   ];
 
+  const businessImage = 
+    vendor.restaurants?.[0]?.imageUrl ||
+    vendor.shops?.[0]?.imageUrl ||
+    vendor.pharmacies?.[0]?.imageUrl ||
+    null;
+
   const getBusinessIcon = (type: string) => {
     switch (type) {
       case "Restaurant":
@@ -856,7 +1220,7 @@ function VendorDetailsDialog({ vendor, isOpen, onClose }: any) {
           <div className="flex items-start gap-4">
             <Avatar className="h-16 w-16">
               <AvatarImage
-                src={vendor.user?.avatarUrl || ""}
+                src={businessImage || vendor.user?.avatarUrl || ""}
                 alt={vendor.user?.fullName}
               />
               <AvatarFallback className="text-2xl">
@@ -975,36 +1339,63 @@ function VendorDetailsDialog({ vendor, isOpen, onClose }: any) {
                         {business.type}
                       </p>
                     </div>
-                    <Badge variant="secondary">
-                      {business.isActive ? "Open" : "Closed"}
-                    </Badge>
                   </div>
                 ))
               ) : (
-                <p className="text-center text-sm text-muted-foreground">
-                  This vendor has not created any businesses yet.
+                <p className="text-sm text-muted-foreground">
+                  No businesses registered
                 </p>
               )}
             </div>
           </div>
         </div>
-        <DialogFooter>
-          <Button variant="outline" onClick={onClose}>
-            Close
-          </Button>
-        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
 }
 
 function EditVendorDialog({ vendor, isOpen, onClose, onSave, isSaving }: any) {
+  const [activeTab, setActiveTab] = useState("account");
+  const [selectedBusinessId, setSelectedBusinessId] = useState("");
+  const queryClient = useQueryClient();
+  
+  // Account form data
   const [formData, setFormData] = useState({
     fullName: "",
     email: "",
     phone: "",
     waveNumber: "",
   });
+  
+  // Business form data
+  const [businessFormData, setBusinessFormData] = useState({
+    name: "",
+    description: "",
+    address: "",
+    phone: "",
+    email: "",
+    imageUrl: "",
+  });
+  
+  const [businessImageFile, setBusinessImageFile] = useState<File | null>(null);
+  const [businessImagePreview, setBusinessImagePreview] = useState<string>("");
+  const [isUploading, setIsUploading] = useState(false);
+  const [imageUploading, setImageUploading] = useState(false);
+  const businessFileInputRef = useRef<HTMLInputElement>(null);
+
+  // Get all businesses from vendor
+  const allBusinesses = useMemo(() => {
+    if (!vendor) return [];
+    return [
+      ...(vendor.restaurants?.map((r: any) => ({ ...r, type: "RESTAURANT" })) || []),
+      ...(vendor.shops?.map((s: any) => ({ ...s, type: "SHOP" })) || []),
+      ...(vendor.pharmacies?.map((p: any) => ({ ...p, type: "PHARMACY" })) || []),
+    ];
+  }, [vendor]);
+
+  const selectedBusiness = useMemo(() => {
+    return allBusinesses.find((b: any) => b.id === selectedBusinessId);
+  }, [allBusinesses, selectedBusinessId]);
 
   useEffect(() => {
     if (vendor) {
@@ -1014,70 +1405,494 @@ function EditVendorDialog({ vendor, isOpen, onClose, onSave, isSaving }: any) {
         phone: vendor.user?.phone || "",
         waveNumber: vendor.waveNumber || "",
       });
+      
+      // Set first business as default
+      if (allBusinesses.length > 0 && !selectedBusinessId) {
+        setSelectedBusinessId(allBusinesses[0].id);
+      }
     }
-  }, [vendor]);
+  }, [vendor, allBusinesses, selectedBusinessId]);
+
+  useEffect(() => {
+    if (selectedBusiness) {
+      setBusinessFormData({
+        name: selectedBusiness.name || "",
+        description: selectedBusiness.description || "",
+        address: selectedBusiness.address || "",
+        phone: selectedBusiness.phone || "",
+        email: selectedBusiness.email || "",
+        imageUrl: selectedBusiness.imageUrl || "",
+      });
+      setBusinessImagePreview(selectedBusiness.imageUrl || "");
+    }
+  }, [selectedBusiness]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleBusinessChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    setBusinessFormData({ ...businessFormData, [e.target.name]: e.target.value });
+  };
+
+  const handleBusinessImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) {
+      toast.error("Please select an image file");
+      return;
+    }
+
+    // Validate file size (5MB limit)
+    const maxSize = 5 * 1024 * 1024; // 5MB
+    if (file.size > maxSize) {
+      toast.error("Image size must be less than 5MB");
+      return;
+    }
+
+    try {
+      setBusinessImageFile(file);
+
+      // Show preview immediately
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setBusinessImagePreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+
+      // Upload to Cloudinary
+      setImageUploading(true);
+      console.log("☁️ Uploading business image to Cloudinary...");
+      const cloudinaryUrl = await uploadToCloudinary(file);
+
+      // Update form data with Cloudinary URL
+      setBusinessFormData((prev) => ({ ...prev, imageUrl: cloudinaryUrl }));
+      console.log("✅ Upload successful:", cloudinaryUrl);
+      toast.success("Image uploaded successfully!");
+    } catch (error) {
+      console.error("❌ Error uploading image:", error);
+      toast.error("Failed to upload image. Please try again.");
+      setBusinessImageFile(null);
+      setBusinessImagePreview("");
+    } finally {
+      setImageUploading(false);
+    }
+  };
+
+  const handleRemoveBusinessImage = () => {
+    setBusinessImageFile(null);
+    setBusinessImagePreview(selectedBusiness?.imageUrl || "");
+    setBusinessFormData((prev) => ({ ...prev, imageUrl: selectedBusiness?.imageUrl || "" }));
+    if (businessFileInputRef.current) {
+      businessFileInputRef.current.value = "";
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    onSave(formData);
+
+    setIsUploading(true);
+
+    try {
+      // Save vendor account data
+      if (activeTab === "account") {
+        onSave({ ...formData });
+      } 
+      // Save business data
+      else if (activeTab === "business" && selectedBusiness) {
+        // Call business-specific API with correct endpoints
+        const endpoint = selectedBusiness.type === "RESTAURANT"
+          ? `/api/restaurants/${selectedBusiness.id}/details`
+          : selectedBusiness.type === "SHOP"
+          ? `/api/shops/${selectedBusiness.id}/details`
+          : `/api/pharmacies/${selectedBusiness.id}/details`;
+        
+        console.log("📤 Updating business:", endpoint);
+        console.log("📦 Business data:", businessFormData);
+        
+        const response = await fetch(`${import.meta.env.VITE_API_URL}${endpoint}`, {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+          body: JSON.stringify(businessFormData),
+        });
+        
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          console.error("❌ Update failed:", errorData);
+          throw new Error(errorData.error || "Failed to update business");
+        }
+        
+        const updatedBusiness = await response.json();
+        console.log("✅ Business updated:", updatedBusiness);
+        
+        toast.success("Business updated successfully!");
+        
+        // Refetch vendors to get updated data
+        queryClient.invalidateQueries({ queryKey: ["vendors-all"] });
+        onClose();
+      }
+    } catch (error: any) {
+      console.error("❌ Error saving changes:", error);
+      toast.error(error.message || "Failed to save changes");
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   if (!vendor) return null;
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent>
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Edit {vendor.user?.fullName}</DialogTitle>
+          <DialogTitle className="flex items-center gap-2 text-2xl">
+            <Edit className="h-6 w-6" />
+            Edit Vendor: {vendor.user?.fullName}
+          </DialogTitle>
+          <DialogDescription>
+            Manage vendor account and business details
+          </DialogDescription>
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <Label htmlFor="fullName">Full Name</Label>
-            <Input
-              id="fullName"
-              name="fullName"
-              value={formData.fullName}
-              onChange={handleChange}
-            />
+
+        {/* Tabs */}
+        <div className="border-b">
+          <div className="flex gap-4">
+            <button
+              type="button"
+              onClick={() => setActiveTab("account")}
+              className={cn(
+                "pb-2 px-1 border-b-2 transition-colors",
+                activeTab === "account"
+                  ? "border-primary text-primary font-semibold"
+                  : "border-transparent text-muted-foreground hover:text-foreground"
+              )}
+            >
+              Account Details
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab("business")}
+              className={cn(
+                "pb-2 px-1 border-b-2 transition-colors",
+                activeTab === "business"
+                  ? "border-primary text-primary font-semibold"
+                  : "border-transparent text-muted-foreground hover:text-foreground"
+              )}
+            >
+              Business Settings
+            </button>
           </div>
-          <div>
-            <Label htmlFor="email">Email</Label>
-            <Input
-              id="email"
-              name="email"
-              type="email"
-              value={formData.email}
-              onChange={handleChange}
-            />
-          </div>
-          <div>
-            <Label htmlFor="phone">Phone</Label>
-            <Input
-              id="phone"
-              name="phone"
-              value={formData.phone}
-              onChange={handleChange}
-            />
-          </div>
-          <div>
-            <Label htmlFor="waveNumber">Wave Number</Label>
-            <Input
-              id="waveNumber"
-              name="waveNumber"
-              value={formData.waveNumber}
-              onChange={handleChange}
-            />
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={onClose}>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Account Tab */}
+          {activeTab === "account" && (
+            <>
+              <div>
+                <Label className="text-base font-semibold mb-4 block">
+                  Vendor Information
+                </Label>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="fullName">
+                      Full Name <span className="text-destructive">*</span>
+                    </Label>
+                    <Input
+                      id="fullName"
+                      name="fullName"
+                      value={formData.fullName}
+                      onChange={handleChange}
+                      placeholder="Enter full name"
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="email">Email Address</Label>
+                    <Input
+                      id="email"
+                      name="email"
+                      type="email"
+                      value={formData.email}
+                      onChange={handleChange}
+                      placeholder="vendor@example.com"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="phone">
+                      Phone Number <span className="text-destructive">*</span>
+                    </Label>
+                    <Input
+                      id="phone"
+                      name="phone"
+                      value={formData.phone}
+                      onChange={handleChange}
+                      placeholder="+220 XXX XXXX"
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="waveNumber">Wave Number</Label>
+                    <Input
+                      id="waveNumber"
+                      name="waveNumber"
+                      value={formData.waveNumber}
+                      onChange={handleChange}
+                      placeholder="+220 XXX XXXX"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Businesses Summary */}
+              <div className="border-t pt-6 mt-6">
+                <Label className="text-base font-semibold mb-3 block">
+                  Businesses ({allBusinesses.length})
+                </Label>
+                <div className="grid grid-cols-1 gap-2">
+                  {vendor.restaurants?.map((r: any) => (
+                    <div
+                      key={r.id}
+                      className="flex items-center gap-2 p-3 rounded-lg bg-orange-50 dark:bg-orange-950/20 border border-orange-200 dark:border-orange-900"
+                    >
+                      <UtensilsCrossed className="h-5 w-5 text-orange-600" />
+                      <span className="font-medium">{r.name}</span>
+                      <Badge variant="outline" className="ml-auto">
+                        Restaurant
+                      </Badge>
+                    </div>
+                  ))}
+                  {vendor.shops?.map((s: any) => (
+                    <div
+                      key={s.id}
+                      className="flex items-center gap-2 p-3 rounded-lg bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-900"
+                    >
+                      <Package className="h-5 w-5 text-blue-600" />
+                      <span className="font-medium">{s.name}</span>
+                      <Badge variant="outline" className="ml-auto">
+                        Shop
+                      </Badge>
+                    </div>
+                  ))}
+                  {vendor.pharmacies?.map((p: any) => (
+                    <div
+                      key={p.id}
+                      className="flex items-center gap-2 p-3 rounded-lg bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900"
+                    >
+                      <Pill className="h-5 w-5 text-red-600" />
+                      <span className="font-medium">{p.name}</span>
+                      <Badge variant="outline" className="ml-auto">
+                        Pharmacy
+                      </Badge>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </>
+          )}
+
+          {/* Business Tab */}
+          {activeTab === "business" && (
+            <>
+              {allBusinesses.length > 0 ? (
+                <>
+                  {/* Business Selector */}
+                  <div className="space-y-2">
+                    <Label>Select Business</Label>
+                    <Select value={selectedBusinessId} onValueChange={setSelectedBusinessId}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Choose a business" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {allBusinesses.map((business: any) => (
+                          <SelectItem key={business.id} value={business.id}>
+                            <div className="flex items-center gap-2">
+                              {business.type === "RESTAURANT" && <UtensilsCrossed className="h-4 w-4" />}
+                              {business.type === "SHOP" && <Package className="h-4 w-4" />}
+                              {business.type === "PHARMACY" && <Pill className="h-4 w-4" />}
+                              <span>{business.name}</span>
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {selectedBusiness && (
+                    <>
+                      {/* Business Image */}
+                      <div className="space-y-4 border-t pt-6">
+                        <Label className="text-base font-semibold">Business Logo/Image</Label>
+                        <div className="flex items-center gap-6">
+                          <div className="relative">
+                            {businessImagePreview ? (
+                              <img
+                                src={businessImagePreview}
+                                alt="Business"
+                                className="h-32 w-32 object-cover rounded-lg border-4 border-border"
+                              />
+                            ) : (
+                              <div className="h-32 w-32 bg-muted rounded-lg border-4 border-border flex items-center justify-center">
+                                <ImageIcon className="h-12 w-12 text-muted-foreground" />
+                              </div>
+                            )}
+                            {businessImageFile && (
+                              <button
+                                type="button"
+                                onClick={handleRemoveBusinessImage}
+                                className="absolute -top-2 -right-2 h-6 w-6 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center hover:bg-destructive/90"
+                              >
+                                <X className="h-4 w-4" />
+                              </button>
+                            )}
+                          </div>
+                          <div className="flex-1 space-y-2">
+                            <input
+                              ref={businessFileInputRef}
+                              type="file"
+                              accept="image/*"
+                              onChange={handleBusinessImageSelect}
+                              className="hidden"
+                              id="business-image-upload"
+                              disabled={imageUploading}
+                            />
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => businessFileInputRef.current?.click()}
+                              className="w-full"
+                              disabled={imageUploading}
+                            >
+                              {imageUploading ? (
+                                <>
+                                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                  Uploading to Cloudinary...
+                                </>
+                              ) : (
+                                <>
+                                  <Upload className="mr-2 h-4 w-4" />
+                                  {businessImageFile ? "Change Image" : "Upload Image"}
+                                </>
+                              )}
+                            </Button>
+                            <p className="text-xs text-muted-foreground">
+                              {imageUploading
+                                ? "Please wait while we upload your image..."
+                                : "Recommended: 16:9 or square, at least 800x600px, max 5MB"}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Business Details */}
+                      <div className="border-t pt-6 space-y-4">
+                        <Label className="text-base font-semibold">Business Details</Label>
+                        
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="space-y-2 md:col-span-2">
+                            <Label htmlFor="name">
+                              Business Name <span className="text-destructive">*</span>
+                            </Label>
+                            <Input
+                              id="name"
+                              name="name"
+                              value={businessFormData.name}
+                              onChange={handleBusinessChange}
+                              placeholder="Enter business name"
+                              required
+                            />
+                          </div>
+
+                          <div className="space-y-2 md:col-span-2">
+                            <Label htmlFor="description">Description</Label>
+                            <Textarea
+                              id="description"
+                              name="description"
+                              value={businessFormData.description}
+                              onChange={handleBusinessChange}
+                              placeholder="Describe your business..."
+                              rows={3}
+                            />
+                          </div>
+
+                          <div className="space-y-2 md:col-span-2">
+                            <Label htmlFor="address">Address</Label>
+                            <Input
+                              id="address"
+                              name="address"
+                              value={businessFormData.address}
+                              onChange={handleBusinessChange}
+                              placeholder="Enter business address"
+                            />
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label htmlFor="phone">Phone</Label>
+                            <Input
+                              id="phone"
+                              name="phone"
+                              value={businessFormData.phone}
+                              onChange={handleBusinessChange}
+                              placeholder="+220 XXX XXXX"
+                            />
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label htmlFor="email">Email</Label>
+                            <Input
+                              id="email"
+                              name="email"
+                              type="email"
+                              value={businessFormData.email}
+                              onChange={handleBusinessChange}
+                              placeholder="business@example.com"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </>
+                  )}
+                </>
+              ) : (
+                <div className="text-center py-12 border-2 border-dashed rounded-lg">
+                  <Store className="h-12 w-12 mx-auto text-muted-foreground mb-3" />
+                  <p className="text-muted-foreground font-medium">No businesses registered</p>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Vendor needs to create a business in the mobile app
+                  </p>
+                </div>
+              )}
+            </>
+          )}
+
+          <DialogFooter className="border-t pt-6">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={onClose}
+              disabled={isUploading || isSaving}
+            >
               Cancel
             </Button>
-            <Button type="submit" disabled={isSaving}>
-              {isSaving ? "Saving..." : "Save Changes"}
+            <Button type="submit" disabled={isUploading || isSaving}>
+              {isUploading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Uploading Images...
+                </>
+              ) : isSaving ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Saving Changes...
+                </>
+              ) : (
+                <>
+                  <Save className="mr-2 h-4 w-4" />
+                  Save Changes
+                </>
+              )}
             </Button>
           </DialogFooter>
         </form>
@@ -1201,5 +2016,151 @@ function DeleteVendorDialog({ isOpen, onClose, onConfirm, vendorName }: any) {
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
+  );
+}
+
+function EditBusinessLocationDialog({
+  business,
+  isOpen,
+  onClose,
+  onSave,
+  isSaving,
+  selectedLocation,
+  onMapClick,
+  editedName,
+  onNameChange,
+}: any) {
+  if (!business) return null;
+
+  const getBusinessIcon = (type: string) => {
+    switch (type) {
+      case "Restaurant":
+        return <UtensilsCrossed className="h-5 w-5 text-orange-500" />;
+      case "Shop":
+        return <Package className="h-5 w-5 text-blue-500" />;
+      case "Pharmacy":
+        return <Pill className="h-5 w-5 text-red-500" />;
+      default:
+        return <Store className="h-5 w-5" />;
+    }
+  };
+
+  const hasCoordinates =
+    selectedLocation || (business.latitude && business.longitude);
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="max-w-3xl">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            {getBusinessIcon(business.type)}
+            Edit Location for {business.name}
+          </DialogTitle>
+          <DialogDescription>
+            {business.vendorName && `Vendor: ${business.vendorName}`}
+            <br />
+            Click on the map to automatically fetch address, city, and
+            coordinates
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-4">
+          {/* Business name input */}
+          <div className="space-y-2">
+            <label htmlFor="businessName" className="text-sm font-medium">
+              Business Name
+            </label>
+            <input
+              id="businessName"
+              type="text"
+              value={editedName}
+              onChange={(e) => onNameChange(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="Enter business name"
+            />
+          </div>
+
+          {/* Location details display */}
+          {hasCoordinates && (
+            <div className="p-3 bg-muted rounded-lg space-y-2">
+              <div className="text-sm font-medium">Location Details:</div>
+
+              {selectedLocation?.address && (
+                <div className="text-sm">
+                  <span className="font-medium">Address:</span>{" "}
+                  <span className="text-muted-foreground">
+                    {selectedLocation.address}
+                  </span>
+                </div>
+              )}
+
+              {selectedLocation?.city && (
+                <div className="text-sm">
+                  <span className="font-medium">City:</span>{" "}
+                  <span className="text-muted-foreground">
+                    {selectedLocation.city}
+                  </span>
+                </div>
+              )}
+
+              <div className="text-sm font-mono text-muted-foreground">
+                Latitude:{" "}
+                {selectedLocation?.lat?.toFixed(6) ||
+                  business.latitude?.toFixed(6)}
+                <br />
+                Longitude:{" "}
+                {selectedLocation?.lng?.toFixed(6) ||
+                  business.longitude?.toFixed(6)}
+              </div>
+            </div>
+          )}
+
+          {/* Interactive map */}
+          <VendorLocationsMap
+            businesses={[business]}
+            onMapClick={onMapClick}
+            clickable={true}
+            selectedLocation={selectedLocation}
+          />
+
+          {/* Instructions */}
+          <div className="flex items-start gap-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+            <MapPin className="h-5 w-5 text-blue-600 mt-0.5" />
+            <div className="text-sm text-blue-800">
+              <strong>How to set location:</strong>
+              <ul className="list-disc list-inside mt-1 space-y-1">
+                <li>Update the business name in the field above</li>
+                <li>Click anywhere on the map to set coordinates</li>
+                <li>Address and city will be automatically fetched</li>
+                <li>A red marker will appear at the selected location</li>
+                <li>Click "Save Changes" to confirm</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button
+            onClick={onSave}
+            disabled={isSaving || !selectedLocation || !editedName.trim()}
+          >
+            {isSaving ? (
+              <>
+                <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                Saving...
+              </>
+            ) : (
+              <>
+                <Save className="h-4 w-4 mr-2" />
+                Save Changes
+              </>
+            )}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

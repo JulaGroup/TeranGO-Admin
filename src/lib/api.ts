@@ -289,6 +289,27 @@ export const adminApi = {
     api.get("/api/admin/express-analytics/deliveries", { params }),
   getExpressPerformanceAnalytics: (params?: Record<string, unknown>) =>
     api.get("/api/admin/express-analytics/performance", { params }),
+
+  // Delivery Towns Management
+  getDeliveryTowns: (params?: Record<string, unknown>) =>
+    api.get("/api/admin/delivery-towns", { params }),
+  getDeliveryTownById: (id: string) =>
+    api.get(`/api/admin/delivery-towns/${id}`),
+  createDeliveryTown: (data: Record<string, unknown>) =>
+    api.post("/api/admin/delivery-towns", data),
+  updateDeliveryTown: (id: string, data: Record<string, unknown>) =>
+    api.put(`/api/admin/delivery-towns/${id}`, data),
+  deleteDeliveryTown: (id: string) =>
+    api.delete(`/api/admin/delivery-towns/${id}`),
+  toggleDeliveryTownStatus: (id: string) =>
+    api.patch(`/api/admin/delivery-towns/${id}/toggle`),
+  
+  // Generic methods for direct API calls (for flexibility)
+  get: (url: string, config?: Record<string, unknown>) => api.get(url, config),
+  post: (url: string, data?: Record<string, unknown>) => api.post(url, data),
+  put: (url: string, data?: Record<string, unknown>) => api.put(url, data),
+  patch: (url: string, data?: Record<string, unknown>) => api.patch(url, data),
+  delete: (url: string) => api.delete(url),
 };
 
 // Vendor-facing API helpers (for vendor portal pages)

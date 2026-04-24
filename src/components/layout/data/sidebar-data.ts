@@ -19,6 +19,7 @@ import {
   DollarSign,
   Wallet,
   Zap,
+  MapPin,
 } from "lucide-react";
 import { type SidebarData } from "../types";
 
@@ -98,25 +99,26 @@ export const sidebarData: SidebarData = {
           url: "/admin/orders",
           icon: ShoppingCart,
         },
-        {
-          title: "Settlements",
-          url: "/admin/settlements",
-          icon: Wallet,
-        },
-        {
-          title: "Vendor Settlements",
-          url: "/admin/vendor-settlements",
-          icon: DollarSign,
-        },
+
         {
           title: "Payments",
           url: "/admin/payments",
           icon: DollarSign,
         },
         {
+          title: "Earnings",
+          url: "/admin/earnings",
+          icon: DollarSign,
+        },
+        {
           title: "Drivers",
           url: "/drivers",
           icon: Truck,
+        },
+        {
+          title: "Vendor Settlements",
+          url: "/admin/vendor-settlements",
+          icon: DollarSign,
         },
         {
           title: "Driver Settlements",
@@ -195,6 +197,11 @@ export const sidebarData: SidebarData = {
           icon: DollarSign,
         },
         {
+          title: "Delivery Towns",
+          url: "/admin/delivery-towns",
+          icon: MapPin,
+        },
+        {
           title: "Notifications",
           url: "/admin/notifications",
           icon: Bell,
@@ -208,4 +215,3 @@ export const sidebarData: SidebarData = {
     },
   ],
 };
-

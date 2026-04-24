@@ -106,6 +106,57 @@ const BROADCAST_TYPES = [
   { value: 'SYSTEM', label: '⚙️ System', icon: Calendar, color: 'bg-gray-500' },
 ]
 
+const ENGAGEMENT_TYPES = [
+  {
+    value: 'breakfast',
+    label: '🌅 Breakfast',
+    description: 'Morning meal notifications (7 AM)',
+    color: 'bg-amber-500',
+  },
+  {
+    value: 'lunch',
+    label: '🌞 Lunch',
+    description: 'Midday meal notifications (11:30 AM)',
+    color: 'bg-orange-500',
+  },
+  {
+    value: 'dinner',
+    label: '🌆 Dinner',
+    description: 'Evening meal notifications (5:30 PM)',
+    color: 'bg-indigo-500',
+  },
+  {
+    value: 'grocery',
+    label: '🛒 Grocery',
+    description: 'Shopping reminders (10 AM & 3 PM)',
+    color: 'bg-green-500',
+  },
+  {
+    value: 'pharmacy',
+    label: '💊 Pharmacy',
+    description: 'Health & medicine reminders',
+    color: 'bg-red-500',
+  },
+  {
+    value: 'promo',
+    label: '🎉 Promotions',
+    description: 'Special deals & offers',
+    color: 'bg-pink-500',
+  },
+  {
+    value: 're_engagement',
+    label: '😴 Re-engagement',
+    description: 'Win back inactive users',
+    color: 'bg-purple-500',
+  },
+  {
+    value: 'diaspora',
+    label: '🌍 Diaspora',
+    description: 'Family support from abroad',
+    color: 'bg-blue-500',
+  },
+]
+
 const TARGET_AUDIENCES = [
   {
     value: 'ALL',
@@ -152,6 +203,8 @@ function BroadcastsPage() {
   const [body, setBody] = useState('')
   const [type, setType] = useState('MARKETING')
   const [targetAudience, setTargetAudience] = useState('ALL')
+  const [isEngagementMode, setIsEngagementMode] = useState(false)
+  const [selectedEngagementType, setSelectedEngagementType] = useState('')
 
   // Fetch broadcasts
   const { data: broadcastsData, isLoading } = useQuery({
@@ -229,6 +282,37 @@ function BroadcastsPage() {
     setBody('')
     setType('MARKETING')
     setTargetAudience('ALL')
+    setIsEngagementMode(false)
+    setSelectedEngagementType('')
+  }
+
+  const handleCreateEngagement = async () => {
+    if (!selectedEngagementType) {
+      toast.error('Please select an engagement notification type')
+      return
+    }
+
+    try {
+      const response = await api.post('/api/engagement-notifications/bulk', {
+        type: selectedEngagementType,
+      })
+      
+      queryClient.invalidateQueries({ queryKey: ['broadcasts'] })
+      toast.success('Engagement notifications sent successfully!', {
+        description: `Sent ${response.data.summary?.successCount || 0} notifications`,
+      })
+      setCreateOpen(false)
+      resetForm()
+    } catch (error: unknown) {
+      const errorMessage =
+        error instanceof Error && 'response' in error
+          ? (error as { response?: { data?: { error?: string } } }).response
+              ?.data?.error
+          : 'Please try again'
+      toast.error('Failed to send engagement notifications', {
+        description: errorMessage || 'Please try again',
+      })
+    }
   }
 
   const handleCreate = () => {
@@ -456,109 +540,191 @@ function BroadcastsPage() {
 
         {/* Create Broadcast Dialog */}
         <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-          <DialogContent className='max-w-2xl'>
+          <DialogContent className='max-w-2xl max-h-[90vh] overflow-y-auto'>
             <DialogHeader>
-              <DialogTitle>Create New Broadcast</DialogTitle>
+              <DialogTitle>
+                {isEngagementMode
+                  ? 'Send Engagement Notifications'
+                  : 'Create New Broadcast'}
+              </DialogTitle>
               <DialogDescription>
-                Send a notification to your users. Choose your audience and
-                craft your message.
+                {isEngagementMode
+                  ? 'Send automated engagement notifications with smart messaging'
+                  : 'Send a notification to your users. Choose your audience and craft your message.'}
               </DialogDescription>
             </DialogHeader>
 
             <div className='space-y-4 py-4'>
-              {/* Broadcast Type */}
-              <div className='space-y-2'>
-                <Label htmlFor='type'>Broadcast Type *</Label>
-                <Select value={type} onValueChange={setType}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {BROADCAST_TYPES.map((t) => (
-                      <SelectItem key={t.value} value={t.value}>
-                        {t.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Target Audience */}
-              <div className='space-y-2'>
-                <Label htmlFor='audience'>Target Audience *</Label>
-                <Select
-                  value={targetAudience}
-                  onValueChange={setTargetAudience}
+              {/* Mode Toggle */}
+              <div className='flex gap-2 p-1 bg-muted rounded-lg'>
+                <Button
+                  type='button'
+                  variant={!isEngagementMode ? 'default' : 'ghost'}
+                  className='flex-1'
+                  onClick={() => setIsEngagementMode(false)}
                 >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {TARGET_AUDIENCES.map((a) => (
-                      <SelectItem key={a.value} value={a.value}>
-                        <div>
-                          <div className='font-medium'>{a.label}</div>
-                          <div className='text-muted-foreground text-xs'>
-                            {a.description}
+                  📢 Custom Broadcast
+                </Button>
+                <Button
+                  type='button'
+                  variant={isEngagementMode ? 'default' : 'ghost'}
+                  className='flex-1'
+                  onClick={() => setIsEngagementMode(true)}
+                >
+                  ⚡ Engagement Notifications
+                </Button>
+              </div>
+
+              {isEngagementMode ? (
+                <>
+                  {/* Engagement Type Selection */}
+                  <div className='space-y-2'>
+                    <Label>Notification Type *</Label>
+                    <div className='grid grid-cols-2 gap-3'>
+                      {ENGAGEMENT_TYPES.map((engType) => (
+                        <Button
+                          key={engType.value}
+                          type='button'
+                          variant={
+                            selectedEngagementType === engType.value
+                              ? 'default'
+                              : 'outline'
+                          }
+                          className='h-auto justify-start p-3 text-left'
+                          onClick={() =>
+                            setSelectedEngagementType(engType.value)
+                          }
+                        >
+                          <div className='w-full'>
+                            <div className='font-medium'>{engType.label}</div>
+                            <div className='text-xs opacity-70 mt-1'>
+                              {engType.description}
+                            </div>
                           </div>
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Title */}
-              <div className='space-y-2'>
-                <Label htmlFor='title'>Notification Title *</Label>
-                <Input
-                  id='title'
-                  placeholder='e.g., 🎉 Flash Sale: 30% Off All Orders!'
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  maxLength={100}
-                />
-                <p className='text-muted-foreground text-xs'>
-                  {title.length}/100 characters
-                </p>
-              </div>
-
-              {/* Body */}
-              <div className='space-y-2'>
-                <Label htmlFor='body'>Notification Message *</Label>
-                <Textarea
-                  id='body'
-                  placeholder='e.g., Limited time only! Get 30% off your order. Use code FLASH30 at checkout. Hurry, ends tonight!'
-                  value={body}
-                  onChange={(e) => setBody(e.target.value)}
-                  rows={4}
-                  maxLength={200}
-                />
-                <p className='text-muted-foreground text-xs'>
-                  {body.length}/200 characters
-                </p>
-              </div>
-
-              {/* Preview */}
-              {title && body && (
-                <div className='bg-muted/50 rounded-lg border p-4'>
-                  <p className='text-muted-foreground mb-2 text-sm font-medium'>
-                    Preview:
-                  </p>
-                  <div className='bg-background rounded-md p-3 shadow-sm'>
-                    <div className='flex items-start gap-3'>
-                      <div className='bg-primary rounded-full p-2'>
-                        <Megaphone className='text-primary-foreground h-4 w-4' />
-                      </div>
-                      <div className='flex-1'>
-                        <p className='font-semibold'>{title}</p>
-                        <p className='text-muted-foreground mt-1 text-sm'>
-                          {body}
-                        </p>
-                      </div>
+                        </Button>
+                      ))}
                     </div>
                   </div>
-                </div>
+
+                  {/* Info Card */}
+                  {selectedEngagementType && (
+                    <div className='bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg p-4'>
+                      <div className='flex items-start gap-2'>
+                        <div className='text-blue-600 dark:text-blue-400'>
+                          ℹ️
+                        </div>
+                        <div className='flex-1'>
+                          <p className='text-sm font-medium text-blue-900 dark:text-blue-100'>
+                            Smart Messaging
+                          </p>
+                          <p className='text-xs text-blue-700 dark:text-blue-300 mt-1'>
+                            This will send notifications using our AI-optimized
+                            message templates designed for maximum engagement.
+                            Each user receives a different message variant to
+                            avoid notification fatigue.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <>
+                  {/* Broadcast Type */}
+                  <div className='space-y-2'>
+                    <Label htmlFor='type'>Broadcast Type *</Label>
+                    <Select value={type} onValueChange={setType}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {BROADCAST_TYPES.map((t) => (
+                          <SelectItem key={t.value} value={t.value}>
+                            {t.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Target Audience */}
+                  <div className='space-y-2'>
+                    <Label htmlFor='audience'>Target Audience *</Label>
+                    <Select
+                      value={targetAudience}
+                      onValueChange={setTargetAudience}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {TARGET_AUDIENCES.map((a) => (
+                          <SelectItem key={a.value} value={a.value}>
+                            <div>
+                              <div className='font-medium'>{a.label}</div>
+                              <div className='text-muted-foreground text-xs'>
+                                {a.description}
+                              </div>
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Title */}
+                  <div className='space-y-2'>
+                    <Label htmlFor='title'>Notification Title *</Label>
+                    <Input
+                      id='title'
+                      placeholder='e.g., 🎉 Flash Sale: 30% Off All Orders!'
+                      value={title}
+                      onChange={(e) => setTitle(e.target.value)}
+                      maxLength={100}
+                    />
+                    <p className='text-muted-foreground text-xs'>
+                      {title.length}/100 characters
+                    </p>
+                  </div>
+
+                  {/* Body */}
+                  <div className='space-y-2'>
+                    <Label htmlFor='body'>Notification Message *</Label>
+                    <Textarea
+                      id='body'
+                      placeholder='e.g., Limited time only! Get 30% off your order. Use code FLASH30 at checkout. Hurry, ends tonight!'
+                      value={body}
+                      onChange={(e) => setBody(e.target.value)}
+                      rows={4}
+                      maxLength={200}
+                    />
+                    <p className='text-muted-foreground text-xs'>
+                      {body.length}/200 characters
+                    </p>
+                  </div>
+
+                  {/* Preview */}
+                  {title && body && (
+                    <div className='bg-muted/50 rounded-lg border p-4'>
+                      <p className='text-muted-foreground mb-2 text-sm font-medium'>
+                        Preview:
+                      </p>
+                      <div className='bg-background rounded-md p-3 shadow-sm'>
+                        <div className='flex items-start gap-3'>
+                          <div className='bg-primary rounded-full p-2'>
+                            <Megaphone className='text-primary-foreground h-4 w-4' />
+                          </div>
+                          <div className='flex-1'>
+                            <p className='font-semibold'>{title}</p>
+                            <p className='text-muted-foreground mt-1 text-sm'>
+                              {body}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </>
               )}
             </div>
 
@@ -567,9 +733,13 @@ function BroadcastsPage() {
                 Cancel
               </Button>
               <Button
-                onClick={handleCreate}
+                onClick={
+                  isEngagementMode ? handleCreateEngagement : handleCreate
+                }
                 disabled={
-                  createMutation.isPending || !title.trim() || !body.trim()
+                  isEngagementMode
+                    ? !selectedEngagementType
+                    : createMutation.isPending || !title.trim() || !body.trim()
                 }
               >
                 {createMutation.isPending ? (
@@ -577,7 +747,9 @@ function BroadcastsPage() {
                 ) : (
                   <>
                     <Send className='mr-2 h-4 w-4' />
-                    Send Broadcast
+                    {isEngagementMode
+                      ? 'Send Engagement Notifications'
+                      : 'Send Broadcast'}
                   </>
                 )}
               </Button>
