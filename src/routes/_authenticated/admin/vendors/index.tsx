@@ -383,15 +383,25 @@ function VendorsPage() {
         phone: data.phone,
         ...(data.email ? { email: data.email } : {}),
         ...(data.waveNumber ? { waveNumber: data.waveNumber } : {}),
-        ...(data.businessType && data.businessName ? {
-          businessType: data.businessType,
-          businessName: data.businessName,
-          ...(data.businessAddress ? { businessAddress: data.businessAddress } : {}),
-          ...(data.businessPhone ? { businessPhone: data.businessPhone } : {}),
-          ...(data.businessEmail ? { businessEmail: data.businessEmail } : {}),
-          ...(data.businessDescription ? { businessDescription: data.businessDescription } : {}),
-          ...(imageUrl ? { businessImageUrl: imageUrl } : {}),
-        } : {}),
+        ...(data.businessType && data.businessName
+          ? {
+              businessType: data.businessType,
+              businessName: data.businessName,
+              ...(data.businessAddress
+                ? { businessAddress: data.businessAddress }
+                : {}),
+              ...(data.businessPhone
+                ? { businessPhone: data.businessPhone }
+                : {}),
+              ...(data.businessEmail
+                ? { businessEmail: data.businessEmail }
+                : {}),
+              ...(data.businessDescription
+                ? { businessDescription: data.businessDescription }
+                : {}),
+              ...(imageUrl ? { businessImageUrl: imageUrl } : {}),
+            }
+          : {}),
       };
       const response = await adminApi.createVendor(payload);
       return response.data;
@@ -403,7 +413,19 @@ function VendorsPage() {
       setCreateStep(1);
       setCreateImageFile(null);
       setCreateImagePreview("");
-      setCreateForm({ fullName: "", email: "", phone: "", waveNumber: "", businessType: "", businessName: "", businessAddress: "", businessPhone: "", businessEmail: "", businessDescription: "", businessImageUrl: "" });
+      setCreateForm({
+        fullName: "",
+        email: "",
+        phone: "",
+        waveNumber: "",
+        businessType: "",
+        businessName: "",
+        businessAddress: "",
+        businessPhone: "",
+        businessEmail: "",
+        businessDescription: "",
+        businessImageUrl: "",
+      });
     },
     onError: (error: any) => {
       toast.error(error.response?.data?.message || "Failed to create vendor");
@@ -672,7 +694,7 @@ function VendorsPage() {
     const firstRestaurant = vendor.restaurants?.[0];
     const firstShop = vendor.shops?.[0];
     const firstPharmacy = vendor.pharmacies?.[0];
-    
+
     return (
       firstRestaurant?.imageUrl ||
       firstShop?.imageUrl ||
@@ -683,136 +705,141 @@ function VendorsPage() {
 
   const VendorCard = ({ vendor }: { vendor: VendorWithSubscription }) => {
     const businessImage = getBusinessImage(vendor);
-    
+
     return (
-    <Card className="flex flex-col transition-all hover:shadow-lg">
-      <CardHeader className="flex flex-row items-start gap-4 space-y-0">
-        <Avatar className="h-12 w-12">
-          <AvatarImage
-            src={businessImage || vendor.user?.avatarUrl || ""}
-            alt={vendor.user?.fullName}
-          />
-          <AvatarFallback>
-            {vendor.user?.fullName
-              ?.split(" ")
-              .map((n) => n[0])
-              .join("")}
-          </AvatarFallback>
-        </Avatar>
-        <div className="flex-1">
-          <CardTitle className="text-lg">{vendor.user?.fullName}</CardTitle>
-          <CardDescription>{vendor.user?.email}</CardDescription>
-        </div>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" className="h-8 w-8">
-              <MoreHorizontal className="h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={() => handleViewDetails(vendor)}>
-              <Eye className="mr-2 h-4 w-4" /> View Details
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => handleEditVendor(vendor)}>
-              <Edit className="mr-2 h-4 w-4" /> Edit
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => handleManageSubscription(vendor)}>
-              <Crown className="mr-2 h-4 w-4" /> Manage Subscription
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => handleToggleStatus(vendor)}>
-              {vendor.isActive ? (
-                <Ban className="mr-2 h-4 w-4" />
-              ) : (
-                <CheckCircle2 className="mr-2 h-4 w-4" />
-              )}
-              {vendor.isActive ? "Deactivate" : "Activate"}
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem
-              className="text-red-600"
-              onClick={() => handleDeleteVendor(vendor)}
-            >
-              <Trash2 className="mr-2 h-4 w-4" /> Delete
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </CardHeader>
-      <CardContent className="flex-grow space-y-3">
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <Phone className="h-4 w-4" />
-          <span>{vendor.user?.phone || "No phone"}</span>
-        </div>
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <CreditCard className="h-4 w-4" />
-          <span>{vendor.waveNumber || "No Wave number"}</span>
-        </div>
-        <div className="flex items-center gap-2">
-          {getStatusBadge(vendor.isActive)}
-          {vendor.subscription?.isTrial && (
-            <Badge variant="outline" className="border-blue-500 text-blue-500">
-              Trial
-            </Badge>
-          )}
-        </div>
-        <div className="mt-2 space-y-1">
-          {getBusinessNames(vendor)
-            .slice(0, 2)
-            .map((name) => (
-              <div
-                key={name}
-                className="flex items-center gap-2 text-xs text-muted-foreground"
+      <Card className="flex flex-col transition-all hover:shadow-lg">
+        <CardHeader className="flex flex-row items-start gap-4 space-y-0">
+          <Avatar className="h-12 w-12">
+            <AvatarImage
+              src={businessImage || vendor.user?.avatarUrl || ""}
+              alt={vendor.user?.fullName}
+            />
+            <AvatarFallback>
+              {vendor.user?.fullName
+                ?.split(" ")
+                .map((n) => n[0])
+                .join("")}
+            </AvatarFallback>
+          </Avatar>
+          <div className="flex-1">
+            <CardTitle className="text-lg">{vendor.user?.fullName}</CardTitle>
+            <CardDescription>{vendor.user?.email}</CardDescription>
+          </div>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-8 w-8">
+                <MoreHorizontal className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => handleViewDetails(vendor)}>
+                <Eye className="mr-2 h-4 w-4" /> View Details
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleEditVendor(vendor)}>
+                <Edit className="mr-2 h-4 w-4" /> Edit
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                onClick={() => handleManageSubscription(vendor)}
               >
-                <Store className="h-3 w-3 flex-shrink-0" />
-                <span className="truncate">{name}</span>
-              </div>
-            ))}
-          {getBusinessNames(vendor).length > 2 && (
-            <p className="text-xs text-muted-foreground">
-              + {getBusinessNames(vendor).length - 2} more
-            </p>
-          )}
-        </div>
-      </CardContent>
-      <CardFooter className="flex justify-between text-sm text-muted-foreground">
-        <span>Businesses</span>
-        <div className="flex items-center gap-2">
-          <TooltipProvider>
-            {vendor.restaurants?.length > 0 && (
-              <Tooltip>
-                <TooltipTrigger>
-                  <UtensilsCrossed className="h-4 w-4" />
-                </TooltipTrigger>
-                <TooltipContent>
-                  {vendor.restaurants?.length ?? 0} Restaurant(s)
-                </TooltipContent>
-              </Tooltip>
+                <Crown className="mr-2 h-4 w-4" /> Manage Subscription
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleToggleStatus(vendor)}>
+                {vendor.isActive ? (
+                  <Ban className="mr-2 h-4 w-4" />
+                ) : (
+                  <CheckCircle2 className="mr-2 h-4 w-4" />
+                )}
+                {vendor.isActive ? "Deactivate" : "Activate"}
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                className="text-red-600"
+                onClick={() => handleDeleteVendor(vendor)}
+              >
+                <Trash2 className="mr-2 h-4 w-4" /> Delete
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </CardHeader>
+        <CardContent className="flex-grow space-y-3">
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <Phone className="h-4 w-4" />
+            <span>{vendor.user?.phone || "No phone"}</span>
+          </div>
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <CreditCard className="h-4 w-4" />
+            <span>{vendor.waveNumber || "No Wave number"}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            {getStatusBadge(vendor.isActive)}
+            {vendor.subscription?.isTrial && (
+              <Badge
+                variant="outline"
+                className="border-blue-500 text-blue-500"
+              >
+                Trial
+              </Badge>
             )}
-            {vendor.shops?.length > 0 && (
-              <Tooltip>
-                <TooltipTrigger>
-                  <Package className="h-4 w-4" />
-                </TooltipTrigger>
-                <TooltipContent>
-                  {vendor.shops?.length ?? 0} Shop(s)
-                </TooltipContent>
-              </Tooltip>
+          </div>
+          <div className="mt-2 space-y-1">
+            {getBusinessNames(vendor)
+              .slice(0, 2)
+              .map((name) => (
+                <div
+                  key={name}
+                  className="flex items-center gap-2 text-xs text-muted-foreground"
+                >
+                  <Store className="h-3 w-3 flex-shrink-0" />
+                  <span className="truncate">{name}</span>
+                </div>
+              ))}
+            {getBusinessNames(vendor).length > 2 && (
+              <p className="text-xs text-muted-foreground">
+                + {getBusinessNames(vendor).length - 2} more
+              </p>
             )}
-            {vendor.pharmacies?.length > 0 && (
-              <Tooltip>
-                <TooltipTrigger>
-                  <Pill className="h-4 w-4" />
-                </TooltipTrigger>
-                <TooltipContent>
-                  {vendor.pharmacies?.length ?? 0} Pharmac(y/ies)
-                </TooltipContent>
-              </Tooltip>
-            )}
-          </TooltipProvider>
-          <Badge variant="secondary">{getTotalBusinesses(vendor)}</Badge>
-        </div>
-      </CardFooter>
-    </Card>
+          </div>
+        </CardContent>
+        <CardFooter className="flex justify-between text-sm text-muted-foreground">
+          <span>Businesses</span>
+          <div className="flex items-center gap-2">
+            <TooltipProvider>
+              {vendor.restaurants?.length > 0 && (
+                <Tooltip>
+                  <TooltipTrigger>
+                    <UtensilsCrossed className="h-4 w-4" />
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    {vendor.restaurants?.length ?? 0} Restaurant(s)
+                  </TooltipContent>
+                </Tooltip>
+              )}
+              {vendor.shops?.length > 0 && (
+                <Tooltip>
+                  <TooltipTrigger>
+                    <Package className="h-4 w-4" />
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    {vendor.shops?.length ?? 0} Shop(s)
+                  </TooltipContent>
+                </Tooltip>
+              )}
+              {vendor.pharmacies?.length > 0 && (
+                <Tooltip>
+                  <TooltipTrigger>
+                    <Pill className="h-4 w-4" />
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    {vendor.pharmacies?.length ?? 0} Pharmac(y/ies)
+                  </TooltipContent>
+                </Tooltip>
+              )}
+            </TooltipProvider>
+            <Badge variant="secondary">{getTotalBusinesses(vendor)}</Badge>
+          </div>
+        </CardFooter>
+      </Card>
     );
   };
 
@@ -979,7 +1006,13 @@ function VendorsPage() {
                         <TableCell>
                           <div className="flex items-center gap-3">
                             <Avatar>
-                              <AvatarImage src={getBusinessImage(vendor) || vendor.user?.avatarUrl || ""} />
+                              <AvatarImage
+                                src={
+                                  getBusinessImage(vendor) ||
+                                  vendor.user?.avatarUrl ||
+                                  ""
+                                }
+                              />
                               <AvatarFallback>
                                 {vendor.user?.fullName
                                   ?.split(" ")
@@ -1237,20 +1270,37 @@ function VendorsPage() {
       />
 
       {/* Create Vendor Dialog */}
-      <Dialog open={isCreateOpen} onOpenChange={(open) => {
-        if (!open) {
-          setIsCreateOpen(false);
-          setCreateStep(1);
-          setCreateImageFile(null);
-          setCreateImagePreview("");
-          setCreateForm({ fullName: "", email: "", phone: "", waveNumber: "", businessType: "", businessName: "", businessAddress: "", businessPhone: "", businessEmail: "", businessDescription: "", businessImageUrl: "" });
-        }
-      }}>
+      <Dialog
+        open={isCreateOpen}
+        onOpenChange={(open) => {
+          if (!open) {
+            setIsCreateOpen(false);
+            setCreateStep(1);
+            setCreateImageFile(null);
+            setCreateImagePreview("");
+            setCreateForm({
+              fullName: "",
+              email: "",
+              phone: "",
+              waveNumber: "",
+              businessType: "",
+              businessName: "",
+              businessAddress: "",
+              businessPhone: "",
+              businessEmail: "",
+              businessDescription: "",
+              businessImageUrl: "",
+            });
+          }
+        }}
+      >
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>Create Vendor — Step {createStep} of 2</DialogTitle>
             <DialogDescription>
-              {createStep === 1 ? "Enter the vendor's personal details. They log in via OTP." : "Optionally add a business (restaurant, shop, or pharmacy)."}
+              {createStep === 1
+                ? "Enter the vendor's personal details. They log in via OTP."
+                : "Optionally add a business (restaurant, shop, or pharmacy)."}
             </DialogDescription>
           </DialogHeader>
 
@@ -1262,7 +1312,9 @@ function VendorsPage() {
                   id="create-fullName"
                   placeholder="e.g. Abdou Bah"
                   value={createForm.fullName}
-                  onChange={(e) => setCreateForm((f) => ({ ...f, fullName: e.target.value }))}
+                  onChange={(e) =>
+                    setCreateForm((f) => ({ ...f, fullName: e.target.value }))
+                  }
                 />
               </div>
               <div className="space-y-2">
@@ -1271,7 +1323,9 @@ function VendorsPage() {
                   id="create-phone"
                   placeholder="e.g. +2203001234"
                   value={createForm.phone}
-                  onChange={(e) => setCreateForm((f) => ({ ...f, phone: e.target.value }))}
+                  onChange={(e) =>
+                    setCreateForm((f) => ({ ...f, phone: e.target.value }))
+                  }
                 />
               </div>
               <div className="space-y-2">
@@ -1281,7 +1335,9 @@ function VendorsPage() {
                   type="email"
                   placeholder="vendor@example.com"
                   value={createForm.email}
-                  onChange={(e) => setCreateForm((f) => ({ ...f, email: e.target.value }))}
+                  onChange={(e) =>
+                    setCreateForm((f) => ({ ...f, email: e.target.value }))
+                  }
                 />
               </div>
               <div className="space-y-2">
@@ -1290,7 +1346,9 @@ function VendorsPage() {
                   id="create-wave"
                   placeholder="e.g. 3001234"
                   value={createForm.waveNumber}
-                  onChange={(e) => setCreateForm((f) => ({ ...f, waveNumber: e.target.value }))}
+                  onChange={(e) =>
+                    setCreateForm((f) => ({ ...f, waveNumber: e.target.value }))
+                  }
                 />
               </div>
             </div>
@@ -1303,19 +1361,38 @@ function VendorsPage() {
                 <Label>Business Type (optional)</Label>
                 <div className="grid grid-cols-3 gap-2">
                   {(["RESTAURANT", "SHOP", "PHARMACY"] as const).map((type) => {
-                    const icons = { RESTAURANT: UtensilsCrossed, SHOP: Package, PHARMACY: Pill };
-                    const colors = { RESTAURANT: "text-orange-500", SHOP: "text-green-500", PHARMACY: "text-blue-500" };
-                    const labels = { RESTAURANT: "Restaurant", SHOP: "Shop", PHARMACY: "Pharmacy" };
+                    const icons = {
+                      RESTAURANT: UtensilsCrossed,
+                      SHOP: Package,
+                      PHARMACY: Pill,
+                    };
+                    const colors = {
+                      RESTAURANT: "text-orange-500",
+                      SHOP: "text-green-500",
+                      PHARMACY: "text-blue-500",
+                    };
+                    const labels = {
+                      RESTAURANT: "Restaurant",
+                      SHOP: "Shop",
+                      PHARMACY: "Pharmacy",
+                    };
                     const Icon = icons[type];
                     const selected = createForm.businessType === type;
                     return (
                       <button
                         key={type}
                         type="button"
-                        onClick={() => setCreateForm((f) => ({ ...f, businessType: selected ? "" : type }))}
+                        onClick={() =>
+                          setCreateForm((f) => ({
+                            ...f,
+                            businessType: selected ? "" : type,
+                          }))
+                        }
                         className={cn(
                           "flex flex-col items-center gap-1 rounded-lg border-2 p-3 text-sm transition-colors",
-                          selected ? "border-primary bg-primary/5" : "border-muted hover:border-muted-foreground/40"
+                          selected
+                            ? "border-primary bg-primary/5"
+                            : "border-muted hover:border-muted-foreground/40",
                         )}
                       >
                         <Icon className={cn("h-5 w-5", colors[type])} />
@@ -1334,16 +1411,28 @@ function VendorsPage() {
                       id="create-biz-name"
                       placeholder="e.g. Kairaba Grill"
                       value={createForm.businessName}
-                      onChange={(e) => setCreateForm((f) => ({ ...f, businessName: e.target.value }))}
+                      onChange={(e) =>
+                        setCreateForm((f) => ({
+                          ...f,
+                          businessName: e.target.value,
+                        }))
+                      }
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="create-biz-address">Address (optional)</Label>
+                    <Label htmlFor="create-biz-address">
+                      Address (optional)
+                    </Label>
                     <Input
                       id="create-biz-address"
                       placeholder="e.g. Kairaba Avenue, Serrekunda"
                       value={createForm.businessAddress}
-                      onChange={(e) => setCreateForm((f) => ({ ...f, businessAddress: e.target.value }))}
+                      onChange={(e) =>
+                        setCreateForm((f) => ({
+                          ...f,
+                          businessAddress: e.target.value,
+                        }))
+                      }
                     />
                   </div>
                   <div className="grid grid-cols-2 gap-3">
@@ -1353,7 +1442,12 @@ function VendorsPage() {
                         id="create-biz-phone"
                         placeholder="+220..."
                         value={createForm.businessPhone}
-                        onChange={(e) => setCreateForm((f) => ({ ...f, businessPhone: e.target.value }))}
+                        onChange={(e) =>
+                          setCreateForm((f) => ({
+                            ...f,
+                            businessPhone: e.target.value,
+                          }))
+                        }
                       />
                     </div>
                     <div className="space-y-2">
@@ -1363,18 +1457,30 @@ function VendorsPage() {
                         type="email"
                         placeholder="biz@example.com"
                         value={createForm.businessEmail}
-                        onChange={(e) => setCreateForm((f) => ({ ...f, businessEmail: e.target.value }))}
+                        onChange={(e) =>
+                          setCreateForm((f) => ({
+                            ...f,
+                            businessEmail: e.target.value,
+                          }))
+                        }
                       />
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="create-biz-desc">Description (optional)</Label>
+                    <Label htmlFor="create-biz-desc">
+                      Description (optional)
+                    </Label>
                     <Textarea
                       id="create-biz-desc"
                       placeholder="Short description of the business..."
                       rows={2}
                       value={createForm.businessDescription}
-                      onChange={(e) => setCreateForm((f) => ({ ...f, businessDescription: e.target.value }))}
+                      onChange={(e) =>
+                        setCreateForm((f) => ({
+                          ...f,
+                          businessDescription: e.target.value,
+                        }))
+                      }
                     />
                   </div>
                   {/* Logo upload */}
@@ -1382,14 +1488,22 @@ function VendorsPage() {
                     <Label>Business Logo (optional)</Label>
                     <div
                       className="flex cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-muted p-4 transition-colors hover:border-muted-foreground/40"
-                      onClick={() => document.getElementById("create-logo-input")?.click()}
+                      onClick={() =>
+                        document.getElementById("create-logo-input")?.click()
+                      }
                     >
                       {createImagePreview ? (
-                        <img src={createImagePreview} alt="Preview" className="h-20 w-20 rounded-lg object-cover" />
+                        <img
+                          src={createImagePreview}
+                          alt="Preview"
+                          className="h-20 w-20 rounded-lg object-cover"
+                        />
                       ) : (
                         <>
                           <ImageIcon className="mb-1 h-8 w-8 text-muted-foreground" />
-                          <span className="text-sm text-muted-foreground">Click to upload logo</span>
+                          <span className="text-sm text-muted-foreground">
+                            Click to upload logo
+                          </span>
                         </>
                       )}
                     </div>
@@ -1415,29 +1529,44 @@ function VendorsPage() {
           <DialogFooter className="gap-2">
             {createStep === 1 ? (
               <>
-                <Button variant="outline" onClick={() => setIsCreateOpen(false)}>Cancel</Button>
+                <Button
+                  variant="outline"
+                  onClick={() => setIsCreateOpen(false)}
+                >
+                  Cancel
+                </Button>
                 <Button
                   onClick={() => setCreateStep(2)}
-                  disabled={!createForm.fullName.trim() || !createForm.phone.trim()}
+                  disabled={
+                    !createForm.fullName.trim() || !createForm.phone.trim()
+                  }
                 >
                   Next: Business Details
                 </Button>
               </>
             ) : (
               <>
-                <Button variant="outline" onClick={() => setCreateStep(1)}>Back</Button>
+                <Button variant="outline" onClick={() => setCreateStep(1)}>
+                  Back
+                </Button>
                 <Button
                   onClick={() => createVendorMutation.mutate(createForm)}
                   disabled={
                     createVendorMutation.isPending ||
                     isUploadingCreateImage ||
-                    (!!createForm.businessType && !createForm.businessName.trim())
+                    (!!createForm.businessType &&
+                      !createForm.businessName.trim())
                   }
                 >
-                  {(createVendorMutation.isPending || isUploadingCreateImage) ? (
-                    <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> {isUploadingCreateImage ? "Uploading..." : "Creating..."}</>
+                  {createVendorMutation.isPending || isUploadingCreateImage ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />{" "}
+                      {isUploadingCreateImage ? "Uploading..." : "Creating..."}
+                    </>
                   ) : (
-                    <><Plus className="mr-2 h-4 w-4" /> Create Vendor</>
+                    <>
+                      <Plus className="mr-2 h-4 w-4" /> Create Vendor
+                    </>
                   )}
                 </Button>
               </>
@@ -1471,7 +1600,7 @@ function VendorDetailsDialog({ vendor, isOpen, onClose }: any) {
     ...(vendor.pharmacies?.map((p: any) => ({ ...p, type: "Pharmacy" })) || []),
   ];
 
-  const businessImage = 
+  const businessImage =
     vendor.restaurants?.[0]?.imageUrl ||
     vendor.shops?.[0]?.imageUrl ||
     vendor.pharmacies?.[0]?.imageUrl ||
@@ -1635,7 +1764,7 @@ function EditVendorDialog({ vendor, isOpen, onClose, onSave, isSaving }: any) {
   const [activeTab, setActiveTab] = useState("account");
   const [selectedBusinessId, setSelectedBusinessId] = useState("");
   const queryClient = useQueryClient();
-  
+
   // Account form data
   const [formData, setFormData] = useState({
     fullName: "",
@@ -1643,7 +1772,7 @@ function EditVendorDialog({ vendor, isOpen, onClose, onSave, isSaving }: any) {
     phone: "",
     waveNumber: "",
   });
-  
+
   // Business form data
   const [businessFormData, setBusinessFormData] = useState({
     name: "",
@@ -1653,7 +1782,7 @@ function EditVendorDialog({ vendor, isOpen, onClose, onSave, isSaving }: any) {
     email: "",
     imageUrl: "",
   });
-  
+
   const [businessImageFile, setBusinessImageFile] = useState<File | null>(null);
   const [businessImagePreview, setBusinessImagePreview] = useState<string>("");
   const [isUploading, setIsUploading] = useState(false);
@@ -1664,9 +1793,11 @@ function EditVendorDialog({ vendor, isOpen, onClose, onSave, isSaving }: any) {
   const allBusinesses = useMemo(() => {
     if (!vendor) return [];
     return [
-      ...(vendor.restaurants?.map((r: any) => ({ ...r, type: "RESTAURANT" })) || []),
+      ...(vendor.restaurants?.map((r: any) => ({ ...r, type: "RESTAURANT" })) ||
+        []),
       ...(vendor.shops?.map((s: any) => ({ ...s, type: "SHOP" })) || []),
-      ...(vendor.pharmacies?.map((p: any) => ({ ...p, type: "PHARMACY" })) || []),
+      ...(vendor.pharmacies?.map((p: any) => ({ ...p, type: "PHARMACY" })) ||
+        []),
     ];
   }, [vendor]);
 
@@ -1682,7 +1813,7 @@ function EditVendorDialog({ vendor, isOpen, onClose, onSave, isSaving }: any) {
         phone: vendor.user?.phone || "",
         waveNumber: vendor.waveNumber || "",
       });
-      
+
       // Set first business as default
       if (allBusinesses.length > 0 && !selectedBusinessId) {
         setSelectedBusinessId(allBusinesses[0].id);
@@ -1708,11 +1839,18 @@ function EditVendorDialog({ vendor, isOpen, onClose, onSave, isSaving }: any) {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handleBusinessChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    setBusinessFormData({ ...businessFormData, [e.target.name]: e.target.value });
+  const handleBusinessChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
+  ) => {
+    setBusinessFormData({
+      ...businessFormData,
+      [e.target.name]: e.target.value,
+    });
   };
 
-  const handleBusinessImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleBusinessImageSelect = async (
+    e: React.ChangeEvent<HTMLInputElement>,
+  ) => {
     const file = e.target.files?.[0];
     if (!file) {
       toast.error("Please select an image file");
@@ -1758,7 +1896,10 @@ function EditVendorDialog({ vendor, isOpen, onClose, onSave, isSaving }: any) {
   const handleRemoveBusinessImage = () => {
     setBusinessImageFile(null);
     setBusinessImagePreview(selectedBusiness?.imageUrl || "");
-    setBusinessFormData((prev) => ({ ...prev, imageUrl: selectedBusiness?.imageUrl || "" }));
+    setBusinessFormData((prev) => ({
+      ...prev,
+      imageUrl: selectedBusiness?.imageUrl || "",
+    }));
     if (businessFileInputRef.current) {
       businessFileInputRef.current.value = "";
     }
@@ -1773,39 +1914,43 @@ function EditVendorDialog({ vendor, isOpen, onClose, onSave, isSaving }: any) {
       // Save vendor account data
       if (activeTab === "account") {
         onSave({ ...formData });
-      } 
+      }
       // Save business data
       else if (activeTab === "business" && selectedBusiness) {
         // Call business-specific API with correct endpoints
-        const endpoint = selectedBusiness.type === "RESTAURANT"
-          ? `/api/restaurants/${selectedBusiness.id}/details`
-          : selectedBusiness.type === "SHOP"
-          ? `/api/shops/${selectedBusiness.id}/details`
-          : `/api/pharmacies/${selectedBusiness.id}/details`;
-        
+        const endpoint =
+          selectedBusiness.type === "RESTAURANT"
+            ? `/api/restaurants/${selectedBusiness.id}/details`
+            : selectedBusiness.type === "SHOP"
+              ? `/api/shops/${selectedBusiness.id}/details`
+              : `/api/pharmacies/${selectedBusiness.id}/details`;
+
         console.log("📤 Updating business:", endpoint);
         console.log("📦 Business data:", businessFormData);
-        
-        const response = await fetch(`${import.meta.env.VITE_API_URL}${endpoint}`, {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
+
+        const response = await fetch(
+          `${import.meta.env.VITE_API_URL}${endpoint}`,
+          {
+            method: "PUT",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${localStorage.getItem("token")}`,
+            },
+            body: JSON.stringify(businessFormData),
           },
-          body: JSON.stringify(businessFormData),
-        });
-        
+        );
+
         if (!response.ok) {
           const errorData = await response.json().catch(() => ({}));
           console.error("❌ Update failed:", errorData);
           throw new Error(errorData.error || "Failed to update business");
         }
-        
+
         const updatedBusiness = await response.json();
         console.log("✅ Business updated:", updatedBusiness);
-        
+
         toast.success("Business updated successfully!");
-        
+
         // Refetch vendors to get updated data
         queryClient.invalidateQueries({ queryKey: ["vendors-all"] });
         onClose();
@@ -1843,7 +1988,7 @@ function EditVendorDialog({ vendor, isOpen, onClose, onSave, isSaving }: any) {
                 "pb-2 px-1 border-b-2 transition-colors",
                 activeTab === "account"
                   ? "border-primary text-primary font-semibold"
-                  : "border-transparent text-muted-foreground hover:text-foreground"
+                  : "border-transparent text-muted-foreground hover:text-foreground",
               )}
             >
               Account Details
@@ -1855,7 +2000,7 @@ function EditVendorDialog({ vendor, isOpen, onClose, onSave, isSaving }: any) {
                 "pb-2 px-1 border-b-2 transition-colors",
                 activeTab === "business"
                   ? "border-primary text-primary font-semibold"
-                  : "border-transparent text-muted-foreground hover:text-foreground"
+                  : "border-transparent text-muted-foreground hover:text-foreground",
               )}
             >
               Business Settings
@@ -1977,7 +2122,10 @@ function EditVendorDialog({ vendor, isOpen, onClose, onSave, isSaving }: any) {
                   {/* Business Selector */}
                   <div className="space-y-2">
                     <Label>Select Business</Label>
-                    <Select value={selectedBusinessId} onValueChange={setSelectedBusinessId}>
+                    <Select
+                      value={selectedBusinessId}
+                      onValueChange={setSelectedBusinessId}
+                    >
                       <SelectTrigger>
                         <SelectValue placeholder="Choose a business" />
                       </SelectTrigger>
@@ -1985,9 +2133,15 @@ function EditVendorDialog({ vendor, isOpen, onClose, onSave, isSaving }: any) {
                         {allBusinesses.map((business: any) => (
                           <SelectItem key={business.id} value={business.id}>
                             <div className="flex items-center gap-2">
-                              {business.type === "RESTAURANT" && <UtensilsCrossed className="h-4 w-4" />}
-                              {business.type === "SHOP" && <Package className="h-4 w-4" />}
-                              {business.type === "PHARMACY" && <Pill className="h-4 w-4" />}
+                              {business.type === "RESTAURANT" && (
+                                <UtensilsCrossed className="h-4 w-4" />
+                              )}
+                              {business.type === "SHOP" && (
+                                <Package className="h-4 w-4" />
+                              )}
+                              {business.type === "PHARMACY" && (
+                                <Pill className="h-4 w-4" />
+                              )}
                               <span>{business.name}</span>
                             </div>
                           </SelectItem>
@@ -2000,7 +2154,9 @@ function EditVendorDialog({ vendor, isOpen, onClose, onSave, isSaving }: any) {
                     <>
                       {/* Business Image */}
                       <div className="space-y-4 border-t pt-6">
-                        <Label className="text-base font-semibold">Business Logo/Image</Label>
+                        <Label className="text-base font-semibold">
+                          Business Logo/Image
+                        </Label>
                         <div className="flex items-center gap-6">
                           <div className="relative">
                             {businessImagePreview ? (
@@ -2038,7 +2194,9 @@ function EditVendorDialog({ vendor, isOpen, onClose, onSave, isSaving }: any) {
                               type="button"
                               variant="outline"
                               size="sm"
-                              onClick={() => businessFileInputRef.current?.click()}
+                              onClick={() =>
+                                businessFileInputRef.current?.click()
+                              }
                               className="w-full"
                               disabled={imageUploading}
                             >
@@ -2050,7 +2208,9 @@ function EditVendorDialog({ vendor, isOpen, onClose, onSave, isSaving }: any) {
                               ) : (
                                 <>
                                   <Upload className="mr-2 h-4 w-4" />
-                                  {businessImageFile ? "Change Image" : "Upload Image"}
+                                  {businessImageFile
+                                    ? "Change Image"
+                                    : "Upload Image"}
                                 </>
                               )}
                             </Button>
@@ -2065,12 +2225,15 @@ function EditVendorDialog({ vendor, isOpen, onClose, onSave, isSaving }: any) {
 
                       {/* Business Details */}
                       <div className="border-t pt-6 space-y-4">
-                        <Label className="text-base font-semibold">Business Details</Label>
-                        
+                        <Label className="text-base font-semibold">
+                          Business Details
+                        </Label>
+
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           <div className="space-y-2 md:col-span-2">
                             <Label htmlFor="name">
-                              Business Name <span className="text-destructive">*</span>
+                              Business Name{" "}
+                              <span className="text-destructive">*</span>
                             </Label>
                             <Input
                               id="name"
@@ -2135,7 +2298,9 @@ function EditVendorDialog({ vendor, isOpen, onClose, onSave, isSaving }: any) {
               ) : (
                 <div className="text-center py-12 border-2 border-dashed rounded-lg">
                   <Store className="h-12 w-12 mx-auto text-muted-foreground mb-3" />
-                  <p className="text-muted-foreground font-medium">No businesses registered</p>
+                  <p className="text-muted-foreground font-medium">
+                    No businesses registered
+                  </p>
                   <p className="text-sm text-muted-foreground mt-1">
                     Vendor needs to create a business in the mobile app
                   </p>
