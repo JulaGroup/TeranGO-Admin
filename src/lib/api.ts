@@ -123,6 +123,8 @@ export const adminApi = {
   getVendors: (params?: Record<string, unknown>) =>
     api.get("/api/admin/vendors", { params }),
   getVendorById: (id: string) => api.get(`/api/admin/vendors/${id}`),
+  createVendor: (data: Record<string, unknown>) =>
+    api.post("/api/admin/vendors", data),
   approveVendor: (id: string) => api.patch(`/api/admin/vendors/${id}/approve`),
   rejectVendor: (id: string, reason: string) =>
     api.patch(`/api/admin/vendors/${id}/reject`, { reason }),
@@ -155,6 +157,12 @@ export const adminApi = {
   getPayouts: (params?: Record<string, unknown>) =>
     api.get("/api/admin/payouts", { params }),
 
+  // Finance
+  getFinanceOverview: (period?: string) =>
+    api.get("/api/admin/finance/overview", {
+      params: period ? { period } : {},
+    }),
+
   // Drivers
   getDrivers: (params?: Record<string, unknown>) =>
     api.get("/api/admin/drivers", { params }),
@@ -165,7 +173,10 @@ export const adminApi = {
     api.put(`/api/admin/drivers/${id}`, data),
   updateDriverType: (
     id: string,
-    payload: { driverType: "SYSTEM" | "THIRD_PARTY"; thirdPartyRate?: number | null },
+    payload: {
+      driverType: "SYSTEM" | "THIRD_PARTY";
+      thirdPartyRate?: number | null;
+    },
   ) => api.patch(`/api/admin/drivers/${id}/type`, payload),
   deleteDriver: (id: string) => api.delete(`/api/admin/drivers/${id}`),
   approveDriver: (id: string) => api.patch(`/api/admin/drivers/${id}/approve`),
@@ -251,35 +262,37 @@ export const adminApi = {
   // Express Delivery Management
   getExpressDeliveries: (params?: Record<string, unknown>) =>
     api.get("/api/express-delivery", { params }),
-  getExpressDeliveryById: (id: string) => 
+  getExpressDeliveryById: (id: string) =>
     api.get(`/api/express-delivery/${id}`),
-  getUrgentExpressDeliveries: () =>
-    api.get("/api/express-delivery/urgent"),
+  getUrgentExpressDeliveries: () => api.get("/api/express-delivery/urgent"),
   approveExpressDeliveryForPayment: (id: string, note?: string) =>
     api.post(`/api/express-delivery/${id}/admin-approve-payment`, { note }),
   assignExpressDelivery: (id: string) =>
     api.post(`/api/express-delivery/${id}/assign`),
-  updateExpressDeliveryStatus: (id: string, status: string, data?: Record<string, unknown>) =>
-    api.put(`/api/express-delivery/${id}/status`, { status, ...data }),
+  updateExpressDeliveryStatus: (
+    id: string,
+    status: string,
+    data?: Record<string, unknown>,
+  ) => api.put(`/api/express-delivery/${id}/status`, { status, ...data }),
   confirmExpressDelivery: (id: string, reason: string) =>
     api.post(`/api/express-delivery/${id}/admin-confirm`, { reason }),
-  getExpressMetrics: () =>
-    api.get("/api/express-delivery/metrics/dashboard"),
-  
+  getExpressMetrics: () => api.get("/api/express-delivery/metrics/dashboard"),
+
   // Express Delivery Tracking
   getExpressDeliveryTracking: (id: string) =>
     api.get(`/api/express-delivery/${id}/tracking`),
   getExpressDeliveryTimeline: (id: string) =>
     api.get(`/api/express-delivery/${id}/timeline`),
-  
+
   // Express Driver Management
-  getExpressCapableDrivers: () =>
-    api.get("/api/drivers/express-capable"),
+  getExpressCapableDrivers: () => api.get("/api/drivers/express-capable"),
   updateDriverExpressCapability: (driverId: string, enabled: boolean) =>
     api.patch(`/api/admin/drivers/${driverId}/express-capability`, { enabled }),
   getExpressDriverPerformance: (driverId?: string) =>
-    api.get(`/api/admin/express-analytics/driver-performance${driverId ? `/${driverId}` : ""}`),
-  
+    api.get(
+      `/api/admin/express-analytics/driver-performance${driverId ? `/${driverId}` : ""}`,
+    ),
+
   // Express Analytics & Reports
   getExpressAnalytics: (params?: Record<string, unknown>) =>
     api.get("/api/admin/express-analytics", { params }),
@@ -303,7 +316,7 @@ export const adminApi = {
     api.delete(`/api/admin/delivery-towns/${id}`),
   toggleDeliveryTownStatus: (id: string) =>
     api.patch(`/api/admin/delivery-towns/${id}/toggle`),
-  
+
   // Generic methods for direct API calls (for flexibility)
   get: (url: string, config?: Record<string, unknown>) => api.get(url, config),
   post: (url: string, data?: Record<string, unknown>) => api.post(url, data),

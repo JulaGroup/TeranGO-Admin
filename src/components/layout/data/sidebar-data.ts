@@ -20,6 +20,7 @@ import {
   Wallet,
   Zap,
   MapPin,
+  TrendingUp,
 } from "lucide-react";
 import { type SidebarData } from "../types";
 
@@ -106,9 +107,9 @@ export const sidebarData: SidebarData = {
           icon: DollarSign,
         },
         {
-          title: "Earnings",
+          title: "Finance",
           url: "/admin/earnings",
-          icon: DollarSign,
+          icon: TrendingUp,
         },
         {
           title: "Drivers",
