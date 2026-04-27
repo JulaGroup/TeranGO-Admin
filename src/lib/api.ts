@@ -317,6 +317,20 @@ export const adminApi = {
   toggleDeliveryTownStatus: (id: string) =>
     api.patch(`/api/admin/delivery-towns/${id}/toggle`),
 
+  // Restaurants Management (Admin)
+  getRestaurants: (params?: Record<string, unknown>) =>
+    api.get("/api/admin/restaurants", { params }),
+  updateRestaurant: (id: string, data: Record<string, unknown>) =>
+    api.patch(`/api/admin/restaurants/${id}`, data),
+  deleteRestaurant: (id: string) => api.delete(`/api/admin/restaurants/${id}`),
+
+  // Shops Management (Admin)
+  getShops: (params?: Record<string, unknown>) =>
+    api.get("/api/admin/shops", { params }),
+  updateShop: (id: string, data: Record<string, unknown>) =>
+    api.patch(`/api/admin/shops/${id}`, data),
+  deleteShop: (id: string) => api.delete(`/api/admin/shops/${id}`),
+
   // Generic methods for direct API calls (for flexibility)
   get: (url: string, config?: Record<string, unknown>) => api.get(url, config),
   post: (url: string, data?: Record<string, unknown>) => api.post(url, data),
