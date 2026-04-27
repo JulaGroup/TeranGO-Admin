@@ -1,9 +1,5 @@
 import { useState, useEffect } from "react";
-import {
-  useQuery,
-  useMutation,
-  useQueryClient,
-} from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import {
   Plus,
@@ -1262,12 +1258,14 @@ function ShopProductManager({ shop }: { shop: VendorShop }) {
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
-  const {
-    data,
-    isLoading,
-    refetch,
-  } = useQuery({
-    queryKey: ["vendor-shop-products", shop.id, debouncedSearch, currentPage, PRODUCTS_PER_PAGE],
+  const { data, isLoading, refetch } = useQuery({
+    queryKey: [
+      "vendor-shop-products",
+      shop.id,
+      debouncedSearch,
+      currentPage,
+      PRODUCTS_PER_PAGE,
+    ],
     queryFn: async () => {
       const params = new URLSearchParams({
         page: String(currentPage),
@@ -1275,7 +1273,15 @@ function ShopProductManager({ shop }: { shop: VendorShop }) {
       });
       if (debouncedSearch) params.append("search", debouncedSearch);
       const response = await api.get(`/api/products/shop/${shop.id}?${params}`);
-      return response.data as { products: ShopProduct[]; pagination: { page: number; limit: number; total: number; pages: number } };
+      return response.data as {
+        products: ShopProduct[];
+        pagination: {
+          page: number;
+          limit: number;
+          total: number;
+          pages: number;
+        };
+      };
     },
     enabled: Boolean(shop.id),
   });
@@ -1632,7 +1638,8 @@ function ShopProductManager({ shop }: { shop: VendorShop }) {
         {pagination && pagination.pages > 1 && (
           <div className="flex items-center justify-between border-t border-zinc-200 dark:border-zinc-800 pt-4">
             <p className="text-sm text-zinc-500">
-              Page {pagination.page} of {pagination.pages} &mdash; {pagination.total} products
+              Page {pagination.page} of {pagination.pages} &mdash;{" "}
+              {pagination.total} products
             </p>
             <div className="flex items-center gap-2">
               <Button
@@ -1644,15 +1651,23 @@ function ShopProductManager({ shop }: { shop: VendorShop }) {
                 Previous
               </Button>
               {Array.from({ length: pagination.pages }, (_, i) => i + 1)
-                .filter((p) => Math.abs(p - pagination.page) <= 2 || p === 1 || p === pagination.pages)
+                .filter(
+                  (p) =>
+                    Math.abs(p - pagination.page) <= 2 ||
+                    p === 1 ||
+                    p === pagination.pages,
+                )
                 .reduce<(number | "...")[]>((acc, p, idx, arr) => {
-                  if (idx > 0 && p - (arr[idx - 1] as number) > 1) acc.push("...");
+                  if (idx > 0 && p - (arr[idx - 1] as number) > 1)
+                    acc.push("...");
                   acc.push(p);
                   return acc;
                 }, [])
                 .map((p, i) =>
                   p === "..." ? (
-                    <span key={`ellipsis-${i}`} className="text-zinc-400 px-1">…</span>
+                    <span key={`ellipsis-${i}`} className="text-zinc-400 px-1">
+                      …
+                    </span>
                   ) : (
                     <Button
                       key={p}
@@ -1663,12 +1678,14 @@ function ShopProductManager({ shop }: { shop: VendorShop }) {
                     >
                       {p}
                     </Button>
-                  )
+                  ),
                 )}
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => setCurrentPage((p) => Math.min(pagination.pages, p + 1))}
+                onClick={() =>
+                  setCurrentPage((p) => Math.min(pagination.pages, p + 1))
+                }
                 disabled={pagination.page >= pagination.pages}
               >
                 Next
