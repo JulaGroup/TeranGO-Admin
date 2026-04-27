@@ -181,7 +181,7 @@ function getAllowedTransitions(
     case "PREPARING":
       return ["READY"];
     case "READY":
-      return isDelivery ? ["DISPATCHED"] : ["DELIVERED"];
+      return isDelivery ? [] : ["DELIVERED"];
     default:
       return [];
   }
