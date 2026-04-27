@@ -19,6 +19,8 @@ import {
   Phone,
   User,
   Crown,
+  ArrowRight,
+  ShoppingBag,
 } from "lucide-react";
 import { toast } from "sonner";
 import { api } from "@/lib/api";
@@ -135,6 +137,83 @@ interface Driver {
     phoneNumber?: string;
   };
 }
+
+function getAllowedTransitions(
+  current: string,
+  isDelivery: boolean,
+  paymentStatus?: string,
+  isGiftOrder?: boolean,
+) {
+  const isPaid = paymentStatus === "PAID";
+  switch (current) {
+    case "PENDING":
+      return ["ACCEPTED", "CANCELLED"];
+    case "ACCEPTED":
+      return isPaid ? ["PROCESSING", "PREPARING"] : ["CANCELLED"];
+    case "PROCESSING":
+      return ["PREPARING", "READY"];
+    case "PREPARING":
+      return ["READY"];
+    case "READY":
+      return !isDelivery || isGiftOrder ? ["DELIVERED"] : [];
+    default:
+      return [];
+  }
+}
+
+const TS_STATUS_CONFIG: Record<
+  string,
+  { label: string; color: string; bg: string; icon: React.ReactNode }
+> = {
+  PENDING: {
+    label: "Pending",
+    color: "text-orange-700",
+    bg: "bg-orange-50 border-orange-200",
+    icon: <Clock className="w-3 h-3" />,
+  },
+  ACCEPTED: {
+    label: "Accepted",
+    color: "text-blue-700",
+    bg: "bg-blue-50 border-blue-200",
+    icon: <CheckCircle className="w-3 h-3" />,
+  },
+  PROCESSING: {
+    label: "Processing",
+    color: "text-purple-700",
+    bg: "bg-purple-50 border-purple-200",
+    icon: <Package className="w-3 h-3" />,
+  },
+  PREPARING: {
+    label: "Preparing",
+    color: "text-yellow-700",
+    bg: "bg-yellow-50 border-yellow-200",
+    icon: <ChefHat className="w-3 h-3" />,
+  },
+  READY: {
+    label: "Ready",
+    color: "text-green-700",
+    bg: "bg-green-50 border-green-200",
+    icon: <ShoppingBag className="w-3 h-3" />,
+  },
+  DISPATCHED: {
+    label: "Dispatched",
+    color: "text-indigo-700",
+    bg: "bg-indigo-50 border-indigo-200",
+    icon: <Truck className="w-3 h-3" />,
+  },
+  DELIVERED: {
+    label: "Delivered",
+    color: "text-gray-700",
+    bg: "bg-gray-50 border-gray-200",
+    icon: <CheckCircle className="w-3 h-3" />,
+  },
+  CANCELLED: {
+    label: "Cancelled",
+    color: "text-red-700",
+    bg: "bg-red-50 border-red-200",
+    icon: <XCircle className="w-3 h-3" />,
+  },
+};
 
 const ORDER_STATUSES = [
   { value: "PENDING", label: "Pending", color: "bg-yellow-500", icon: Clock },
@@ -390,12 +469,23 @@ function TerangoStoreOrders() {
         toast.error("Cannot cancel after payment received");
         return;
       }
-      const PAID_STATES = ["PREPARING", "PROCESSING", "READY", "DISPATCHED", "DELIVERED"];
-      if (PAID_STATES.includes(status) && selectedOrder.paymentStatus !== "PAID" && selectedOrder.paymentMethod !== "CASH") {
+      const PAID_STATES = [
+        "PREPARING",
+        "PROCESSING",
+        "READY",
+        "DISPATCHED",
+        "DELIVERED",
+      ];
+      if (
+        PAID_STATES.includes(status) &&
+        selectedOrder.paymentStatus !== "PAID" &&
+        selectedOrder.paymentMethod !== "CASH"
+      ) {
         toast.error("Order must be PAID before you can begin processing");
         return;
       }
-      if (status === "CANCELLED" && !window.confirm("Cancel this order?")) return;
+      if (status === "CANCELLED" && !window.confirm("Cancel this order?"))
+        return;
       updateStatusMutation.mutate({ orderId: selectedOrder.id, status });
     }
   };
@@ -1047,40 +1137,88 @@ function TerangoStoreOrders() {
               )}
 
               {/* Status Update */}
-              <div>
-                <h3 className="mb-2 font-semibold">Update Status</h3>
-                <p className="text-muted-foreground mb-2 text-xs">
-                  {selectedOrder.isGiftOrder
-                    ? "Gift order: confirm delivery with the driver via Slack, then click Delivered."
-                    : "Select the new status for this order."}
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  {ORDER_STATUSES.filter((s) =>
-                    ADMIN_SETTABLE_STATUSES.includes(s.value),
-                  ).map((status) => (
-                    <Button
-                      key={status.value}
-                      variant={
-                        selectedOrder.status === status.value
-                          ? "default"
-                          : "outline"
-                      }
-                      size="sm"
-                      onClick={() => handleStatusUpdate(status.value)}
-                      disabled={
-                        updateStatusMutation.isPending ||
-                        selectedOrder.status === status.value ||
-                        (status.value === "CANCELLED" && selectedOrder.paymentStatus === "PAID") ||
-                        (["PREPARING", "PROCESSING", "READY", "DISPATCHED", "DELIVERED"].includes(status.value) &&
-                          selectedOrder.paymentStatus !== "PAID" &&
-                          selectedOrder.paymentMethod !== "CASH")
-                      }
-                    >
-                      {status.label}
-                    </Button>
-                  ))}
-                </div>
-              </div>
+              {(() => {
+                const isDelivery = selectedOrder.orderType !== "PICKUP";
+                const isPaid =
+                  selectedOrder.paymentStatus === "PAID" ||
+                  selectedOrder.paymentMethod === "CASH" ||
+                  [
+                    "PREPARING",
+                    "PROCESSING",
+                    "READY",
+                    "DISPATCHED",
+                    "DELIVERED",
+                  ].includes(selectedOrder.status);
+                const transitions = getAllowedTransitions(
+                  selectedOrder.status,
+                  isDelivery,
+                  isPaid ? "PAID" : undefined,
+                  selectedOrder.isGiftOrder,
+                );
+                if (transitions.length === 0) return null;
+                return (
+                  <div className="rounded-xl border border-gray-100 overflow-hidden">
+                    <div className="px-4 py-2.5 bg-gray-50 border-b border-gray-100 flex items-center justify-between">
+                      <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                        Update Status
+                      </p>
+                      <div className="flex items-center gap-1 text-xs text-gray-400">
+                        <span>Current:</span>
+                        <span
+                          className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold border ${
+                            TS_STATUS_CONFIG[selectedOrder.status]?.bg ??
+                            "bg-gray-50 border-gray-200"
+                          } ${TS_STATUS_CONFIG[selectedOrder.status]?.color ?? "text-gray-600"}`}
+                        >
+                          {TS_STATUS_CONFIG[selectedOrder.status]?.icon}
+                          {TS_STATUS_CONFIG[selectedOrder.status]?.label ??
+                            selectedOrder.status}
+                        </span>
+                      </div>
+                    </div>
+                    {selectedOrder.isGiftOrder &&
+                      transitions.includes("DELIVERED") && (
+                        <p className="px-4 pt-3 text-xs font-medium text-pink-700">
+                          🎁 Gift order: confirm delivery with the driver via
+                          Slack, then click Delivered.
+                        </p>
+                      )}
+                    <div className="px-4 py-3 flex flex-wrap gap-2">
+                      {transitions.map((t) => {
+                        const cfg = TS_STATUS_CONFIG[t];
+                        const isCancel = t === "CANCELLED";
+                        return (
+                          <button
+                            key={t}
+                            onClick={() => handleStatusUpdate(t)}
+                            disabled={updateStatusMutation.isPending}
+                            className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold border transition-all disabled:opacity-50 ${
+                              isCancel
+                                ? "border-red-200 bg-red-50 text-red-600 hover:bg-red-100"
+                                : "border-amber-300 bg-amber-500 text-white hover:bg-amber-600 shadow-sm"
+                            }`}
+                          >
+                            {cfg?.icon}
+                            Mark as {cfg?.label ?? t}
+                            {!isCancel && <ArrowRight className="w-3 h-3" />}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    {isPaid && (
+                      <p className="px-4 pb-3 text-xs text-gray-400">
+                        Cancellation disabled — payment already received.
+                      </p>
+                    )}
+                    {!isPaid && selectedOrder.status === "ACCEPTED" && (
+                      <p className="px-4 pb-3 text-xs font-medium text-amber-600">
+                        Waiting for customer payment before you can begin
+                        processing.
+                      </p>
+                    )}
+                  </div>
+                );
+              })()}
             </div>
           )}
         </DialogContent>
