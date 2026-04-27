@@ -222,7 +222,7 @@ function VendorsPage() {
   } = useQuery({
     queryKey: ["vendors-all"],
     queryFn: async () => {
-      const response = await adminApi.getVendors({});
+      const response = await adminApi.getVendors({ limit: 500 });
       return response.data.vendors || response.data || [];
     },
   });

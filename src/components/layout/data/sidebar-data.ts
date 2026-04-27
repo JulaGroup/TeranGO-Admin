@@ -21,6 +21,7 @@ import {
   Zap,
   MapPin,
   TrendingUp,
+  UtensilsCrossed,
 } from "lucide-react";
 import { type SidebarData } from "../types";
 
@@ -84,6 +85,16 @@ export const sidebarData: SidebarData = {
           title: "Vendors",
           url: "/admin/vendors",
           icon: Store,
+        },
+        {
+          title: "Restaurants",
+          url: "/admin/restaurants",
+          icon: UtensilsCrossed,
+        },
+        {
+          title: "Shops",
+          url: "/admin/shops",
+          icon: Package,
         },
         {
           title: "Vendor Applications",

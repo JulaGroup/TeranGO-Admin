@@ -1,6 +1,5 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import {
-  useInfiniteQuery,
   useQuery,
   useMutation,
   useQueryClient,
@@ -1229,6 +1228,8 @@ function VendorMenu() {
 function ShopProductManager({ shop }: { shop: VendorShop }) {
   const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
   const [modalOpen, setModalOpen] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<ShopProduct | null>(
@@ -1249,41 +1250,38 @@ function ShopProductManager({ shop }: { shop: VendorShop }) {
   };
   const [formData, setFormData] =
     useState<ShopProductFormState>(initialFormState);
-  const loadMoreRef = useRef<HTMLDivElement>(null);
 
-  const PRODUCTS_PER_PAGE = 12;
+  const PRODUCTS_PER_PAGE = 50;
+
+  // Debounce search so we don't hammer the server on every keystroke
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchQuery);
+      setCurrentPage(1); // reset to page 1 on new search
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
 
   const {
     data,
     isLoading,
-    isFetchingNextPage,
-    hasNextPage,
-    fetchNextPage,
     refetch,
-  } = useInfiniteQuery({
-    queryKey: ["vendor-shop-products", shop.id, searchQuery, PRODUCTS_PER_PAGE],
-    queryFn: async ({ pageParam = 0 }) => {
+  } = useQuery({
+    queryKey: ["vendor-shop-products", shop.id, debouncedSearch, currentPage, PRODUCTS_PER_PAGE],
+    queryFn: async () => {
       const params = new URLSearchParams({
-        skip: String(pageParam),
-        take: String(PRODUCTS_PER_PAGE),
+        page: String(currentPage),
+        limit: String(PRODUCTS_PER_PAGE),
       });
-      if (searchQuery) {
-        params.append("search", searchQuery);
-      }
+      if (debouncedSearch) params.append("search", debouncedSearch);
       const response = await api.get(`/api/products/shop/${shop.id}?${params}`);
-      return response.data as ShopProduct[];
+      return response.data as { products: ShopProduct[]; pagination: { page: number; limit: number; total: number; pages: number } };
     },
-    getNextPageParam: (lastPage, allPages) => {
-      if (!lastPage || lastPage.length < PRODUCTS_PER_PAGE) {
-        return undefined;
-      }
-      return allPages.length * PRODUCTS_PER_PAGE;
-    },
-    initialPageParam: 0,
     enabled: Boolean(shop.id),
   });
 
-  const products = data?.pages.flat() ?? [];
+  const products = data?.products ?? [];
+  const pagination = data?.pagination;
 
   const { data: subCategories = [] } = useQuery<SubCategory[]>({
     queryKey: ["subcategories"],
@@ -1292,35 +1290,6 @@ function ShopProductManager({ shop }: { shop: VendorShop }) {
       return response.data;
     },
   });
-
-  // Intersection observer for infinite scroll with better performance
-  useEffect(() => {
-    if (!hasNextPage || isFetchingNextPage) return;
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        const first = entries[0];
-        if (first.isIntersecting && hasNextPage && !isFetchingNextPage) {
-          fetchNextPage();
-        }
-      },
-      {
-        threshold: 0.1,
-        rootMargin: "100px", // Load earlier for smoother experience
-      },
-    );
-
-    const currentRef = loadMoreRef.current;
-    if (currentRef) {
-      observer.observe(currentRef);
-    }
-
-    return () => {
-      if (currentRef) {
-        observer.unobserve(currentRef);
-      }
-    };
-  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
   const resetFormState = () => {
     setFormData(initialFormState);
@@ -1554,8 +1523,6 @@ function ShopProductManager({ shop }: { shop: VendorShop }) {
   };
 
   // Search is handled server-side via query params
-  const filteredProducts = products;
-
   const isSaving =
     createProductMutation.isPending || updateProductMutation.isPending;
 
@@ -1572,6 +1539,11 @@ function ShopProductManager({ shop }: { shop: VendorShop }) {
               <span className="font-medium text-orange-600 dark:text-orange-500">
                 {shop.name}
               </span>
+              {pagination && (
+                <span className="ml-2 text-zinc-400">
+                  ({pagination.total} total)
+                </span>
+              )}
             </p>
           </div>
           <div className="flex items-center gap-3">
@@ -1611,9 +1583,9 @@ function ShopProductManager({ shop }: { shop: VendorShop }) {
 
         {isLoading ? (
           <ProductsGridSkeleton count={12} />
-        ) : filteredProducts.length > 0 ? (
+        ) : products.length > 0 ? (
           <div className="grid gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-            {filteredProducts.map((product) => {
+            {products.map((product) => {
               const toggling =
                 availabilityMutation.isPending &&
                 availabilityMutation.variables?.id === product.id;
@@ -1656,21 +1628,52 @@ function ShopProductManager({ shop }: { shop: VendorShop }) {
           </Card>
         )}
 
-        {/* Load more trigger */}
-        {filteredProducts.length > 0 && (
-          <div ref={loadMoreRef} className="flex justify-center py-4">
-            {isFetchingNextPage && (
-              <div className="grid w-full gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-                <ProductsGridSkeleton count={3} />
-              </div>
-            )}
-            {!hasNextPage &&
-              !isFetchingNextPage &&
-              filteredProducts.length >= PRODUCTS_PER_PAGE && (
-                <p className="text-muted-foreground text-sm">
-                  All products loaded ({filteredProducts.length} total)
-                </p>
-              )}
+        {/* Pagination */}
+        {pagination && pagination.pages > 1 && (
+          <div className="flex items-center justify-between border-t border-zinc-200 dark:border-zinc-800 pt-4">
+            <p className="text-sm text-zinc-500">
+              Page {pagination.page} of {pagination.pages} &mdash; {pagination.total} products
+            </p>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                disabled={pagination.page <= 1}
+              >
+                Previous
+              </Button>
+              {Array.from({ length: pagination.pages }, (_, i) => i + 1)
+                .filter((p) => Math.abs(p - pagination.page) <= 2 || p === 1 || p === pagination.pages)
+                .reduce<(number | "...")[]>((acc, p, idx, arr) => {
+                  if (idx > 0 && p - (arr[idx - 1] as number) > 1) acc.push("...");
+                  acc.push(p);
+                  return acc;
+                }, [])
+                .map((p, i) =>
+                  p === "..." ? (
+                    <span key={`ellipsis-${i}`} className="text-zinc-400 px-1">…</span>
+                  ) : (
+                    <Button
+                      key={p}
+                      variant={p === pagination.page ? "default" : "outline"}
+                      size="sm"
+                      className="w-9"
+                      onClick={() => setCurrentPage(p as number)}
+                    >
+                      {p}
+                    </Button>
+                  )
+                )}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage((p) => Math.min(pagination.pages, p + 1))}
+                disabled={pagination.page >= pagination.pages}
+              >
+                Next
+              </Button>
+            </div>
           </div>
         )}
 
