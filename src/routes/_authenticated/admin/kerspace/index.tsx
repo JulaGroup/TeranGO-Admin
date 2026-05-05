@@ -261,7 +261,6 @@ function PropertyForm({
     address: initial?.address || "",
     city: initial?.city || "",
     region: initial?.region || "",
-    features: initial?.features?.join(", ") || "",
     furnished: initial?.furnished ?? false,
     serviced: initial?.serviced ?? false,
     isActive: initial?.isActive ?? true,
@@ -273,6 +272,8 @@ function PropertyForm({
     contactEmail: initial?.contactEmail || "",
     commissionRate: initial?.commissionRate?.toString() || "0.07",
   });
+  const [features, setFeatures] = useState<string[]>(initial?.features || []);
+  const [featureInput, setFeatureInput] = useState("");
   const [imageUrls, setImageUrls] = useState<string[]>(
     initial?.images?.map((i) => i.url) || [],
   );
@@ -296,6 +297,23 @@ function PropertyForm({
     }
   };
 
+  const addFeature = () => {
+    const val = featureInput.trim();
+    if (!val) return;
+    const parts = val
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
+    setFeatures((prev) => {
+      const next = [...prev];
+      parts.forEach((p) => {
+        if (!next.includes(p)) next.push(p);
+      });
+      return next;
+    });
+    setFeatureInput("");
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     onSubmit({
@@ -305,10 +323,7 @@ function PropertyForm({
       bathrooms: form.bathrooms ? parseInt(form.bathrooms) : null,
       area: form.area ? parseFloat(form.area) : null,
       commissionRate: parseFloat(form.commissionRate),
-      features: form.features
-        .split(",")
-        .map((f) => f.trim())
-        .filter(Boolean),
+      features,
       images: imageUrls.map((url, i) => ({
         url,
         isPrimary: i === 0,
@@ -473,13 +488,54 @@ function PropertyForm({
       </div>
 
       {/* Features */}
-      <div className="space-y-1">
-        <Label>Features (comma separated)</Label>
-        <Input
-          value={form.features}
-          onChange={(e) => set("features", e.target.value)}
-          placeholder="e.g. Parking, Generator, Solar, Borehole, Security"
-        />
+      <div className="space-y-2">
+        <Label>Features & Amenities</Label>
+        <div className="flex gap-2">
+          <Input
+            value={featureInput}
+            onChange={(e) => setFeatureInput(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                addFeature();
+              }
+              if (e.key === ",") {
+                e.preventDefault();
+                addFeature();
+              }
+            }}
+            placeholder="Type a feature, press Enter or comma to add"
+          />
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={addFeature}
+          >
+            <Plus className="h-4 w-4" />
+          </Button>
+        </div>
+        {features.length > 0 && (
+          <div className="flex flex-wrap gap-1.5 pt-1">
+            {features.map((f) => (
+              <span
+                key={f}
+                className="inline-flex items-center gap-1 bg-primary/10 text-primary text-xs font-medium px-2 py-1 rounded-full"
+              >
+                {f}
+                <button
+                  type="button"
+                  onClick={() =>
+                    setFeatures((prev) => prev.filter((x) => x !== f))
+                  }
+                  className="hover:text-destructive transition-colors"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </span>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Contact */}
