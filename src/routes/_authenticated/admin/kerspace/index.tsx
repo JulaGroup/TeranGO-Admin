@@ -572,7 +572,22 @@ function PropertyForm({
               <img
                 src={url}
                 alt=""
-                className="w-20 h-20 object-cover rounded-lg border"
+                className={cn(
+                  "w-20 h-20 object-cover rounded-lg border-2 cursor-pointer transition-all",
+                  i === 0
+                    ? "border-primary"
+                    : "border-transparent hover:border-muted-foreground",
+                )}
+                title={i === 0 ? "Cover photo" : "Click to set as cover"}
+                onClick={() => {
+                  if (i === 0) return;
+                  setImageUrls((prev) => {
+                    const next = [...prev];
+                    next.splice(i, 1);
+                    next.unshift(url);
+                    return next;
+                  });
+                }}
               />
               <button
                 type="button"
@@ -583,9 +598,13 @@ function PropertyForm({
               >
                 <X className="h-3 w-3" />
               </button>
-              {i === 0 && (
-                <span className="absolute bottom-1 left-1 bg-primary text-primary-foreground text-[9px] px-1 rounded">
+              {i === 0 ? (
+                <span className="absolute bottom-1 left-1 bg-primary text-primary-foreground text-[9px] px-1 rounded font-semibold">
                   Cover
+                </span>
+              ) : (
+                <span className="absolute bottom-1 left-1 bg-black/50 text-white text-[9px] px-1 rounded opacity-0 group-hover:opacity-100 transition-opacity">
+                  Set cover
                 </span>
               )}
             </div>
