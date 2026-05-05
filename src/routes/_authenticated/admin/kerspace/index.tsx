@@ -261,7 +261,7 @@ function PropertyForm({
     address: initial?.address || "",
     city: initial?.city || "",
     region: initial?.region || "",
-    features: initial?.features || ([] as string[]),
+    features: initial?.features?.join(", ") || "",
     furnished: initial?.furnished ?? false,
     serviced: initial?.serviced ?? false,
     isActive: initial?.isActive ?? true,
