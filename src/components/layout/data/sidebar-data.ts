@@ -22,6 +22,7 @@ import {
   MapPin,
   TrendingUp,
   UtensilsCrossed,
+  Building2,
 } from "lucide-react";
 import { type SidebarData } from "../types";
 
@@ -75,6 +76,16 @@ export const sidebarData: SidebarData = {
           title: "Express Delivery",
           url: "/express",
           icon: Zap,
+        },
+      ],
+    },
+    {
+      title: "KërSpace Real Estate",
+      items: [
+        {
+          title: "Properties",
+          url: "/admin/kerspace",
+          icon: Building2,
         },
       ],
     },

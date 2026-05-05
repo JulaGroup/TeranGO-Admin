@@ -346,4 +346,40 @@ export const vendorApi = {
     api.get("/api/vendors/payouts", { params }),
 };
 
+// ─── KërSpace Real Estate API ─────────────────────────────────────────────────
+export const kerspaceApi = {
+  // Stats
+  getStats: () => api.get("/api/admin/kerspace/stats"),
+
+  // Properties
+  getProperties: (params?: Record<string, unknown>) =>
+    api.get("/api/admin/kerspace/properties", { params }),
+  createProperty: (data: Record<string, unknown>) =>
+    api.post("/api/admin/kerspace/properties", data),
+  updateProperty: (id: string, data: Record<string, unknown>) =>
+    api.put(`/api/admin/kerspace/properties/${id}`, data),
+  deleteProperty: (id: string) =>
+    api.delete(`/api/admin/kerspace/properties/${id}`),
+
+  // Images
+  addPropertyImage: (
+    propertyId: string,
+    data: { url: string; isPrimary?: boolean; order?: number },
+  ) => api.post(`/api/admin/kerspace/properties/${propertyId}/images`, data),
+  deletePropertyImage: (imageId: string) =>
+    api.delete(`/api/admin/kerspace/properties/images/${imageId}`),
+
+  // Inquiries
+  getInquiries: (params?: Record<string, unknown>) =>
+    api.get("/api/admin/kerspace/inquiries", { params }),
+  updateInquiryStatus: (id: string, status: string) =>
+    api.patch(`/api/admin/kerspace/inquiries/${id}/status`, { status }),
+
+  // Appointments
+  getAppointments: (params?: Record<string, unknown>) =>
+    api.get("/api/admin/kerspace/appointments", { params }),
+  updateAppointmentStatus: (id: string, status: string) =>
+    api.patch(`/api/admin/kerspace/appointments/${id}/status`, { status }),
+};
+
 export default api;
