@@ -1225,6 +1225,8 @@ function ShopProductManager({ shop }: { shop: VendorShop }) {
   const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [filterAvailability, setFilterAvailability] = useState("all");
+  const [filterFeatured, setFilterFeatured] = useState("all");
   const [currentPage, setCurrentPage] = useState(1);
   const [productsPerPage, setProductsPerPage] = useState(50);
   const [modalOpen, setModalOpen] = useState(false);
@@ -1262,6 +1264,8 @@ function ShopProductManager({ shop }: { shop: VendorShop }) {
       "vendor-shop-products",
       shop.id,
       debouncedSearch,
+      filterAvailability,
+      filterFeatured,
       currentPage,
       productsPerPage,
     ],
@@ -1271,6 +1275,9 @@ function ShopProductManager({ shop }: { shop: VendorShop }) {
         limit: String(productsPerPage),
       });
       if (debouncedSearch) params.append("search", debouncedSearch);
+      if (filterAvailability !== "all")
+        params.append("isAvailable", filterAvailability);
+      if (filterFeatured !== "all") params.append("isFeatured", filterFeatured);
       const response = await api.get(`/api/products/shop/${shop.id}?${params}`);
       return response.data as {
         products: ShopProduct[];
@@ -1574,14 +1581,62 @@ function ShopProductManager({ shop }: { shop: VendorShop }) {
 
         <Card className="rounded-2xl border-zinc-200 dark:border-zinc-800 shadow-sm overflow-hidden bg-white dark:bg-zinc-900">
           <CardContent className="p-6">
-            <div className="relative">
-              <Search className="text-muted-foreground absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2" />
-              <Input
-                placeholder="Search products by name..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10"
-              />
+            <div className="flex flex-wrap gap-3">
+              <div className="relative min-w-48 flex-1">
+                <Search className="text-muted-foreground absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2" />
+                <Input
+                  placeholder="Search products by name..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+              <Select
+                value={filterAvailability}
+                onValueChange={(v) => {
+                  setFilterAvailability(v);
+                  setCurrentPage(1);
+                }}
+              >
+                <SelectTrigger className="w-40">
+                  <SelectValue placeholder="Availability" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Availability</SelectItem>
+                  <SelectItem value="true">Available</SelectItem>
+                  <SelectItem value="false">Out of Stock</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select
+                value={filterFeatured}
+                onValueChange={(v) => {
+                  setFilterFeatured(v);
+                  setCurrentPage(1);
+                }}
+              >
+                <SelectTrigger className="w-36">
+                  <SelectValue placeholder="Featured" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Products</SelectItem>
+                  <SelectItem value="true">Featured Only</SelectItem>
+                  <SelectItem value="false">Not Featured</SelectItem>
+                </SelectContent>
+              </Select>
+              {(filterAvailability !== "all" || filterFeatured !== "all") && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setFilterAvailability("all");
+                    setFilterFeatured("all");
+                    setCurrentPage(1);
+                  }}
+                  className="h-9 gap-1 text-red-500 hover:text-red-600"
+                >
+                  <X className="h-4 w-4" /> Clear
+                </Button>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -1655,63 +1710,68 @@ function ShopProductManager({ shop }: { shop: VendorShop }) {
                   className="h-8 rounded-md border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-2 py-0 text-sm text-zinc-700 dark:text-zinc-300 focus:outline-none focus:ring-2 focus:ring-orange-500"
                 >
                   {[10, 25, 50, 100, 200].map((n) => (
-                    <option key={n} value={n}>{n}</option>
+                    <option key={n} value={n}>
+                      {n}
+                    </option>
                   ))}
                 </select>
                 <span className="text-sm text-zinc-500">per page</span>
               </div>
             </div>
             {pagination.pages > 1 && (
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                disabled={pagination.page <= 1}
-              >
-                Previous
-              </Button>
-              {Array.from({ length: pagination.pages }, (_, i) => i + 1)
-                .filter(
-                  (p) =>
-                    Math.abs(p - pagination.page) <= 2 ||
-                    p === 1 ||
-                    p === pagination.pages,
-                )
-                .reduce<(number | "...")[]>((acc, p, idx, arr) => {
-                  if (idx > 0 && p - (arr[idx - 1] as number) > 1)
-                    acc.push("...");
-                  acc.push(p);
-                  return acc;
-                }, [])
-                .map((p, i) =>
-                  p === "..." ? (
-                    <span key={`ellipsis-${i}`} className="text-zinc-400 px-1">
-                      …
-                    </span>
-                  ) : (
-                    <Button
-                      key={p}
-                      variant={p === pagination.page ? "default" : "outline"}
-                      size="sm"
-                      className="w-9"
-                      onClick={() => setCurrentPage(p as number)}
-                    >
-                      {p}
-                    </Button>
-                  ),
-                )}
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() =>
-                  setCurrentPage((p) => Math.min(pagination.pages, p + 1))
-                }
-                disabled={pagination.page >= pagination.pages}
-              >
-                Next
-              </Button>
-            </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                  disabled={pagination.page <= 1}
+                >
+                  Previous
+                </Button>
+                {Array.from({ length: pagination.pages }, (_, i) => i + 1)
+                  .filter(
+                    (p) =>
+                      Math.abs(p - pagination.page) <= 2 ||
+                      p === 1 ||
+                      p === pagination.pages,
+                  )
+                  .reduce<(number | "...")[]>((acc, p, idx, arr) => {
+                    if (idx > 0 && p - (arr[idx - 1] as number) > 1)
+                      acc.push("...");
+                    acc.push(p);
+                    return acc;
+                  }, [])
+                  .map((p, i) =>
+                    p === "..." ? (
+                      <span
+                        key={`ellipsis-${i}`}
+                        className="text-zinc-400 px-1"
+                      >
+                        …
+                      </span>
+                    ) : (
+                      <Button
+                        key={p}
+                        variant={p === pagination.page ? "default" : "outline"}
+                        size="sm"
+                        className="w-9"
+                        onClick={() => setCurrentPage(p as number)}
+                      >
+                        {p}
+                      </Button>
+                    ),
+                  )}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() =>
+                    setCurrentPage((p) => Math.min(pagination.pages, p + 1))
+                  }
+                  disabled={pagination.page >= pagination.pages}
+                >
+                  Next
+                </Button>
+              </div>
             )}
           </div>
         )}
