@@ -16,6 +16,9 @@ import {
   Box,
   CheckCircle,
   XCircle,
+  Filter,
+  X,
+  CalendarDays,
 } from "lucide-react";
 import { toast } from "sonner";
 import { api } from "@/lib/api";
@@ -120,6 +123,14 @@ function TerangoProductsPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [filterSubCategory, setFilterSubCategory] = useState<string>("all");
   const [filterAvailability, setFilterAvailability] = useState<string>("all");
+  const [filterFeatured, setFilterFeatured] = useState<string>("all");
+  const [filterHasImage, setFilterHasImage] = useState<string>("all");
+  const [sortBy, setSortBy] = useState<string>("createdAt_desc");
+  const [createdFrom, setCreatedFrom] = useState("");
+  const [createdTo, setCreatedTo] = useState("");
+  const [updatedFrom, setUpdatedFrom] = useState("");
+  const [updatedTo, setUpdatedTo] = useState("");
+  const [showDateFilters, setShowDateFilters] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [productsPerPage, setProductsPerPage] = useState(50);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -154,6 +165,13 @@ function TerangoProductsPage() {
       searchQuery,
       filterSubCategory,
       filterAvailability,
+      filterFeatured,
+      filterHasImage,
+      sortBy,
+      createdFrom,
+      createdTo,
+      updatedFrom,
+      updatedTo,
       currentPage,
       productsPerPage,
     ],
@@ -164,6 +182,15 @@ function TerangoProductsPage() {
         params.append("subCategoryId", filterSubCategory);
       if (filterAvailability !== "all")
         params.append("isAvailable", filterAvailability);
+      if (filterFeatured !== "all")
+        params.append("isFeatured", filterFeatured);
+      if (filterHasImage !== "all")
+        params.append("hasImage", filterHasImage);
+      if (sortBy) params.append("sortBy", sortBy);
+      if (createdFrom) params.append("createdFrom", createdFrom);
+      if (createdTo) params.append("createdTo", createdTo);
+      if (updatedFrom) params.append("updatedFrom", updatedFrom);
+      if (updatedTo) params.append("updatedTo", updatedTo);
       params.append("limit", String(productsPerPage));
       params.append("page", String(currentPage));
 
@@ -398,6 +425,29 @@ function TerangoProductsPage() {
   const totalProducts = pagination?.total ?? products.length;
   const totalPages = pagination?.pages ?? Math.ceil(totalProducts / productsPerPage);
 
+  const hasActiveFilters =
+    filterSubCategory !== "all" ||
+    filterAvailability !== "all" ||
+    filterFeatured !== "all" ||
+    filterHasImage !== "all" ||
+    createdFrom !== "" ||
+    createdTo !== "" ||
+    updatedFrom !== "" ||
+    updatedTo !== "";
+
+  const clearAllFilters = () => {
+    setFilterSubCategory("all");
+    setFilterAvailability("all");
+    setFilterFeatured("all");
+    setFilterHasImage("all");
+    setCreatedFrom("");
+    setCreatedTo("");
+    setUpdatedFrom("");
+    setUpdatedTo("");
+    setSortBy("createdAt_desc");
+    setCurrentPage(1);
+  };
+
   return (
     <div className="container mx-auto space-y-6 p-6">
       {/* Header */}
@@ -491,58 +541,204 @@ function TerangoProductsPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="mb-4 flex flex-wrap gap-4">
-            <div className="relative flex-1">
-              <Search className="text-muted-foreground absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2" />
-              <Input
-                placeholder="Search products..."
-                value={searchQuery}
-                onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
-                className="pl-10"
-              />
-            </div>
-            <Select
-              value={filterSubCategory}
-              onValueChange={(v) => { setFilterSubCategory(v); setCurrentPage(1); }}
-            >
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Sub Category" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Categories</SelectItem>
-                {subCategories?.map((sub) => (
-                  <SelectItem key={sub.id} value={sub.id}>
-                    {sub.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Select
-              value={filterAvailability}
-              onValueChange={(v) => { setFilterAvailability(v); setCurrentPage(1); }}
-            >
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Availability" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All</SelectItem>
-                <SelectItem value="true">Available</SelectItem>
-                <SelectItem value="false">Out of Stock</SelectItem>
-              </SelectContent>
-            </Select>
-            <div className="flex items-center gap-2">
-              <span className="text-muted-foreground text-sm">Show</span>
-              <select
-                title="Products per page"
-                value={productsPerPage}
-                onChange={(e) => { setProductsPerPage(Number(e.target.value)); setCurrentPage(1); }}
-                className="h-9 rounded-md border border-input bg-background px-2 py-0 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+          <div className="mb-4 space-y-3">
+            {/* Row 1: Search + main filters */}
+            <div className="flex flex-wrap gap-3">
+              <div className="relative min-w-[200px] flex-1">
+                <Search className="text-muted-foreground absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2" />
+                <Input
+                  placeholder="Search products..."
+                  value={searchQuery}
+                  onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
+                  className="pl-10"
+                />
+              </div>
+              <Select
+                value={filterSubCategory}
+                onValueChange={(v) => { setFilterSubCategory(v); setCurrentPage(1); }}
               >
-                {[25, 50, 100, 200].map((n) => (
-                  <option key={n} value={n}>{n}</option>
-                ))}
-              </select>
-              <span className="text-muted-foreground text-sm">per page</span>
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue placeholder="Sub Category" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Categories</SelectItem>
+                  {subCategories?.map((sub) => (
+                    <SelectItem key={sub.id} value={sub.id}>
+                      {sub.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select
+                value={filterAvailability}
+                onValueChange={(v) => { setFilterAvailability(v); setCurrentPage(1); }}
+              >
+                <SelectTrigger className="w-[150px]">
+                  <SelectValue placeholder="Availability" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Availability</SelectItem>
+                  <SelectItem value="true">Available</SelectItem>
+                  <SelectItem value="false">Out of Stock</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select
+                value={filterFeatured}
+                onValueChange={(v) => { setFilterFeatured(v); setCurrentPage(1); }}
+              >
+                <SelectTrigger className="w-[140px]">
+                  <SelectValue placeholder="Featured" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Products</SelectItem>
+                  <SelectItem value="true">Featured Only</SelectItem>
+                  <SelectItem value="false">Not Featured</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select
+                value={filterHasImage}
+                onValueChange={(v) => { setFilterHasImage(v); setCurrentPage(1); }}
+              >
+                <SelectTrigger className="w-[140px]">
+                  <SelectValue placeholder="Image" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Any Image</SelectItem>
+                  <SelectItem value="true">Has Image</SelectItem>
+                  <SelectItem value="false">No Image</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select
+                value={sortBy}
+                onValueChange={(v) => { setSortBy(v); setCurrentPage(1); }}
+              >
+                <SelectTrigger className="w-[170px]">
+                  <SelectValue placeholder="Sort by" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="createdAt_desc">Newest First</SelectItem>
+                  <SelectItem value="createdAt_asc">Oldest First</SelectItem>
+                  <SelectItem value="updatedAt_desc">Recently Updated</SelectItem>
+                  <SelectItem value="updatedAt_asc">Least Recently Updated</SelectItem>
+                  <SelectItem value="name_asc">Name A–Z</SelectItem>
+                  <SelectItem value="name_desc">Name Z–A</SelectItem>
+                  <SelectItem value="price_asc">Price Low–High</SelectItem>
+                  <SelectItem value="price_desc">Price High–Low</SelectItem>
+                  <SelectItem value="stock_desc">Most Stock</SelectItem>
+                  <SelectItem value="priority_desc">Highest Priority</SelectItem>
+                </SelectContent>
+              </Select>
+              <Button
+                variant={showDateFilters ? "secondary" : "outline"}
+                size="sm"
+                onClick={() => setShowDateFilters((v) => !v)}
+                className="h-9 gap-2"
+              >
+                <CalendarDays className="h-4 w-4" />
+                Date Filters
+              </Button>
+              {hasActiveFilters && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={clearAllFilters}
+                  className="h-9 gap-1 text-red-500 hover:text-red-600"
+                >
+                  <X className="h-4 w-4" />
+                  Clear Filters
+                </Button>
+              )}
+            </div>
+
+            {/* Row 2: Date filters (collapsible) */}
+            {showDateFilters && (
+              <div className="bg-muted/40 flex flex-wrap gap-4 rounded-lg border p-4">
+                <div className="space-y-1">
+                  <label className="text-muted-foreground flex items-center gap-1 text-xs font-medium">
+                    <CalendarDays className="h-3 w-3" /> Created From
+                  </label>
+                  <input
+                    type="date"
+                    title="Created from date"
+                    value={createdFrom}
+                    onChange={(e) => { setCreatedFrom(e.target.value); setCurrentPage(1); }}
+                    className="h-9 rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-muted-foreground flex items-center gap-1 text-xs font-medium">
+                    <CalendarDays className="h-3 w-3" /> Created To
+                  </label>
+                  <input
+                    type="date"
+                    title="Created to date"
+                    value={createdTo}
+                    onChange={(e) => { setCreatedTo(e.target.value); setCurrentPage(1); }}
+                    className="h-9 rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                  />
+                </div>
+                <div className="w-px self-stretch bg-border" />
+                <div className="space-y-1">
+                  <label className="text-muted-foreground flex items-center gap-1 text-xs font-medium">
+                    <RefreshCw className="h-3 w-3" /> Updated From
+                  </label>
+                  <input
+                    type="date"
+                    title="Updated from date"
+                    value={updatedFrom}
+                    onChange={(e) => { setUpdatedFrom(e.target.value); setCurrentPage(1); }}
+                    className="h-9 rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-muted-foreground flex items-center gap-1 text-xs font-medium">
+                    <RefreshCw className="h-3 w-3" /> Updated To
+                  </label>
+                  <input
+                    type="date"
+                    title="Updated to date"
+                    value={updatedTo}
+                    onChange={(e) => { setUpdatedTo(e.target.value); setCurrentPage(1); }}
+                    className="h-9 rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                  />
+                </div>
+                {(createdFrom || createdTo || updatedFrom || updatedTo) && (
+                  <div className="flex items-end">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => { setCreatedFrom(""); setCreatedTo(""); setUpdatedFrom(""); setUpdatedTo(""); setCurrentPage(1); }}
+                      className="h-9 gap-1 text-red-500 hover:text-red-600"
+                    >
+                      <X className="h-3 w-3" /> Clear Dates
+                    </Button>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Row 3: Per page + active filter badges */}
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="flex items-center gap-2">
+                <Filter className="text-muted-foreground h-4 w-4" />
+                <span className="text-muted-foreground text-sm">Show</span>
+                <select
+                  title="Products per page"
+                  value={productsPerPage}
+                  onChange={(e) => { setProductsPerPage(Number(e.target.value)); setCurrentPage(1); }}
+                  className="h-9 rounded-md border border-input bg-background px-2 py-0 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                >
+                  {[25, 50, 100, 200].map((n) => (
+                    <option key={n} value={n}>{n}</option>
+                  ))}
+                </select>
+                <span className="text-muted-foreground text-sm">per page</span>
+              </div>
+              {hasActiveFilters && (
+                <span className="text-muted-foreground text-sm">
+                  <span className="font-medium text-foreground">{totalProducts}</span> results with active filters
+                </span>
+              )}
             </div>
           </div>
 
@@ -560,6 +756,8 @@ function TerangoProductsPage() {
                   <TableHead>Stock</TableHead>
                   <TableHead>Priority</TableHead>
                   <TableHead>Status</TableHead>
+                  <TableHead>Created</TableHead>
+                  <TableHead>Updated</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -628,6 +826,16 @@ function TerangoProductsPage() {
                       >
                         {product.isAvailable ? "Available" : "Unavailable"}
                       </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <div className="text-muted-foreground text-xs">
+                        {new Date(product.createdAt).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="text-muted-foreground text-xs">
+                        {new Date(product.updatedAt).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })}
+                      </div>
                     </TableCell>
                     <TableCell className="text-right">
                       <DropdownMenu>
