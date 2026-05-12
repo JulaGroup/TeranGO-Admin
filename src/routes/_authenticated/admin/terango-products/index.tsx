@@ -120,6 +120,8 @@ function TerangoProductsPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [filterSubCategory, setFilterSubCategory] = useState<string>("all");
   const [filterAvailability, setFilterAvailability] = useState<string>("all");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [productsPerPage, setProductsPerPage] = useState(50);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<TerangoProduct | null>(
     null,
@@ -152,6 +154,8 @@ function TerangoProductsPage() {
       searchQuery,
       filterSubCategory,
       filterAvailability,
+      currentPage,
+      productsPerPage,
     ],
     queryFn: async () => {
       const params = new URLSearchParams();
@@ -160,7 +164,8 @@ function TerangoProductsPage() {
         params.append("subCategoryId", filterSubCategory);
       if (filterAvailability !== "all")
         params.append("isAvailable", filterAvailability);
-      params.append("limit", "100");
+      params.append("limit", String(productsPerPage));
+      params.append("page", String(currentPage));
 
       const response = await api.get(`/api/admin/terango-products?${params}`);
       return response.data;
@@ -389,6 +394,9 @@ function TerangoProductsPage() {
   };
 
   const products = productsData?.products || [];
+  const pagination = productsData?.pagination;
+  const totalProducts = pagination?.total ?? products.length;
+  const totalPages = pagination?.pages ?? Math.ceil(totalProducts / productsPerPage);
 
   return (
     <div className="container mx-auto space-y-6 p-6">
@@ -489,13 +497,13 @@ function TerangoProductsPage() {
               <Input
                 placeholder="Search products..."
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
                 className="pl-10"
               />
             </div>
             <Select
               value={filterSubCategory}
-              onValueChange={setFilterSubCategory}
+              onValueChange={(v) => { setFilterSubCategory(v); setCurrentPage(1); }}
             >
               <SelectTrigger className="w-[180px]">
                 <SelectValue placeholder="Sub Category" />
@@ -511,7 +519,7 @@ function TerangoProductsPage() {
             </Select>
             <Select
               value={filterAvailability}
-              onValueChange={setFilterAvailability}
+              onValueChange={(v) => { setFilterAvailability(v); setCurrentPage(1); }}
             >
               <SelectTrigger className="w-[180px]">
                 <SelectValue placeholder="Availability" />
@@ -522,6 +530,20 @@ function TerangoProductsPage() {
                 <SelectItem value="false">Out of Stock</SelectItem>
               </SelectContent>
             </Select>
+            <div className="flex items-center gap-2">
+              <span className="text-muted-foreground text-sm">Show</span>
+              <select
+                title="Products per page"
+                value={productsPerPage}
+                onChange={(e) => { setProductsPerPage(Number(e.target.value)); setCurrentPage(1); }}
+                className="h-9 rounded-md border border-input bg-background px-2 py-0 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+              >
+                {[25, 50, 100, 200].map((n) => (
+                  <option key={n} value={n}>{n}</option>
+                ))}
+              </select>
+              <span className="text-muted-foreground text-sm">per page</span>
+            </div>
           </div>
 
           {/* Products Table */}
@@ -663,6 +685,65 @@ function TerangoProductsPage() {
                 <Plus className="mr-2 h-4 w-4" />
                 Add First Product
               </Button>
+            </div>
+          )}
+          {/* Pagination */}
+          {products.length > 0 && (
+            <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t pt-4">
+              <p className="text-muted-foreground text-sm">
+                {totalPages > 1 ? `Page ${currentPage} of ${totalPages} — ` : ""}
+                {totalProducts} product{totalProducts !== 1 ? "s" : ""}
+              </p>
+              {totalPages > 1 && (
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                    disabled={currentPage <= 1}
+                  >
+                    Previous
+                  </Button>
+                  {Array.from({ length: totalPages }, (_, i) => i + 1)
+                    .filter(
+                      (p) =>
+                        Math.abs(p - currentPage) <= 2 ||
+                        p === 1 ||
+                        p === totalPages,
+                    )
+                    .reduce<(number | "...")[]>((acc, p, idx, arr) => {
+                      if (idx > 0 && p - (arr[idx - 1] as number) > 1)
+                        acc.push("...");
+                      acc.push(p);
+                      return acc;
+                    }, [])
+                    .map((p, i) =>
+                      p === "..." ? (
+                        <span key={`ellipsis-${i}`} className="text-muted-foreground px-1">
+                          …
+                        </span>
+                      ) : (
+                        <Button
+                          key={p}
+                          variant={p === currentPage ? "default" : "outline"}
+                          size="sm"
+                          className="w-9"
+                          onClick={() => setCurrentPage(p as number)}
+                        >
+                          {p}
+                        </Button>
+                      ),
+                    )}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                    disabled={currentPage >= totalPages}
+                  >
+                    Next
+                  </Button>
+                </div>
+              )}
             </div>
           )}
         </CardContent>

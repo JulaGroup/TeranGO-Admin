@@ -1226,6 +1226,7 @@ function ShopProductManager({ shop }: { shop: VendorShop }) {
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
+  const [productsPerPage, setProductsPerPage] = useState(50);
   const [modalOpen, setModalOpen] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<ShopProduct | null>(
@@ -1247,8 +1248,6 @@ function ShopProductManager({ shop }: { shop: VendorShop }) {
   const [formData, setFormData] =
     useState<ShopProductFormState>(initialFormState);
 
-  const PRODUCTS_PER_PAGE = 50;
-
   // Debounce search so we don't hammer the server on every keystroke
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -1264,12 +1263,12 @@ function ShopProductManager({ shop }: { shop: VendorShop }) {
       shop.id,
       debouncedSearch,
       currentPage,
-      PRODUCTS_PER_PAGE,
+      productsPerPage,
     ],
     queryFn: async () => {
       const params = new URLSearchParams({
         page: String(currentPage),
-        limit: String(PRODUCTS_PER_PAGE),
+        limit: String(productsPerPage),
       });
       if (debouncedSearch) params.append("search", debouncedSearch);
       const response = await api.get(`/api/products/shop/${shop.id}?${params}`);
@@ -1635,12 +1634,34 @@ function ShopProductManager({ shop }: { shop: VendorShop }) {
         )}
 
         {/* Pagination */}
-        {pagination && pagination.pages > 1 && (
-          <div className="flex items-center justify-between border-t border-zinc-200 dark:border-zinc-800 pt-4">
-            <p className="text-sm text-zinc-500">
-              Page {pagination.page} of {pagination.pages} &mdash;{" "}
-              {pagination.total} products
-            </p>
+        {pagination && (
+          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-zinc-200 dark:border-zinc-800 pt-4">
+            <div className="flex items-center gap-3">
+              <p className="text-sm text-zinc-500">
+                {pagination.pages > 1
+                  ? `Page ${pagination.page} of ${pagination.pages} — `
+                  : ""}
+                {pagination.total} products
+              </p>
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-zinc-500">Show</span>
+                <select
+                  title="Products per page"
+                  value={productsPerPage}
+                  onChange={(e) => {
+                    setProductsPerPage(Number(e.target.value));
+                    setCurrentPage(1);
+                  }}
+                  className="h-8 rounded-md border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-2 py-0 text-sm text-zinc-700 dark:text-zinc-300 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                >
+                  {[10, 25, 50, 100, 200].map((n) => (
+                    <option key={n} value={n}>{n}</option>
+                  ))}
+                </select>
+                <span className="text-sm text-zinc-500">per page</span>
+              </div>
+            </div>
+            {pagination.pages > 1 && (
             <div className="flex items-center gap-2">
               <Button
                 variant="outline"
@@ -1691,6 +1712,7 @@ function ShopProductManager({ shop }: { shop: VendorShop }) {
                 Next
               </Button>
             </div>
+            )}
           </div>
         )}
 

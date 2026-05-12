@@ -490,6 +490,35 @@ function PropertyForm({
       {/* Features */}
       <div className="space-y-2">
         <Label>Features & Amenities</Label>
+        {/* Quick-select common amenities */}
+        <div className="flex flex-wrap gap-1.5">
+          {[
+            "Air Conditioning","Backup Power Supply","Borehole","CCTV","Elevator",
+            "Fully Fitted Kitchen","Garage","Garden","Generator","Parking Space",
+            "Security Guard","Solar Power","Swimming Pool","Water Heater","WiFi",
+          ].map((preset) => {
+            const active = features.includes(preset);
+            return (
+              <button
+                key={preset}
+                type="button"
+                onClick={() =>
+                  setFeatures((prev) =>
+                    active ? prev.filter((x) => x !== preset) : [...prev, preset]
+                  )
+                }
+                className={`text-xs px-2.5 py-1 rounded-full border transition-colors ${
+                  active
+                    ? "bg-primary text-primary-foreground border-primary"
+                    : "bg-background text-muted-foreground border-border hover:border-primary hover:text-primary"
+                }`}
+              >
+                {preset}
+              </button>
+            );
+          })}
+        </div>
+        {/* Custom feature input */}
         <div className="flex gap-2">
           <Input
             value={featureInput}
@@ -504,7 +533,7 @@ function PropertyForm({
                 addFeature();
               }
             }}
-            placeholder="Type a feature, press Enter or comma to add"
+            placeholder="Or type a custom feature, press Enter to add"
           />
           <Button
             type="button"
