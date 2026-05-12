@@ -1227,6 +1227,7 @@ function ShopProductManager({ shop }: { shop: VendorShop }) {
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [filterAvailability, setFilterAvailability] = useState("all");
   const [filterFeatured, setFilterFeatured] = useState("all");
+  const [sortBy, setSortBy] = useState("createdAt_desc");
   const [currentPage, setCurrentPage] = useState(1);
   const [productsPerPage, setProductsPerPage] = useState(50);
   const [modalOpen, setModalOpen] = useState(false);
@@ -1266,6 +1267,7 @@ function ShopProductManager({ shop }: { shop: VendorShop }) {
       debouncedSearch,
       filterAvailability,
       filterFeatured,
+      sortBy,
       currentPage,
       productsPerPage,
     ],
@@ -1278,6 +1280,7 @@ function ShopProductManager({ shop }: { shop: VendorShop }) {
       if (filterAvailability !== "all")
         params.append("isAvailable", filterAvailability);
       if (filterFeatured !== "all") params.append("isFeatured", filterFeatured);
+      params.append("sortBy", sortBy);
       const response = await api.get(`/api/products/shop/${shop.id}?${params}`);
       return response.data as {
         products: ShopProduct[];
@@ -1623,13 +1626,39 @@ function ShopProductManager({ shop }: { shop: VendorShop }) {
                   <SelectItem value="false">Not Featured</SelectItem>
                 </SelectContent>
               </Select>
-              {(filterAvailability !== "all" || filterFeatured !== "all") && (
+              <Select
+                value={sortBy}
+                onValueChange={(v) => {
+                  setSortBy(v);
+                  setCurrentPage(1);
+                }}
+              >
+                <SelectTrigger className="w-44">
+                  <SelectValue placeholder="Sort by" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="createdAt_desc">Newest First</SelectItem>
+                  <SelectItem value="createdAt_asc">Oldest First</SelectItem>
+                  <SelectItem value="updatedAt_desc">
+                    Recently Updated
+                  </SelectItem>
+                  <SelectItem value="name_asc">Name A–Z</SelectItem>
+                  <SelectItem value="name_desc">Name Z–A</SelectItem>
+                  <SelectItem value="price_asc">Price Low–High</SelectItem>
+                  <SelectItem value="price_desc">Price High–Low</SelectItem>
+                  <SelectItem value="stock_desc">Most Stock</SelectItem>
+                </SelectContent>
+              </Select>
+              {(filterAvailability !== "all" ||
+                filterFeatured !== "all" ||
+                sortBy !== "createdAt_desc") && (
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={() => {
                     setFilterAvailability("all");
                     setFilterFeatured("all");
+                    setSortBy("createdAt_desc");
                     setCurrentPage(1);
                   }}
                   className="h-9 gap-1 text-red-500 hover:text-red-600"
