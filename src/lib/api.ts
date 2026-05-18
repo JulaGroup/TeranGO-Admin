@@ -382,4 +382,36 @@ export const kerspaceApi = {
     api.patch(`/api/admin/kerspace/appointments/${id}/status`, { status }),
 };
 
+export const teranProApi = {
+  // Stats
+  getStats: () => api.get("/api/admin/teranpro/stats"),
+
+  // Categories
+  getCategories: (params?: Record<string, unknown>) =>
+    api.get("/api/admin/teranpro/categories", { params }),
+  createCategory: (data: Record<string, unknown>) =>
+    api.post("/api/admin/teranpro/categories", data),
+  updateCategory: (id: string, data: Record<string, unknown>) =>
+    api.put(`/api/admin/teranpro/categories/${id}`, data),
+  deleteCategory: (id: string) =>
+    api.delete(`/api/admin/teranpro/categories/${id}`),
+
+  // Services
+  getServices: (params?: Record<string, unknown>) =>
+    api.get("/api/admin/teranpro/services", { params }),
+  getServiceById: (id: string) => api.get(`/api/admin/teranpro/services/${id}`),
+  createService: (data: Record<string, unknown>) =>
+    api.post("/api/admin/teranpro/services", data),
+  updateService: (id: string, data: Record<string, unknown>) =>
+    api.put(`/api/admin/teranpro/services/${id}`, data),
+  deleteService: (id: string) =>
+    api.delete(`/api/admin/teranpro/services/${id}`),
+  toggleActive: (id: string) =>
+    api.patch(`/api/admin/teranpro/services/${id}/toggle-active`),
+  toggleFeatured: (id: string) =>
+    api.patch(`/api/admin/teranpro/services/${id}/toggle-featured`),
+  toggleVerified: (id: string) =>
+    api.patch(`/api/admin/teranpro/services/${id}/toggle-verified`),
+};
+
 export default api;

@@ -23,6 +23,7 @@ import {
   TrendingUp,
   UtensilsCrossed,
   Building2,
+  Briefcase,
 } from "lucide-react";
 import { type SidebarData } from "../types";
 
@@ -86,6 +87,16 @@ export const sidebarData: SidebarData = {
           title: "Properties",
           url: "/admin/kerspace",
           icon: Building2,
+        },
+      ],
+    },
+    {
+      title: "TeranPro Services",
+      items: [
+        {
+          title: "Pro Services",
+          url: "/admin/teranpro",
+          icon: Briefcase,
         },
       ],
     },

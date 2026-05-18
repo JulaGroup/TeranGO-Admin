@@ -42,6 +42,7 @@ import { Route as AuthenticatedAdminDeliverySettingsRouteImport } from './routes
 import { Route as AuthenticatedAdminVendorsIndexRouteImport } from './routes/_authenticated/admin/vendors/index'
 import { Route as AuthenticatedAdminVendorSettlementsIndexRouteImport } from './routes/_authenticated/admin/vendor-settlements/index'
 import { Route as AuthenticatedAdminVendorApplicationsIndexRouteImport } from './routes/_authenticated/admin/vendor-applications/index'
+import { Route as AuthenticatedAdminTeranproIndexRouteImport } from './routes/_authenticated/admin/teranpro/index'
 import { Route as AuthenticatedAdminTerangoStoreIndexRouteImport } from './routes/_authenticated/admin/terango-store/index'
 import { Route as AuthenticatedAdminTerangoProductsIndexRouteImport } from './routes/_authenticated/admin/terango-products/index'
 import { Route as AuthenticatedAdminSubscriptionsIndexRouteImport } from './routes/_authenticated/admin/subscriptions/index'
@@ -246,6 +247,12 @@ const AuthenticatedAdminVendorApplicationsIndexRoute =
   AuthenticatedAdminVendorApplicationsIndexRouteImport.update({
     id: '/admin/vendor-applications/',
     path: '/admin/vendor-applications/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedAdminTeranproIndexRoute =
+  AuthenticatedAdminTeranproIndexRouteImport.update({
+    id: '/admin/teranpro/',
+    path: '/admin/teranpro/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedAdminTerangoStoreIndexRoute =
@@ -479,6 +486,7 @@ export interface FileRoutesByFullPath {
   '/admin/subscriptions/': typeof AuthenticatedAdminSubscriptionsIndexRoute
   '/admin/terango-products/': typeof AuthenticatedAdminTerangoProductsIndexRoute
   '/admin/terango-store/': typeof AuthenticatedAdminTerangoStoreIndexRoute
+  '/admin/teranpro/': typeof AuthenticatedAdminTeranproIndexRoute
   '/admin/vendor-applications/': typeof AuthenticatedAdminVendorApplicationsIndexRoute
   '/admin/vendor-settlements/': typeof AuthenticatedAdminVendorSettlementsIndexRoute
   '/admin/vendors/': typeof AuthenticatedAdminVendorsIndexRoute
@@ -541,6 +549,7 @@ export interface FileRoutesByTo {
   '/admin/subscriptions': typeof AuthenticatedAdminSubscriptionsIndexRoute
   '/admin/terango-products': typeof AuthenticatedAdminTerangoProductsIndexRoute
   '/admin/terango-store': typeof AuthenticatedAdminTerangoStoreIndexRoute
+  '/admin/teranpro': typeof AuthenticatedAdminTeranproIndexRoute
   '/admin/vendor-applications': typeof AuthenticatedAdminVendorApplicationsIndexRoute
   '/admin/vendor-settlements': typeof AuthenticatedAdminVendorSettlementsIndexRoute
   '/admin/vendors': typeof AuthenticatedAdminVendorsIndexRoute
@@ -606,6 +615,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/subscriptions/': typeof AuthenticatedAdminSubscriptionsIndexRoute
   '/_authenticated/admin/terango-products/': typeof AuthenticatedAdminTerangoProductsIndexRoute
   '/_authenticated/admin/terango-store/': typeof AuthenticatedAdminTerangoStoreIndexRoute
+  '/_authenticated/admin/teranpro/': typeof AuthenticatedAdminTeranproIndexRoute
   '/_authenticated/admin/vendor-applications/': typeof AuthenticatedAdminVendorApplicationsIndexRoute
   '/_authenticated/admin/vendor-settlements/': typeof AuthenticatedAdminVendorSettlementsIndexRoute
   '/_authenticated/admin/vendors/': typeof AuthenticatedAdminVendorsIndexRoute
@@ -670,6 +680,7 @@ export interface FileRouteTypes {
     | '/admin/subscriptions/'
     | '/admin/terango-products/'
     | '/admin/terango-store/'
+    | '/admin/teranpro/'
     | '/admin/vendor-applications/'
     | '/admin/vendor-settlements/'
     | '/admin/vendors/'
@@ -732,6 +743,7 @@ export interface FileRouteTypes {
     | '/admin/subscriptions'
     | '/admin/terango-products'
     | '/admin/terango-store'
+    | '/admin/teranpro'
     | '/admin/vendor-applications'
     | '/admin/vendor-settlements'
     | '/admin/vendors'
@@ -796,6 +808,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/subscriptions/'
     | '/_authenticated/admin/terango-products/'
     | '/_authenticated/admin/terango-store/'
+    | '/_authenticated/admin/teranpro/'
     | '/_authenticated/admin/vendor-applications/'
     | '/_authenticated/admin/vendor-settlements/'
     | '/_authenticated/admin/vendors/'
@@ -1048,6 +1061,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminVendorApplicationsIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/admin/teranpro/': {
+      id: '/_authenticated/admin/teranpro/'
+      path: '/admin/teranpro'
+      fullPath: '/admin/teranpro/'
+      preLoaderRoute: typeof AuthenticatedAdminTeranproIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/admin/terango-store/': {
       id: '/_authenticated/admin/terango-store/'
       path: '/admin/terango-store'
@@ -1295,6 +1315,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdminSubscriptionsIndexRoute: typeof AuthenticatedAdminSubscriptionsIndexRoute
   AuthenticatedAdminTerangoProductsIndexRoute: typeof AuthenticatedAdminTerangoProductsIndexRoute
   AuthenticatedAdminTerangoStoreIndexRoute: typeof AuthenticatedAdminTerangoStoreIndexRoute
+  AuthenticatedAdminTeranproIndexRoute: typeof AuthenticatedAdminTeranproIndexRoute
   AuthenticatedAdminVendorApplicationsIndexRoute: typeof AuthenticatedAdminVendorApplicationsIndexRoute
   AuthenticatedAdminVendorSettlementsIndexRoute: typeof AuthenticatedAdminVendorSettlementsIndexRoute
   AuthenticatedAdminVendorsIndexRoute: typeof AuthenticatedAdminVendorsIndexRoute
@@ -1359,6 +1380,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
     AuthenticatedAdminTerangoProductsIndexRoute,
   AuthenticatedAdminTerangoStoreIndexRoute:
     AuthenticatedAdminTerangoStoreIndexRoute,
+  AuthenticatedAdminTeranproIndexRoute: AuthenticatedAdminTeranproIndexRoute,
   AuthenticatedAdminVendorApplicationsIndexRoute:
     AuthenticatedAdminVendorApplicationsIndexRoute,
   AuthenticatedAdminVendorSettlementsIndexRoute:
