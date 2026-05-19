@@ -414,4 +414,37 @@ export const teranProApi = {
     api.patch(`/api/admin/teranpro/services/${id}/toggle-verified`),
 };
 
+export const furnitureApi = {
+  // Stats
+  getStats: () => api.get("/api/admin/furniture/stats"),
+
+  // Categories
+  getCategories: (params?: Record<string, unknown>) =>
+    api.get("/api/admin/furniture/categories", { params }),
+  createCategory: (data: Record<string, unknown>) =>
+    api.post("/api/admin/furniture/categories", data),
+  updateCategory: (id: string, data: Record<string, unknown>) =>
+    api.put(`/api/admin/furniture/categories/${id}`, data),
+  deleteCategory: (id: string) =>
+    api.delete(`/api/admin/furniture/categories/${id}`),
+
+  // Listings
+  getListings: (params?: Record<string, unknown>) =>
+    api.get("/api/admin/furniture/listings", { params }),
+  getListingById: (id: string) =>
+    api.get(`/api/admin/furniture/listings/${id}`),
+  createListing: (data: Record<string, unknown>) =>
+    api.post("/api/admin/furniture/listings", data),
+  updateListing: (id: string, data: Record<string, unknown>) =>
+    api.put(`/api/admin/furniture/listings/${id}`, data),
+  deleteListing: (id: string) =>
+    api.delete(`/api/admin/furniture/listings/${id}`),
+  toggleActive: (id: string) =>
+    api.patch(`/api/admin/furniture/listings/${id}/toggle-active`),
+  toggleFeatured: (id: string) =>
+    api.patch(`/api/admin/furniture/listings/${id}/toggle-featured`),
+  toggleVerified: (id: string) =>
+    api.patch(`/api/admin/furniture/listings/${id}/toggle-verified`),
+};
+
 export default api;

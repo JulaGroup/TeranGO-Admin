@@ -24,6 +24,7 @@ import {
   UtensilsCrossed,
   Building2,
   Briefcase,
+  Sofa,
 } from "lucide-react";
 import { type SidebarData } from "../types";
 
@@ -97,6 +98,27 @@ export const sidebarData: SidebarData = {
           title: "Pro Services",
           url: "/admin/teranpro",
           icon: Briefcase,
+        },
+
+        {
+          title: "Furniture Marketplace",
+          items: [
+            {
+              title: "Furniture",
+              url: "/admin/furniture",
+              icon: Sofa,
+            },
+          ],
+        },
+      ],
+    },
+    {
+      title: "Furniture Marketplace",
+      items: [
+        {
+          title: "Furniture",
+          url: "/admin/furniture",
+          icon: Sofa,
         },
       ],
     },

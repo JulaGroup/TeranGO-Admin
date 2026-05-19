@@ -57,6 +57,7 @@ import { Route as AuthenticatedAdminPaymentsIndexRouteImport } from './routes/_a
 import { Route as AuthenticatedAdminOrdersIndexRouteImport } from './routes/_authenticated/admin/orders/index'
 import { Route as AuthenticatedAdminNotificationsIndexRouteImport } from './routes/_authenticated/admin/notifications/index'
 import { Route as AuthenticatedAdminKerspaceIndexRouteImport } from './routes/_authenticated/admin/kerspace/index'
+import { Route as AuthenticatedAdminFurnitureIndexRouteImport } from './routes/_authenticated/admin/furniture/index'
 import { Route as AuthenticatedAdminFeaturedIndexRouteImport } from './routes/_authenticated/admin/featured/index'
 import { Route as AuthenticatedAdminExpressIndexRouteImport } from './routes/_authenticated/admin/express/index'
 import { Route as AuthenticatedAdminEarningsIndexRouteImport } from './routes/_authenticated/admin/earnings/index'
@@ -339,6 +340,12 @@ const AuthenticatedAdminKerspaceIndexRoute =
     path: '/admin/kerspace/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedAdminFurnitureIndexRoute =
+  AuthenticatedAdminFurnitureIndexRouteImport.update({
+    id: '/admin/furniture/',
+    path: '/admin/furniture/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedAdminFeaturedIndexRoute =
   AuthenticatedAdminFeaturedIndexRouteImport.update({
     id: '/admin/featured/',
@@ -472,6 +479,7 @@ export interface FileRoutesByFullPath {
   '/admin/earnings/': typeof AuthenticatedAdminEarningsIndexRoute
   '/admin/express/': typeof AuthenticatedAdminExpressIndexRoute
   '/admin/featured/': typeof AuthenticatedAdminFeaturedIndexRoute
+  '/admin/furniture/': typeof AuthenticatedAdminFurnitureIndexRoute
   '/admin/kerspace/': typeof AuthenticatedAdminKerspaceIndexRoute
   '/admin/notifications/': typeof AuthenticatedAdminNotificationsIndexRoute
   '/admin/orders/': typeof AuthenticatedAdminOrdersIndexRoute
@@ -535,6 +543,7 @@ export interface FileRoutesByTo {
   '/admin/earnings': typeof AuthenticatedAdminEarningsIndexRoute
   '/admin/express': typeof AuthenticatedAdminExpressIndexRoute
   '/admin/featured': typeof AuthenticatedAdminFeaturedIndexRoute
+  '/admin/furniture': typeof AuthenticatedAdminFurnitureIndexRoute
   '/admin/kerspace': typeof AuthenticatedAdminKerspaceIndexRoute
   '/admin/notifications': typeof AuthenticatedAdminNotificationsIndexRoute
   '/admin/orders': typeof AuthenticatedAdminOrdersIndexRoute
@@ -601,6 +610,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/earnings/': typeof AuthenticatedAdminEarningsIndexRoute
   '/_authenticated/admin/express/': typeof AuthenticatedAdminExpressIndexRoute
   '/_authenticated/admin/featured/': typeof AuthenticatedAdminFeaturedIndexRoute
+  '/_authenticated/admin/furniture/': typeof AuthenticatedAdminFurnitureIndexRoute
   '/_authenticated/admin/kerspace/': typeof AuthenticatedAdminKerspaceIndexRoute
   '/_authenticated/admin/notifications/': typeof AuthenticatedAdminNotificationsIndexRoute
   '/_authenticated/admin/orders/': typeof AuthenticatedAdminOrdersIndexRoute
@@ -666,6 +676,7 @@ export interface FileRouteTypes {
     | '/admin/earnings/'
     | '/admin/express/'
     | '/admin/featured/'
+    | '/admin/furniture/'
     | '/admin/kerspace/'
     | '/admin/notifications/'
     | '/admin/orders/'
@@ -729,6 +740,7 @@ export interface FileRouteTypes {
     | '/admin/earnings'
     | '/admin/express'
     | '/admin/featured'
+    | '/admin/furniture'
     | '/admin/kerspace'
     | '/admin/notifications'
     | '/admin/orders'
@@ -794,6 +806,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/earnings/'
     | '/_authenticated/admin/express/'
     | '/_authenticated/admin/featured/'
+    | '/_authenticated/admin/furniture/'
     | '/_authenticated/admin/kerspace/'
     | '/_authenticated/admin/notifications/'
     | '/_authenticated/admin/orders/'
@@ -1166,6 +1179,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminKerspaceIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/admin/furniture/': {
+      id: '/_authenticated/admin/furniture/'
+      path: '/admin/furniture'
+      fullPath: '/admin/furniture/'
+      preLoaderRoute: typeof AuthenticatedAdminFurnitureIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/admin/featured/': {
       id: '/_authenticated/admin/featured/'
       path: '/admin/featured'
@@ -1301,6 +1321,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdminEarningsIndexRoute: typeof AuthenticatedAdminEarningsIndexRoute
   AuthenticatedAdminExpressIndexRoute: typeof AuthenticatedAdminExpressIndexRoute
   AuthenticatedAdminFeaturedIndexRoute: typeof AuthenticatedAdminFeaturedIndexRoute
+  AuthenticatedAdminFurnitureIndexRoute: typeof AuthenticatedAdminFurnitureIndexRoute
   AuthenticatedAdminKerspaceIndexRoute: typeof AuthenticatedAdminKerspaceIndexRoute
   AuthenticatedAdminNotificationsIndexRoute: typeof AuthenticatedAdminNotificationsIndexRoute
   AuthenticatedAdminOrdersIndexRoute: typeof AuthenticatedAdminOrdersIndexRoute
@@ -1358,6 +1379,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAdminEarningsIndexRoute: AuthenticatedAdminEarningsIndexRoute,
   AuthenticatedAdminExpressIndexRoute: AuthenticatedAdminExpressIndexRoute,
   AuthenticatedAdminFeaturedIndexRoute: AuthenticatedAdminFeaturedIndexRoute,
+  AuthenticatedAdminFurnitureIndexRoute: AuthenticatedAdminFurnitureIndexRoute,
   AuthenticatedAdminKerspaceIndexRoute: AuthenticatedAdminKerspaceIndexRoute,
   AuthenticatedAdminNotificationsIndexRoute:
     AuthenticatedAdminNotificationsIndexRoute,
