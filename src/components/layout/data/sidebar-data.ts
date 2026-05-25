@@ -25,6 +25,7 @@ import {
   Building2,
   Briefcase,
   Sofa,
+  Wrench,
 } from "lucide-react";
 import { type SidebarData } from "../types";
 
@@ -261,6 +262,11 @@ export const sidebarData: SidebarData = {
           title: "Notifications",
           url: "/admin/notifications",
           icon: Bell,
+        },
+        {
+          title: "Maintenance",
+          url: "/admin/maintenance",
+          icon: Wrench,
         },
         {
           title: "Settings",

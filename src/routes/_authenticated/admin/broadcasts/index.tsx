@@ -1,7 +1,7 @@
-import { useState } from 'react'
-import { format } from 'date-fns'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { createFileRoute } from '@tanstack/react-router'
+import { useState } from "react";
+import { format } from "date-fns";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { createFileRoute } from "@tanstack/react-router";
 import {
   Send,
   Megaphone,
@@ -16,18 +16,18 @@ import {
   CheckCircle,
   XCircle,
   Clock,
-} from 'lucide-react'
-import { toast } from 'sonner'
-import { api } from '@/lib/api'
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
+} from "lucide-react";
+import { toast } from "sonner";
+import { api } from "@/lib/api";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from '@/components/ui/card'
+} from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -35,16 +35,16 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select'
+} from "@/components/ui/select";
 import {
   Table,
   TableBody,
@@ -52,273 +52,277 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui/table'
-import { Textarea } from '@/components/ui/textarea'
-import { Header } from '@/components/layout/header'
-import { Main } from '@/components/layout/main'
-import { TopNav } from '@/components/layout/top-nav'
-import { ProfileDropdown } from '@/components/profile-dropdown'
-import { ThemeSwitch } from '@/components/theme-switch'
+} from "@/components/ui/table";
+import { Textarea } from "@/components/ui/textarea";
+import { Header } from "@/components/layout/header";
+import { Main } from "@/components/layout/main";
+import { TopNav } from "@/components/layout/top-nav";
+import { ProfileDropdown } from "@/components/profile-dropdown";
+import { ThemeSwitch } from "@/components/theme-switch";
 
-export const Route = createFileRoute('/_authenticated/admin/broadcasts/')({
+export const Route = createFileRoute("/_authenticated/admin/broadcasts/")({
   component: BroadcastsPage,
-})
+});
 
 const topNav = [
-  { title: 'Broadcasts', href: '/admin/broadcasts', isActive: true },
-  { title: 'Analytics', href: '/admin/broadcasts/analytics', isActive: false },
-]
+  { title: "Broadcasts", href: "/admin/broadcasts", isActive: true },
+  { title: "Analytics", href: "/admin/broadcasts/analytics", isActive: false },
+];
 
 interface Broadcast {
-  id: string
-  type: string
-  title: string
-  body: string
-  targetAudience: string
-  sentCount: number
-  failureCount: number
-  scheduledFor: string
-  sentAt: string
-  createdAt: string
-  metadata?: Record<string, unknown>
+  id: string;
+  type: string;
+  title: string;
+  body: string;
+  targetAudience: string;
+  sentCount: number;
+  failureCount: number;
+  scheduledFor: string;
+  sentAt: string;
+  createdAt: string;
+  metadata?: Record<string, unknown>;
 }
 
 const BROADCAST_TYPES = [
   {
-    value: 'MARKETING',
-    label: '📢 Marketing',
+    value: "MARKETING",
+    label: "📢 Marketing",
     icon: Megaphone,
-    color: 'bg-blue-500',
+    color: "bg-blue-500",
   },
   {
-    value: 'DEAL',
-    label: '🎁 Special Offer',
+    value: "DEAL",
+    label: "🎁 Special Offer",
     icon: TrendingUp,
-    color: 'bg-green-500',
+    color: "bg-green-500",
   },
   {
-    value: 'ANNOUNCEMENT',
-    label: '📣 Announcement',
+    value: "ANNOUNCEMENT",
+    label: "📣 Announcement",
     icon: Users,
-    color: 'bg-purple-500',
+    color: "bg-purple-500",
   },
-  { value: 'ALERT', label: '⚠️ Alert', icon: Send, color: 'bg-orange-500' },
-  { value: 'SYSTEM', label: '⚙️ System', icon: Calendar, color: 'bg-gray-500' },
-]
+  { value: "ALERT", label: "⚠️ Alert", icon: Send, color: "bg-orange-500" },
+  { value: "SYSTEM", label: "⚙️ System", icon: Calendar, color: "bg-gray-500" },
+];
 
 const ENGAGEMENT_TYPES = [
   {
-    value: 'breakfast',
-    label: '🌅 Breakfast',
-    description: 'Morning meal notifications (7 AM)',
-    color: 'bg-amber-500',
+    value: "breakfast",
+    label: "🌅 Breakfast",
+    description: "Morning meal notifications (7 AM)",
+    color: "bg-amber-500",
   },
   {
-    value: 'lunch',
-    label: '🌞 Lunch',
-    description: 'Midday meal notifications (11:30 AM)',
-    color: 'bg-orange-500',
+    value: "lunch",
+    label: "🌞 Lunch",
+    description: "Midday meal notifications (11:30 AM)",
+    color: "bg-orange-500",
   },
   {
-    value: 'dinner',
-    label: '🌆 Dinner',
-    description: 'Evening meal notifications (5:30 PM)',
-    color: 'bg-indigo-500',
+    value: "dinner",
+    label: "🌆 Dinner",
+    description: "Evening meal notifications (5:30 PM)",
+    color: "bg-indigo-500",
   },
   {
-    value: 'grocery',
-    label: '🛒 Grocery',
-    description: 'Shopping reminders (10 AM & 3 PM)',
-    color: 'bg-green-500',
+    value: "grocery",
+    label: "🛒 Grocery",
+    description: "Shopping reminders (10 AM & 3 PM)",
+    color: "bg-green-500",
   },
   {
-    value: 'pharmacy',
-    label: '💊 Pharmacy',
-    description: 'Health & medicine reminders',
-    color: 'bg-red-500',
+    value: "pharmacy",
+    label: "💊 Pharmacy",
+    description: "Health & medicine reminders",
+    color: "bg-red-500",
   },
   {
-    value: 'promo',
-    label: '🎉 Promotions',
-    description: 'Special deals & offers',
-    color: 'bg-pink-500',
+    value: "promo",
+    label: "🎉 Promotions",
+    description: "Special deals & offers",
+    color: "bg-pink-500",
   },
   {
-    value: 're_engagement',
-    label: '😴 Re-engagement',
-    description: 'Win back inactive users',
-    color: 'bg-purple-500',
+    value: "re_engagement",
+    label: "😴 Re-engagement",
+    description: "Win back inactive users",
+    color: "bg-purple-500",
   },
   {
-    value: 'diaspora',
-    label: '🌍 Diaspora',
-    description: 'Family support from abroad',
-    color: 'bg-blue-500',
+    value: "diaspora",
+    label: "🌍 Diaspora",
+    description: "Family support from abroad",
+    color: "bg-blue-500",
   },
-]
+];
 
 const TARGET_AUDIENCES = [
   {
-    value: 'ALL',
-    label: 'All Users',
-    description: 'Send to everyone',
+    value: "ALL",
+    label: "All Users",
+    description: "Send to everyone",
     icon: Users,
   },
   {
-    value: 'CUSTOMERS',
-    label: 'Customers Only',
-    description: 'Only customer app users',
+    value: "CUSTOMERS",
+    label: "Customers Only",
+    description: "Only customer app users",
     icon: Users,
   },
   {
-    value: 'DRIVERS',
-    label: 'Drivers Only',
-    description: 'Only delivery drivers',
+    value: "DRIVERS",
+    label: "Drivers Only",
+    description: "Only delivery drivers",
     icon: Users,
   },
   {
-    value: 'HIGH_VALUE',
-    label: 'High-Value Customers',
-    description: '5+ orders',
+    value: "HIGH_VALUE",
+    label: "High-Value Customers",
+    description: "5+ orders",
     icon: TrendingUp,
   },
   {
-    value: 'NEW',
-    label: 'New Users',
-    description: 'Joined in last 7 days',
+    value: "NEW",
+    label: "New Users",
+    description: "Joined in last 7 days",
     icon: Calendar,
   },
-]
+];
 
 function BroadcastsPage() {
-  const queryClient = useQueryClient()
-  const [createOpen, setCreateOpen] = useState(false)
-  const [detailsOpen, setDetailsOpen] = useState(false)
+  const queryClient = useQueryClient();
+  const [createOpen, setCreateOpen] = useState(false);
+  const [detailsOpen, setDetailsOpen] = useState(false);
   const [selectedBroadcast, setSelectedBroadcast] = useState<Broadcast | null>(
-    null
-  )
+    null,
+  );
 
   // Form state
-  const [title, setTitle] = useState('')
-  const [body, setBody] = useState('')
-  const [type, setType] = useState('MARKETING')
-  const [targetAudience, setTargetAudience] = useState('ALL')
-  const [isEngagementMode, setIsEngagementMode] = useState(false)
-  const [selectedEngagementType, setSelectedEngagementType] = useState('')
+  const [title, setTitle] = useState("");
+  const [body, setBody] = useState("");
+  const [type, setType] = useState("MARKETING");
+  const [targetAudience, setTargetAudience] = useState("ALL");
+  const [isEngagementMode, setIsEngagementMode] = useState(false);
+  const [selectedEngagementType, setSelectedEngagementType] = useState("");
+  const [isEngagementSending, setIsEngagementSending] = useState(false);
 
   // Fetch broadcasts
   const { data: broadcastsData, isLoading } = useQuery({
-    queryKey: ['broadcasts'],
+    queryKey: ["broadcasts"],
     queryFn: async () => {
-      const response = await api.get('/api/admin/broadcasts')
-      return response.data
+      const response = await api.get("/api/admin/broadcasts");
+      return response.data;
     },
-  })
+  });
 
   // Fetch analytics summary
   const { data: analyticsData } = useQuery({
-    queryKey: ['broadcasts-analytics'],
+    queryKey: ["broadcasts-analytics"],
     queryFn: async () => {
-      const response = await api.get('/api/admin/broadcasts/analytics/summary')
-      return response.data
+      const response = await api.get("/api/admin/broadcasts/analytics/summary");
+      return response.data;
     },
-  })
+  });
 
-  const broadcasts: Broadcast[] = broadcastsData?.broadcasts || []
+  const broadcasts: Broadcast[] = broadcastsData?.broadcasts || [];
   const analytics = analyticsData?.summary || {
     totalBroadcasts: 0,
     totalSent: 0,
     avgDeliveryRate: 0,
     avgOpenRate: 0,
-  }
+  };
 
   // Create broadcast mutation
   const createMutation = useMutation({
     mutationFn: async (data: {
-      title: string
-      body: string
-      type: string
-      targetAudience: string
-      metadata: Record<string, unknown>
+      title: string;
+      body: string;
+      type: string;
+      targetAudience: string;
+      metadata: Record<string, unknown>;
     }) => {
-      const response = await api.post('/api/admin/broadcasts', data)
-      return response.data
+      const response = await api.post("/api/admin/broadcasts", data);
+      return response.data;
     },
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['broadcasts'] })
-      queryClient.invalidateQueries({ queryKey: ['broadcasts-analytics'] })
-      toast.success('Broadcast sent successfully!', {
+      queryClient.invalidateQueries({ queryKey: ["broadcasts"] });
+      queryClient.invalidateQueries({ queryKey: ["broadcasts-analytics"] });
+      toast.success("Broadcast sent successfully!", {
         description: `Sent to ${data.summary?.successCount || 0} users`,
-      })
-      setCreateOpen(false)
-      resetForm()
+      });
+      setCreateOpen(false);
+      resetForm();
     },
     onError: (error: unknown) => {
       const errorMessage =
-        error instanceof Error && 'response' in error
+        error instanceof Error && "response" in error
           ? (error as { response?: { data?: { error?: string } } }).response
               ?.data?.error
-          : 'Please try again'
-      toast.error('Failed to send broadcast', {
-        description: errorMessage || 'Please try again',
-      })
+          : "Please try again";
+      toast.error("Failed to send broadcast", {
+        description: errorMessage || "Please try again",
+      });
     },
-  })
+  });
 
   // Delete broadcast mutation
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      await api.delete(`/api/admin/broadcasts/${id}`)
+      await api.delete(`/api/admin/broadcasts/${id}`);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['broadcasts'] })
-      toast.success('Broadcast deleted')
-      setDetailsOpen(false)
+      queryClient.invalidateQueries({ queryKey: ["broadcasts"] });
+      toast.success("Broadcast deleted");
+      setDetailsOpen(false);
     },
-  })
+  });
 
   const resetForm = () => {
-    setTitle('')
-    setBody('')
-    setType('MARKETING')
-    setTargetAudience('ALL')
-    setIsEngagementMode(false)
-    setSelectedEngagementType('')
-  }
+    setTitle("");
+    setBody("");
+    setType("MARKETING");
+    setTargetAudience("ALL");
+    setIsEngagementMode(false);
+    setSelectedEngagementType("");
+  };
 
   const handleCreateEngagement = async () => {
     if (!selectedEngagementType) {
-      toast.error('Please select an engagement notification type')
-      return
+      toast.error("Please select an engagement notification type");
+      return;
     }
 
+    setIsEngagementSending(true);
     try {
-      const response = await api.post('/api/engagement-notifications/bulk', {
+      const response = await api.post("/api/engagement-notifications/bulk", {
         type: selectedEngagementType,
-      })
-      
-      queryClient.invalidateQueries({ queryKey: ['broadcasts'] })
-      toast.success('Engagement notifications sent successfully!', {
+      });
+
+      queryClient.invalidateQueries({ queryKey: ["broadcasts"] });
+      toast.success("Engagement notifications sent successfully!", {
         description: `Sent ${response.data.summary?.successCount || 0} notifications`,
-      })
-      setCreateOpen(false)
-      resetForm()
+      });
+      setCreateOpen(false);
+      resetForm();
     } catch (error: unknown) {
       const errorMessage =
-        error instanceof Error && 'response' in error
+        error instanceof Error && "response" in error
           ? (error as { response?: { data?: { error?: string } } }).response
               ?.data?.error
-          : 'Please try again'
-      toast.error('Failed to send engagement notifications', {
-        description: errorMessage || 'Please try again',
-      })
+          : "Please try again";
+      toast.error("Failed to send engagement notifications", {
+        description: errorMessage || "Please try again",
+      });
+    } finally {
+      setIsEngagementSending(false);
     }
-  }
+  };
 
   const handleCreate = () => {
     if (!title.trim() || !body.trim()) {
-      toast.error('Please fill in all required fields')
-      return
+      toast.error("Please fill in all required fields");
+      return;
     }
 
     createMutation.mutate({
@@ -327,96 +331,96 @@ function BroadcastsPage() {
       type,
       targetAudience,
       metadata: {},
-    })
-  }
+    });
+  };
 
   const getBroadcastTypeInfo = (type: string) => {
-    return BROADCAST_TYPES.find((t) => t.value === type) || BROADCAST_TYPES[0]
-  }
+    return BROADCAST_TYPES.find((t) => t.value === type) || BROADCAST_TYPES[0];
+  };
 
   const getAudienceInfo = (audience: string) => {
     return (
       TARGET_AUDIENCES.find((a) => a.value === audience) || TARGET_AUDIENCES[0]
-    )
-  }
+    );
+  };
 
   return (
     <>
       <Header>
         <TopNav links={topNav} />
-        <div className='ml-auto flex items-center space-x-4'>
+        <div className="ml-auto flex items-center space-x-4">
           <ThemeSwitch />
           <ProfileDropdown />
         </div>
       </Header>
 
       <Main>
-        <div className='mb-6 flex items-center justify-between'>
+        <div className="mb-6 flex items-center justify-between">
           <div>
-            <h1 className='text-3xl font-bold tracking-tight'>
+            <h1 className="text-3xl font-bold tracking-tight">
               Broadcast Notifications
             </h1>
-            <p className='text-muted-foreground'>
+            <p className="text-muted-foreground">
               Send marketing campaigns and announcements to your users
             </p>
           </div>
-          <Button onClick={() => setCreateOpen(true)} size='lg'>
-            <Plus className='mr-2 h-4 w-4' />
+          <Button onClick={() => setCreateOpen(true)} size="lg">
+            <Plus className="mr-2 h-4 w-4" />
             New Broadcast
           </Button>
         </div>
 
         {/* Analytics Cards */}
-        <div className='mb-6 grid gap-4 md:grid-cols-4'>
+        <div className="mb-6 grid gap-4 md:grid-cols-4">
           <Card>
-            <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2'>
-              <CardTitle className='text-sm font-medium'>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">
                 Total Broadcasts
               </CardTitle>
-              <Megaphone className='text-muted-foreground h-4 w-4' />
+              <Megaphone className="text-muted-foreground h-4 w-4" />
             </CardHeader>
             <CardContent>
-              <div className='text-2xl font-bold'>
+              <div className="text-2xl font-bold">
                 {analytics.totalBroadcasts}
               </div>
             </CardContent>
           </Card>
 
           <Card>
-            <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2'>
-              <CardTitle className='text-sm font-medium'>Total Sent</CardTitle>
-              <Send className='text-muted-foreground h-4 w-4' />
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Total Sent</CardTitle>
+              <Send className="text-muted-foreground h-4 w-4" />
             </CardHeader>
             <CardContent>
-              <div className='text-2xl font-bold'>
+              <div className="text-2xl font-bold">
                 {analytics.totalSent?.toLocaleString()}
               </div>
             </CardContent>
           </Card>
 
           <Card>
-            <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2'>
-              <CardTitle className='text-sm font-medium'>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">
                 Avg Delivery Rate
               </CardTitle>
-              <CheckCircle className='text-muted-foreground h-4 w-4' />
+              <CheckCircle className="text-muted-foreground h-4 w-4" />
             </CardHeader>
             <CardContent>
-              <div className='text-2xl font-bold'>
+              <div className="text-2xl font-bold">
                 {analytics.avgDeliveryRate}%
               </div>
             </CardContent>
           </Card>
 
           <Card>
-            <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2'>
-              <CardTitle className='text-sm font-medium'>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">
                 Avg Open Rate
               </CardTitle>
-              <Eye className='text-muted-foreground h-4 w-4' />
+              <Eye className="text-muted-foreground h-4 w-4" />
             </CardHeader>
             <CardContent>
-              <div className='text-2xl font-bold'>{analytics.avgOpenRate}%</div>
+              <div className="text-2xl font-bold">{analytics.avgOpenRate}%</div>
             </CardContent>
           </Card>
         </div>
@@ -431,16 +435,16 @@ function BroadcastsPage() {
           </CardHeader>
           <CardContent>
             {isLoading ? (
-              <div className='flex h-40 items-center justify-center'>
-                <div className='text-muted-foreground'>
+              <div className="flex h-40 items-center justify-center">
+                <div className="text-muted-foreground">
                   Loading broadcasts...
                 </div>
               </div>
             ) : broadcasts.length === 0 ? (
-              <div className='flex h-40 flex-col items-center justify-center'>
-                <Megaphone className='text-muted-foreground mb-2 h-12 w-12' />
-                <p className='text-muted-foreground'>No broadcasts sent yet</p>
-                <Button variant='link' onClick={() => setCreateOpen(true)}>
+              <div className="flex h-40 flex-col items-center justify-center">
+                <Megaphone className="text-muted-foreground mb-2 h-12 w-12" />
+                <p className="text-muted-foreground">No broadcasts sent yet</p>
+                <Button variant="link" onClick={() => setCreateOpen(true)}>
                   Send your first broadcast
                 </Button>
               </div>
@@ -454,15 +458,15 @@ function BroadcastsPage() {
                     <TableHead>Sent</TableHead>
                     <TableHead>Failed</TableHead>
                     <TableHead>Date</TableHead>
-                    <TableHead className='text-right'>Actions</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {broadcasts.map((broadcast) => {
-                    const typeInfo = getBroadcastTypeInfo(broadcast.type)
+                    const typeInfo = getBroadcastTypeInfo(broadcast.type);
                     const audienceInfo = getAudienceInfo(
-                      broadcast.targetAudience
-                    )
+                      broadcast.targetAudience,
+                    );
                     return (
                       <TableRow key={broadcast.id}>
                         <TableCell>
@@ -472,65 +476,65 @@ function BroadcastsPage() {
                         </TableCell>
                         <TableCell>
                           <div>
-                            <div className='font-medium'>{broadcast.title}</div>
-                            <div className='text-muted-foreground line-clamp-1 text-sm'>
+                            <div className="font-medium">{broadcast.title}</div>
+                            <div className="text-muted-foreground line-clamp-1 text-sm">
                               {broadcast.body}
                             </div>
                           </div>
                         </TableCell>
                         <TableCell>
-                          <Badge variant='outline'>{audienceInfo.label}</Badge>
+                          <Badge variant="outline">{audienceInfo.label}</Badge>
                         </TableCell>
                         <TableCell>
-                          <div className='flex items-center'>
-                            <CheckCircle className='mr-1 h-4 w-4 text-green-500' />
+                          <div className="flex items-center">
+                            <CheckCircle className="mr-1 h-4 w-4 text-green-500" />
                             {broadcast.sentCount.toLocaleString()}
                           </div>
                         </TableCell>
                         <TableCell>
                           {broadcast.failureCount > 0 ? (
-                            <div className='flex items-center'>
-                              <XCircle className='mr-1 h-4 w-4 text-red-500' />
+                            <div className="flex items-center">
+                              <XCircle className="mr-1 h-4 w-4 text-red-500" />
                               {broadcast.failureCount}
                             </div>
                           ) : (
-                            <span className='text-muted-foreground'>-</span>
+                            <span className="text-muted-foreground">-</span>
                           )}
                         </TableCell>
                         <TableCell>
-                          <div className='flex items-center text-sm'>
-                            <Clock className='mr-1 h-3 w-3' />
+                          <div className="flex items-center text-sm">
+                            <Clock className="mr-1 h-3 w-3" />
                             {format(
                               new Date(broadcast.sentAt || broadcast.createdAt),
-                              'MMM dd, HH:mm'
+                              "MMM dd, HH:mm",
                             )}
                           </div>
                         </TableCell>
-                        <TableCell className='text-right'>
-                          <div className='flex justify-end gap-2'>
+                        <TableCell className="text-right">
+                          <div className="flex justify-end gap-2">
                             <Button
-                              variant='ghost'
-                              size='sm'
+                              variant="ghost"
+                              size="sm"
                               onClick={() => {
-                                setSelectedBroadcast(broadcast)
-                                setDetailsOpen(true)
+                                setSelectedBroadcast(broadcast);
+                                setDetailsOpen(true);
                               }}
                             >
-                              <Eye className='h-4 w-4' />
+                              <Eye className="h-4 w-4" />
                             </Button>
                             <Button
-                              variant='ghost'
-                              size='sm'
+                              variant="ghost"
+                              size="sm"
                               onClick={() =>
                                 deleteMutation.mutate(broadcast.id)
                               }
                             >
-                              <Trash2 className='h-4 w-4' />
+                              <Trash2 className="h-4 w-4" />
                             </Button>
                           </div>
                         </TableCell>
                       </TableRow>
-                    )
+                    );
                   })}
                 </TableBody>
               </Table>
@@ -540,35 +544,35 @@ function BroadcastsPage() {
 
         {/* Create Broadcast Dialog */}
         <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-          <DialogContent className='max-w-2xl max-h-[90vh] overflow-y-auto'>
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>
                 {isEngagementMode
-                  ? 'Send Engagement Notifications'
-                  : 'Create New Broadcast'}
+                  ? "Send Engagement Notifications"
+                  : "Create New Broadcast"}
               </DialogTitle>
               <DialogDescription>
                 {isEngagementMode
-                  ? 'Send automated engagement notifications with smart messaging'
-                  : 'Send a notification to your users. Choose your audience and craft your message.'}
+                  ? "Send automated engagement notifications with smart messaging"
+                  : "Send a notification to your users. Choose your audience and craft your message."}
               </DialogDescription>
             </DialogHeader>
 
-            <div className='space-y-4 py-4'>
+            <div className="space-y-4 py-4">
               {/* Mode Toggle */}
-              <div className='flex gap-2 p-1 bg-muted rounded-lg'>
+              <div className="flex gap-2 p-1 bg-muted rounded-lg">
                 <Button
-                  type='button'
-                  variant={!isEngagementMode ? 'default' : 'ghost'}
-                  className='flex-1'
+                  type="button"
+                  variant={!isEngagementMode ? "default" : "ghost"}
+                  className="flex-1"
                   onClick={() => setIsEngagementMode(false)}
                 >
                   📢 Custom Broadcast
                 </Button>
                 <Button
-                  type='button'
-                  variant={isEngagementMode ? 'default' : 'ghost'}
-                  className='flex-1'
+                  type="button"
+                  variant={isEngagementMode ? "default" : "ghost"}
+                  className="flex-1"
                   onClick={() => setIsEngagementMode(true)}
                 >
                   ⚡ Engagement Notifications
@@ -578,26 +582,26 @@ function BroadcastsPage() {
               {isEngagementMode ? (
                 <>
                   {/* Engagement Type Selection */}
-                  <div className='space-y-2'>
+                  <div className="space-y-2">
                     <Label>Notification Type *</Label>
-                    <div className='grid grid-cols-2 gap-3'>
+                    <div className="grid grid-cols-2 gap-3">
                       {ENGAGEMENT_TYPES.map((engType) => (
                         <Button
                           key={engType.value}
-                          type='button'
+                          type="button"
                           variant={
                             selectedEngagementType === engType.value
-                              ? 'default'
-                              : 'outline'
+                              ? "default"
+                              : "outline"
                           }
-                          className='h-auto justify-start p-3 text-left'
+                          className="h-auto justify-start p-3 text-left"
                           onClick={() =>
                             setSelectedEngagementType(engType.value)
                           }
                         >
-                          <div className='w-full'>
-                            <div className='font-medium'>{engType.label}</div>
-                            <div className='text-xs opacity-70 mt-1'>
+                          <div className="w-full">
+                            <div className="font-medium">{engType.label}</div>
+                            <div className="text-xs opacity-70 mt-1">
                               {engType.description}
                             </div>
                           </div>
@@ -608,16 +612,16 @@ function BroadcastsPage() {
 
                   {/* Info Card */}
                   {selectedEngagementType && (
-                    <div className='bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg p-4'>
-                      <div className='flex items-start gap-2'>
-                        <div className='text-blue-600 dark:text-blue-400'>
+                    <div className="bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+                      <div className="flex items-start gap-2">
+                        <div className="text-blue-600 dark:text-blue-400">
                           ℹ️
                         </div>
-                        <div className='flex-1'>
-                          <p className='text-sm font-medium text-blue-900 dark:text-blue-100'>
+                        <div className="flex-1">
+                          <p className="text-sm font-medium text-blue-900 dark:text-blue-100">
                             Smart Messaging
                           </p>
-                          <p className='text-xs text-blue-700 dark:text-blue-300 mt-1'>
+                          <p className="text-xs text-blue-700 dark:text-blue-300 mt-1">
                             This will send notifications using our AI-optimized
                             message templates designed for maximum engagement.
                             Each user receives a different message variant to
@@ -631,8 +635,8 @@ function BroadcastsPage() {
               ) : (
                 <>
                   {/* Broadcast Type */}
-                  <div className='space-y-2'>
-                    <Label htmlFor='type'>Broadcast Type *</Label>
+                  <div className="space-y-2">
+                    <Label htmlFor="type">Broadcast Type *</Label>
                     <Select value={type} onValueChange={setType}>
                       <SelectTrigger>
                         <SelectValue />
@@ -648,8 +652,8 @@ function BroadcastsPage() {
                   </div>
 
                   {/* Target Audience */}
-                  <div className='space-y-2'>
-                    <Label htmlFor='audience'>Target Audience *</Label>
+                  <div className="space-y-2">
+                    <Label htmlFor="audience">Target Audience *</Label>
                     <Select
                       value={targetAudience}
                       onValueChange={setTargetAudience}
@@ -661,8 +665,8 @@ function BroadcastsPage() {
                         {TARGET_AUDIENCES.map((a) => (
                           <SelectItem key={a.value} value={a.value}>
                             <div>
-                              <div className='font-medium'>{a.label}</div>
-                              <div className='text-muted-foreground text-xs'>
+                              <div className="font-medium">{a.label}</div>
+                              <div className="text-muted-foreground text-xs">
                                 {a.description}
                               </div>
                             </div>
@@ -673,50 +677,50 @@ function BroadcastsPage() {
                   </div>
 
                   {/* Title */}
-                  <div className='space-y-2'>
-                    <Label htmlFor='title'>Notification Title *</Label>
+                  <div className="space-y-2">
+                    <Label htmlFor="title">Notification Title *</Label>
                     <Input
-                      id='title'
-                      placeholder='e.g., 🎉 Flash Sale: 30% Off All Orders!'
+                      id="title"
+                      placeholder="e.g., 🎉 Flash Sale: 30% Off All Orders!"
                       value={title}
                       onChange={(e) => setTitle(e.target.value)}
                       maxLength={100}
                     />
-                    <p className='text-muted-foreground text-xs'>
+                    <p className="text-muted-foreground text-xs">
                       {title.length}/100 characters
                     </p>
                   </div>
 
                   {/* Body */}
-                  <div className='space-y-2'>
-                    <Label htmlFor='body'>Notification Message *</Label>
+                  <div className="space-y-2">
+                    <Label htmlFor="body">Notification Message *</Label>
                     <Textarea
-                      id='body'
-                      placeholder='e.g., Limited time only! Get 30% off your order. Use code FLASH30 at checkout. Hurry, ends tonight!'
+                      id="body"
+                      placeholder="e.g., Limited time only! Get 30% off your order. Use code FLASH30 at checkout. Hurry, ends tonight!"
                       value={body}
                       onChange={(e) => setBody(e.target.value)}
                       rows={4}
                       maxLength={200}
                     />
-                    <p className='text-muted-foreground text-xs'>
+                    <p className="text-muted-foreground text-xs">
                       {body.length}/200 characters
                     </p>
                   </div>
 
                   {/* Preview */}
                   {title && body && (
-                    <div className='bg-muted/50 rounded-lg border p-4'>
-                      <p className='text-muted-foreground mb-2 text-sm font-medium'>
+                    <div className="bg-muted/50 rounded-lg border p-4">
+                      <p className="text-muted-foreground mb-2 text-sm font-medium">
                         Preview:
                       </p>
-                      <div className='bg-background rounded-md p-3 shadow-sm'>
-                        <div className='flex items-start gap-3'>
-                          <div className='bg-primary rounded-full p-2'>
-                            <Megaphone className='text-primary-foreground h-4 w-4' />
+                      <div className="bg-background rounded-md p-3 shadow-sm">
+                        <div className="flex items-start gap-3">
+                          <div className="bg-primary rounded-full p-2">
+                            <Megaphone className="text-primary-foreground h-4 w-4" />
                           </div>
-                          <div className='flex-1'>
-                            <p className='font-semibold'>{title}</p>
-                            <p className='text-muted-foreground mt-1 text-sm'>
+                          <div className="flex-1">
+                            <p className="font-semibold">{title}</p>
+                            <p className="text-muted-foreground mt-1 text-sm">
                               {body}
                             </p>
                           </div>
@@ -729,7 +733,7 @@ function BroadcastsPage() {
             </div>
 
             <DialogFooter>
-              <Button variant='outline' onClick={() => setCreateOpen(false)}>
+              <Button variant="outline" onClick={() => setCreateOpen(false)}>
                 Cancel
               </Button>
               <Button
@@ -738,18 +742,25 @@ function BroadcastsPage() {
                 }
                 disabled={
                   isEngagementMode
-                    ? !selectedEngagementType
+                    ? !selectedEngagementType || isEngagementSending
                     : createMutation.isPending || !title.trim() || !body.trim()
                 }
               >
-                {createMutation.isPending ? (
+                {isEngagementMode ? (
+                  isEngagementSending ? (
+                    <>Sending...</>
+                  ) : (
+                    <>
+                      <Send className="mr-2 h-4 w-4" />
+                      Send Engagement Notifications
+                    </>
+                  )
+                ) : createMutation.isPending ? (
                   <>Sending...</>
                 ) : (
                   <>
-                    <Send className='mr-2 h-4 w-4' />
-                    {isEngagementMode
-                      ? 'Send Engagement Notifications'
-                      : 'Send Broadcast'}
+                    <Send className="mr-2 h-4 w-4" />
+                    Send Broadcast
                   </>
                 )}
               </Button>
@@ -765,7 +776,7 @@ function BroadcastsPage() {
                 <DialogTitle>Broadcast Details</DialogTitle>
               </DialogHeader>
 
-              <div className='space-y-4'>
+              <div className="space-y-4">
                 <div>
                   <Label>Type</Label>
                   <Badge
@@ -779,31 +790,31 @@ function BroadcastsPage() {
 
                 <div>
                   <Label>Target Audience</Label>
-                  <p className='text-sm'>
+                  <p className="text-sm">
                     {getAudienceInfo(selectedBroadcast.targetAudience).label}
                   </p>
                 </div>
 
                 <div>
                   <Label>Title</Label>
-                  <p className='text-sm'>{selectedBroadcast.title}</p>
+                  <p className="text-sm">{selectedBroadcast.title}</p>
                 </div>
 
                 <div>
                   <Label>Message</Label>
-                  <p className='text-sm'>{selectedBroadcast.body}</p>
+                  <p className="text-sm">{selectedBroadcast.body}</p>
                 </div>
 
-                <div className='grid grid-cols-2 gap-4'>
+                <div className="grid grid-cols-2 gap-4">
                   <div>
                     <Label>Sent</Label>
-                    <p className='text-2xl font-bold text-green-600'>
+                    <p className="text-2xl font-bold text-green-600">
                       {selectedBroadcast.sentCount.toLocaleString()}
                     </p>
                   </div>
                   <div>
                     <Label>Failed</Label>
-                    <p className='text-2xl font-bold text-red-600'>
+                    <p className="text-2xl font-bold text-red-600">
                       {selectedBroadcast.failureCount}
                     </p>
                   </div>
@@ -811,19 +822,19 @@ function BroadcastsPage() {
 
                 <div>
                   <Label>Sent At</Label>
-                  <p className='text-sm'>
+                  <p className="text-sm">
                     {format(
                       new Date(
-                        selectedBroadcast.sentAt || selectedBroadcast.createdAt
+                        selectedBroadcast.sentAt || selectedBroadcast.createdAt,
                       ),
-                      'PPpp'
+                      "PPpp",
                     )}
                   </p>
                 </div>
               </div>
 
               <DialogFooter>
-                <Button variant='outline' onClick={() => setDetailsOpen(false)}>
+                <Button variant="outline" onClick={() => setDetailsOpen(false)}>
                   Close
                 </Button>
               </DialogFooter>
@@ -832,5 +843,5 @@ function BroadcastsPage() {
         )}
       </Main>
     </>
-  )
+  );
 }
