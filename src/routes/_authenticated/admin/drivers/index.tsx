@@ -14,6 +14,7 @@ import {
   TrendingUp,
   Star,
   Edit,
+  KeyRound,
   Upload,
   Loader2,
   Save,
@@ -215,9 +216,37 @@ function DriversPage() {
     },
   });
 
+  const resetPasswordMutation = useMutation({
+    mutationFn: ({
+      driverId,
+      newPassword,
+    }: {
+      driverId: string;
+      newPassword?: string;
+    }) => adminApi.resetDriverPassword(driverId, newPassword),
+    onSuccess: (response: any) => {
+      const tempPassword = response?.data?.data?.temporaryPassword;
+      toast.success(
+        tempPassword
+          ? `Password reset. New password: ${tempPassword}`
+          : "Driver password reset successfully",
+        { duration: 10000 },
+      );
+    },
+    onError: (error: any) => {
+      toast.error(
+        error?.response?.data?.error || "Failed to reset driver password",
+      );
+    },
+  });
+
   const handleViewDetails = (driver: Driver) => {
-    setSelectedDriver(driver);
-    setIsDetailsOpen(true);
+    navigate({
+      to: "/admin/drivers/$driverId" as any,
+      params: {
+        driverId: ((driver as any)._id || driver.id) as string,
+      } as any,
+    });
   };
 
   const handleEditDriver = (driver: Driver) => {
@@ -333,6 +362,32 @@ function DriversPage() {
     } catch (error) {
       // Error is handled by the mutation
     }
+  };
+
+  const handleResetDriverPassword = (driver: Driver) => {
+    const driverId = (driver.id || (driver as any)._id) as string;
+    if (!driverId) {
+      toast.error("Invalid driver record");
+      return;
+    }
+
+    const passwordInput = window.prompt(
+      "Enter a new password for this driver. Leave blank to auto-generate one.",
+      "",
+    );
+
+    if (passwordInput === null) return;
+
+    const normalized = passwordInput.trim();
+    if (normalized && normalized.length < 4) {
+      toast.error("Password must be at least 4 characters");
+      return;
+    }
+
+    resetPasswordMutation.mutate({
+      driverId,
+      newPassword: normalized || undefined,
+    });
   };
 
   const getStatusBadge = (status: string) => {
@@ -647,6 +702,15 @@ function DriversPage() {
                               >
                                 <Edit className="mr-2 h-4 w-4" />
                                 Edit Driver
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() =>
+                                  handleResetDriverPassword(driver)
+                                }
+                                disabled={resetPasswordMutation.isPending}
+                              >
+                                <KeyRound className="mr-2 h-4 w-4" />
+                                Reset Password
                               </DropdownMenuItem>
                               {driver.status === "pending" && (
                                 <>
