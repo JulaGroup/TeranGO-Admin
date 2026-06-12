@@ -178,6 +178,11 @@ export const adminApi = {
       thirdPartyRate?: number | null;
     },
   ) => api.patch(`/api/admin/drivers/${id}/type`, payload),
+  resetDriverPassword: (id: string, newPassword?: string) =>
+    api.patch(
+      `/api/admin/drivers/${id}/reset-password`,
+      newPassword ? { newPassword } : {},
+    ),
   deleteDriver: (id: string) => api.delete(`/api/admin/drivers/${id}`),
   approveDriver: (id: string) => api.patch(`/api/admin/drivers/${id}/approve`),
   rejectDriver: (id: string) => api.patch(`/api/admin/drivers/${id}/reject`),

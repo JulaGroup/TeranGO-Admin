@@ -76,6 +76,8 @@ export function useOrderNotifications({
       return;
     }
 
+    const authToken = localStorage.getItem("auth_token") || "";
+
     // Helper: Browser notification helper for admin
     const requestBrowserNotificationPermission = async () => {
       try {
@@ -121,6 +123,7 @@ export function useOrderNotifications({
       reconnection: true,
       reconnectionDelay: 1000,
       reconnectionAttempts: 5,
+      auth: authToken ? { token: authToken } : undefined,
     });
 
     socketRef.current = socket;
@@ -272,7 +275,13 @@ export function useOrderNotifications({
     // Listen for orderStatusUpdate (server uses this event name — also covers DISPATCHED, DELIVERED, PROCESSING)
     socket.on(
       "orderStatusUpdate",
-      (data: { orderId?: string; status: string; customerName?: string; driverName?: string; paymentId?: string }) => {
+      (data: {
+        orderId?: string;
+        status: string;
+        customerName?: string;
+        driverName?: string;
+        paymentId?: string;
+      }) => {
         queryClient.invalidateQueries({ queryKey: ["terango-store-orders"] });
         queryClient.invalidateQueries({ queryKey: ["vendor-orders"] });
 
@@ -287,7 +296,8 @@ export function useOrderNotifications({
           CANCELLED: "❌",
         };
         const emoji = statusEmojis[data.status] ?? "🔄";
-        const statusLabel = data.status.charAt(0) + data.status.slice(1).toLowerCase();
+        const statusLabel =
+          data.status.charAt(0) + data.status.slice(1).toLowerCase();
 
         playNotificationSound();
         toast.success(`${emoji} Order ${statusLabel}`, {
@@ -312,13 +322,20 @@ export function useOrderNotifications({
     // Listen for payment success
     socket.on(
       "paymentSuccess",
-      (data: { paymentId?: string; orderId?: string; amount?: number; currency?: string }) => {
+      (data: {
+        paymentId?: string;
+        orderId?: string;
+        amount?: number;
+        currency?: string;
+      }) => {
         queryClient.invalidateQueries({ queryKey: ["terango-store-orders"] });
 
         if (!adminMode) return;
 
         playNotificationSound();
-        const amountStr = data.amount ? ` · D${data.amount}${data.currency ? ` ${data.currency}` : ""}` : "";
+        const amountStr = data.amount
+          ? ` · D${data.amount}${data.currency ? ` ${data.currency}` : ""}`
+          : "";
         toast.success("💳 Payment Received!", {
           description: `Order #${data.orderId?.slice(-6).toUpperCase() ?? "—"}${amountStr}`,
           duration: 7000,

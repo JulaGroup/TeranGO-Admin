@@ -13,6 +13,7 @@ import {
   Edit,
   Upload,
   Loader2,
+  KeyRound,
 } from "lucide-react";
 import { toast } from "sonner";
 import { adminApi, api } from "@/lib/api";
@@ -112,6 +113,8 @@ function DriverDetailPage() {
   // ─── Full edit dialog state ───────────────────────────────────────────────
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [isResetPasswordOpen, setIsResetPasswordOpen] = useState(false);
+  const [newPassword, setNewPassword] = useState("");
   const [editForm, setEditForm] = useState({
     name: "",
     email: "",
@@ -196,6 +199,25 @@ function DriverDetailPage() {
       setIsEditOpen(false);
     },
     onError: () => toast.error("Failed to update driver"),
+  });
+
+  const resetPasswordMutation = useMutation({
+    mutationFn: (password?: string) =>
+      adminApi.resetDriverPassword(driverId, password),
+    onSuccess: (res: any) => {
+      const generated = res?.data?.data?.temporaryPassword;
+      toast.success(
+        generated
+          ? `Password reset successfully. New password: ${generated}`
+          : "Password reset successfully",
+        { duration: 10000 },
+      );
+      setNewPassword("");
+      setIsResetPasswordOpen(false);
+    },
+    onError: (error: any) => {
+      toast.error(error?.response?.data?.error || "Failed to reset password");
+    },
   });
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -428,6 +450,14 @@ function DriverDetailPage() {
             >
               <Edit className="mr-2 h-4 w-4" />
               Edit Driver
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setIsResetPasswordOpen(true)}
+            >
+              <KeyRound className="mr-2 h-4 w-4" />
+              Reset Password
             </Button>
           </div>
 
@@ -773,6 +803,58 @@ function DriverDetailPage() {
           </Tabs>
         </div>
       </Main>
+
+      <Dialog open={isResetPasswordOpen} onOpenChange={setIsResetPasswordOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Reset Driver Password</DialogTitle>
+            <DialogDescription>
+              Enter a new password or leave blank to auto-generate a temporary
+              one.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="new-driver-password">New Password</Label>
+              <Input
+                id="new-driver-password"
+                type="text"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                placeholder="Leave blank to auto-generate"
+              />
+              <p className="text-muted-foreground text-xs">
+                Minimum 4 characters if you set one manually.
+              </p>
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setIsResetPasswordOpen(false);
+                  setNewPassword("");
+                }}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={() => {
+                  const password = newPassword.trim();
+                  resetPasswordMutation.mutate(password || undefined);
+                }}
+                disabled={resetPasswordMutation.isPending}
+              >
+                {resetPasswordMutation.isPending ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <KeyRound className="mr-2 h-4 w-4" />
+                )}
+                Reset Password
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* ─── Edit Driver Dialog (full) ──────────────────────────────────── */}
       <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
