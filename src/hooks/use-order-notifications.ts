@@ -79,18 +79,6 @@ export function useOrderNotifications({
     const authToken = localStorage.getItem("auth_token") || "";
 
     // Helper: Browser notification helper for admin
-    const requestBrowserNotificationPermission = async () => {
-      try {
-        if (typeof window !== "undefined" && "Notification" in window) {
-          if (Notification.permission === "default") {
-            await Notification.requestPermission();
-          }
-        }
-      } catch (_e) {
-        // ignore
-      }
-    };
-
     const showBrowserNotification = (
       title: string,
       body: string,
@@ -134,8 +122,6 @@ export function useOrderNotifications({
       if (adminMode) {
         // Join admin room for global notifications
         socket.emit("join_admin_room");
-        // Request browser notification permission for admins
-        void requestBrowserNotificationPermission();
       } else if (vendorId) {
         // Join vendor room (match server event name)
         socket.emit("join_vendor_room", vendorId);
@@ -375,6 +361,81 @@ export function useOrderNotifications({
           m.useNotificationStore.getState().addNotification({
             title: "👤 New User Registered",
             body: `Phone: ${data.phone ?? "Unknown"}`,
+            data: data as unknown as Record<string, unknown>,
+          }),
+        );
+      },
+    );
+
+    // Listen for settlement/payout requests (driver or vendor)
+    socket.on(
+      "settlementRequest",
+      (data: {
+        type: "driver" | "vendor";
+        settlementId: string;
+        driverName?: string;
+        vendorName?: string;
+        amount: number;
+        createdAt?: string;
+      }) => {
+        if (!adminMode) return;
+
+        const isDriver = data.type === "driver";
+        const name = isDriver ? data.driverName : data.vendorName;
+        const emoji = isDriver ? "🏎️" : "💸";
+        const label = isDriver ? "Driver" : "Vendor";
+
+        playNotificationSound();
+        toast.warning(`${emoji} ${label} Payout Request`, {
+          description: `${name ?? label} requested D${data.amount.toFixed(2)}`,
+          duration: 9000,
+          action: {
+            label: "View",
+            onClick: () => {
+              window.location.href = isDriver
+                ? "/admin/driver-settlements"
+                : "/admin/vendor-settlements";
+            },
+          },
+        });
+        showBrowserNotification(
+          `${emoji} ${label} Payout Request`,
+          `${name ?? label} requested D${data.amount.toFixed(2)}`,
+          { settlementId: data.settlementId, type: "settlement" },
+        );
+        import("@/stores/notification-store").then((m) =>
+          m.useNotificationStore.getState().addNotification({
+            title: `${emoji} ${label} Payout Request`,
+            body: `${name ?? label} requested D${data.amount.toFixed(2)}`,
+            data: data as unknown as Record<string, unknown>,
+          }),
+        );
+      },
+    );
+
+    // Listen for express delivery payment updates
+    socket.on(
+      "express-payment-update",
+      (data: { deliveryId?: string; status?: string; amount?: number }) => {
+        if (!adminMode) return;
+
+        queryClient.invalidateQueries({ queryKey: ["express-deliveries"] });
+
+        const statusLabel = data.status ?? "Updated";
+        playNotificationSound();
+        toast.info(`🚚 Express Delivery ${statusLabel}`, {
+          description: `Delivery #${data.deliveryId?.slice(-6).toUpperCase() ?? "—"}${data.amount ? ` · D${data.amount}` : ""}`,
+          duration: 7000,
+        });
+        showBrowserNotification(
+          `🚚 Express Delivery ${statusLabel}`,
+          `Delivery #${data.deliveryId?.slice(-6).toUpperCase() ?? "—"}`,
+          { deliveryId: data.deliveryId, type: "express_delivery" },
+        );
+        import("@/stores/notification-store").then((m) =>
+          m.useNotificationStore.getState().addNotification({
+            title: `🚚 Express Delivery ${statusLabel}`,
+            body: `Delivery #${data.deliveryId?.slice(-6).toUpperCase() ?? "—"}${data.amount ? ` · D${data.amount}` : ""}`,
             data: data as unknown as Record<string, unknown>,
           }),
         );
