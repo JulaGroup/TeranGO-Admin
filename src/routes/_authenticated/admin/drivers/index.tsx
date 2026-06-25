@@ -505,7 +505,8 @@ function DriversPage() {
           {(() => {
             const pending = drivers.filter(
               (d: any) =>
-                (d.approvalStatus || d.status || "").toLowerCase() === "pending",
+                (d.approvalStatus || d.status || "").toLowerCase() ===
+                "pending",
             );
             if (pending.length === 0) return null;
             return (
@@ -538,7 +539,10 @@ function DriversPage() {
                                 {driver.phone}
                               </span>
                               <span>
-                                {(driver.vehicleType || "BIKE").replace("_", " ")}
+                                {(driver.vehicleType || "BIKE").replace(
+                                  "_",
+                                  " ",
+                                )}
                               </span>
                               {driver.signupNote && (
                                 <span className="italic opacity-70">
@@ -553,9 +557,7 @@ function DriversPage() {
                             size="sm"
                             variant="outline"
                             className="border-green-500/40 text-green-600 hover:bg-green-500/10 hover:text-green-600"
-                            onClick={() =>
-                              approveMutation.mutate(driver.id)
-                            }
+                            onClick={() => approveMutation.mutate(driver.id)}
                             disabled={approveMutation.isPending}
                           >
                             <CheckCircle className="mr-1 h-3.5 w-3.5" />
@@ -565,9 +567,7 @@ function DriversPage() {
                             size="sm"
                             variant="outline"
                             className="border-red-500/40 text-red-600 hover:bg-red-500/10 hover:text-red-600"
-                            onClick={() =>
-                              rejectMutation.mutate(driver.id)
-                            }
+                            onClick={() => rejectMutation.mutate(driver.id)}
                             disabled={rejectMutation.isPending}
                           >
                             <XCircle className="mr-1 h-3.5 w-3.5" />

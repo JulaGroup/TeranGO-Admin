@@ -23,6 +23,7 @@ import {
   ToggleLeft,
   ToggleRight,
   DollarSign,
+  Clock,
 } from "lucide-react";
 import { toast } from "sonner";
 import { adminApi } from "@/lib/api";
@@ -94,6 +95,55 @@ export const Route = createFileRoute("/_authenticated/admin/restaurants/")({
   component: RestaurantsPage,
 });
 
+interface DayHours {
+  key: string;
+  day: string;
+  closed: boolean;
+  open: string;
+  close: string;
+}
+
+const WEEK_DAYS: { key: string; day: string }[] = [
+  { key: "monday", day: "Monday" },
+  { key: "tuesday", day: "Tuesday" },
+  { key: "wednesday", day: "Wednesday" },
+  { key: "thursday", day: "Thursday" },
+  { key: "friday", day: "Friday" },
+  { key: "saturday", day: "Saturday" },
+  { key: "sunday", day: "Sunday" },
+];
+
+const DEFAULT_HOURS: DayHours[] = WEEK_DAYS.map(({ key, day }) => ({
+  key,
+  day,
+  closed: false,
+  open: "08:00",
+  close: "22:00",
+}));
+
+function hoursFromRaw(raw: any): DayHours[] {
+  if (!raw || typeof raw !== "object") return DEFAULT_HOURS.map((d) => ({ ...d }));
+  return WEEK_DAYS.map(({ key, day }) => {
+    const v = raw[key];
+    if (!v) return { key, day, closed: true, open: "08:00", close: "22:00" };
+    return {
+      key,
+      day,
+      closed: !!(v.closed ?? !(v.isOpen ?? true)),
+      open: v.open ?? "08:00",
+      close: v.close ?? "22:00",
+    };
+  });
+}
+
+function hoursToRaw(hours: DayHours[]): Record<string, unknown> {
+  const result: Record<string, unknown> = {};
+  hours.forEach(({ key, closed, open, close }) => {
+    result[key] = { open, close, closed };
+  });
+  return result;
+}
+
 interface Restaurant {
   id: string;
   name: string;
@@ -109,6 +159,7 @@ interface Restaurant {
   rating?: number;
   totalReviews?: number;
   minimumOrderAmount?: number;
+  openingHours?: any;
   vendor?: {
     user?: { fullName?: string; phone?: string; email?: string };
   };
@@ -139,6 +190,7 @@ function RestaurantsPage() {
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [editForm, setEditForm] = useState({ ...emptyEdit });
+  const [openingHoursState, setOpeningHoursState] = useState<DayHours[]>(DEFAULT_HOURS.map((d) => ({ ...d })));
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState("");
   const [isUploadingImage, setIsUploadingImage] = useState(false);
@@ -193,7 +245,11 @@ function RestaurantsPage() {
           setIsUploadingImage(false);
         }
       }
-      return adminApi.updateRestaurant(selected!.id, { ...data, imageUrl });
+      return adminApi.updateRestaurant(selected!.id, {
+        ...data,
+        imageUrl,
+        openingHours: hoursToRaw(openingHoursState),
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-restaurants"] });
@@ -258,6 +314,7 @@ function RestaurantsPage() {
       acceptsOrders: r.acceptsOrders,
       minimumOrderAmount: r.minimumOrderAmount ?? 0,
     });
+    setOpeningHoursState(hoursFromRaw(r.openingHours));
     setImageFile(null);
     setImagePreview(r.imageUrl ?? "");
     setIsEditOpen(true);
@@ -630,6 +687,64 @@ function RestaurantsPage() {
                     setEditForm((f) => ({ ...f, description: e.target.value }))
                   }
                 />
+              </div>
+
+              {/* Opening Hours */}
+              <div className="space-y-2">
+                <Label className="flex items-center gap-2 text-sm font-medium">
+                  <Clock className="h-4 w-4" />
+                  Opening Hours
+                </Label>
+                <div className="space-y-2 rounded-lg border p-3">
+                  {openingHoursState.map((dayHours, index) => (
+                    <div key={dayHours.key} className="flex items-center gap-3">
+                      <div className="w-24 shrink-0">
+                        <span className="text-sm font-medium">{dayHours.day}</span>
+                      </div>
+                      <Switch
+                        checked={!dayHours.closed}
+                        onCheckedChange={(checked) =>
+                          setOpeningHoursState((prev) =>
+                            prev.map((d, i) =>
+                              i === index ? { ...d, closed: !checked } : d
+                            )
+                          )
+                        }
+                      />
+                      {!dayHours.closed ? (
+                        <>
+                          <input
+                            type="time"
+                            value={dayHours.open}
+                            onChange={(e) =>
+                              setOpeningHoursState((prev) =>
+                                prev.map((d, i) =>
+                                  i === index ? { ...d, open: e.target.value } : d
+                                )
+                              )
+                            }
+                            className="h-8 w-28 rounded-md border bg-background px-2 text-sm"
+                          />
+                          <span className="text-muted-foreground text-sm">to</span>
+                          <input
+                            type="time"
+                            value={dayHours.close}
+                            onChange={(e) =>
+                              setOpeningHoursState((prev) =>
+                                prev.map((d, i) =>
+                                  i === index ? { ...d, close: e.target.value } : d
+                                )
+                              )
+                            }
+                            className="h-8 w-28 rounded-md border bg-background px-2 text-sm"
+                          />
+                        </>
+                      ) : (
+                        <span className="text-sm text-muted-foreground">Closed</span>
+                      )}
+                    </div>
+                  ))}
+                </div>
               </div>
 
               {/* Toggles */}

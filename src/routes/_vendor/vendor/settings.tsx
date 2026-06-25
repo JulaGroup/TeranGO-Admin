@@ -93,10 +93,10 @@ function findBusinessById(
 ): VendorBusiness | undefined {
   if (!businessId) return undefined;
 
-  const allBusinesses = [
-    ...(vendor.restaurants || []),
-    ...(vendor.shops || []),
-    ...(vendor.pharmacies || []),
+  const allBusinesses: VendorBusiness[] = [
+    ...(vendor.restaurants || []).map((r) => ({ ...r, type: "RESTAURANT" as const })),
+    ...(vendor.shops || []).map((s) => ({ ...s, type: "SHOP" as const })),
+    ...(vendor.pharmacies || []).map((p) => ({ ...p, type: "PHARMACY" as const })),
   ];
 
   return allBusinesses.find((b) => b.id === businessId);
