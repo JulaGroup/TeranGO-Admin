@@ -20,6 +20,8 @@ import {
   Save,
   UserPlus,
   DollarSign,
+  Clock,
+  AlertCircle,
 } from "lucide-react";
 import { toast } from "sonner";
 import { adminApi } from "@/lib/api";
@@ -498,6 +500,87 @@ function DriversPage() {
 
           {/* Real-Time Driver Map */}
           <DriverMap className="mb-6" height="500px" />
+
+          {/* ── Pending Approvals ───────────────────────────── */}
+          {(() => {
+            const pending = drivers.filter(
+              (d: any) =>
+                (d.approvalStatus || d.status || "").toLowerCase() === "pending",
+            );
+            if (pending.length === 0) return null;
+            return (
+              <Card className="border-amber-500/40 bg-amber-500/5">
+                <CardHeader className="pb-3">
+                  <CardTitle className="flex items-center gap-2 text-amber-600 dark:text-amber-400">
+                    <Clock className="h-5 w-5" />
+                    Pending Approvals ({pending.length})
+                  </CardTitle>
+                  <CardDescription>
+                    These drivers signed up and are waiting for your review
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    {pending.map((driver: any) => (
+                      <div
+                        key={driver.id}
+                        className="flex items-center justify-between rounded-xl border border-amber-500/20 bg-amber-500/[0.04] px-4 py-3"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-amber-500/15 text-sm font-bold text-amber-600 dark:text-amber-400">
+                            {(driver.name || "D").substring(0, 2).toUpperCase()}
+                          </div>
+                          <div>
+                            <p className="font-semibold">{driver.name}</p>
+                            <div className="flex items-center gap-3 text-xs text-muted-foreground mt-0.5">
+                              <span className="flex items-center gap-1">
+                                <Phone className="h-3 w-3" />
+                                {driver.phone}
+                              </span>
+                              <span>
+                                {(driver.vehicleType || "BIKE").replace("_", " ")}
+                              </span>
+                              {driver.signupNote && (
+                                <span className="italic opacity-70">
+                                  "{driver.signupNote}"
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="border-green-500/40 text-green-600 hover:bg-green-500/10 hover:text-green-600"
+                            onClick={() =>
+                              approveMutation.mutate(driver.id)
+                            }
+                            disabled={approveMutation.isPending}
+                          >
+                            <CheckCircle className="mr-1 h-3.5 w-3.5" />
+                            Approve
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="border-red-500/40 text-red-600 hover:bg-red-500/10 hover:text-red-600"
+                            onClick={() =>
+                              rejectMutation.mutate(driver.id)
+                            }
+                            disabled={rejectMutation.isPending}
+                          >
+                            <XCircle className="mr-1 h-3.5 w-3.5" />
+                            Reject
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })()}
 
           {/* Drivers Table */}
           <Card>
