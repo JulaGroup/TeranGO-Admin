@@ -286,7 +286,7 @@ export function useOrderNotifications({
         queryClient.invalidateQueries({ queryKey: ["terango-store-orders"] });
         queryClient.invalidateQueries({ queryKey: ["vendor-orders"] });
 
-        if (!adminMode) return;
+        if (!adminMode && !vendorId) return;
 
         const statusEmojis: Record<string, string> = {
           DELIVERED: "🎉",
@@ -376,6 +376,40 @@ export function useOrderNotifications({
           m.useNotificationStore.getState().addNotification({
             title: "👤 New User Registered",
             body: `Phone: ${data.phone ?? "Unknown"}`,
+            data: data as unknown as Record<string, unknown>,
+          }),
+        );
+      },
+    );
+
+    // Listen for vendor settlement confirmation (sent to vendor when admin approves payout)
+    socket.on(
+      "settlementConfirmed",
+      (data: {
+        settlementId: string;
+        amount: number;
+        status: string;
+        processedAt?: string;
+      }) => {
+        if (!vendorId) return;
+
+        queryClient.invalidateQueries({ queryKey: ["vendor-settlements"] });
+        queryClient.invalidateQueries({ queryKey: ["vendor-earnings"] });
+
+        playNotificationSound();
+        toast.success("✅ Payout Processed!", {
+          description: `Your settlement of D${data.amount.toFixed(2)} has been processed.`,
+          duration: 8000,
+        });
+        showBrowserNotification(
+          "✅ Payout Processed",
+          `Your settlement of D${data.amount.toFixed(2)} has been processed.`,
+          { settlementId: data.settlementId, type: "settlement_confirmed" },
+        );
+        import("@/stores/notification-store").then((m) =>
+          m.useNotificationStore.getState().addNotification({
+            title: "✅ Payout Processed",
+            body: `Settlement of D${data.amount.toFixed(2)} has been processed.`,
             data: data as unknown as Record<string, unknown>,
           }),
         );
