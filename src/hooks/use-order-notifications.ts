@@ -78,6 +78,21 @@ export function useOrderNotifications({
 
     const authToken = localStorage.getItem("auth_token") || "";
 
+    // If running as admin, proactively request browser notification permission
+    if (
+      adminMode &&
+      typeof window !== "undefined" &&
+      "Notification" in window
+    ) {
+      try {
+        if (Notification.permission !== "granted") {
+          Notification.requestPermission().catch(() => {});
+        }
+      } catch {
+        // ignore
+      }
+    }
+
     // Helper: Browser notification helper for admin
     const showBrowserNotification = (
       title: string,
