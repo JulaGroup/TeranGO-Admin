@@ -286,7 +286,7 @@ export function useOrderNotifications({
         queryClient.invalidateQueries({ queryKey: ["terango-store-orders"] });
         queryClient.invalidateQueries({ queryKey: ["vendor-orders"] });
 
-        if (!adminMode && !vendorId) return;
+        if (!adminMode) return;
 
         const statusEmojis: Record<string, string> = {
           DELIVERED: "🎉",
@@ -382,40 +382,6 @@ export function useOrderNotifications({
       },
     );
 
-    // Listen for vendor settlement confirmation (sent to vendor when admin approves payout)
-    socket.on(
-      "settlementConfirmed",
-      (data: {
-        settlementId: string;
-        amount: number;
-        status: string;
-        processedAt?: string;
-      }) => {
-        if (!vendorId) return;
-
-        queryClient.invalidateQueries({ queryKey: ["vendor-settlements"] });
-        queryClient.invalidateQueries({ queryKey: ["vendor-earnings"] });
-
-        playNotificationSound();
-        toast.success("✅ Payout Processed!", {
-          description: `Your settlement of D${data.amount.toFixed(2)} has been processed.`,
-          duration: 8000,
-        });
-        showBrowserNotification(
-          "✅ Payout Processed",
-          `Your settlement of D${data.amount.toFixed(2)} has been processed.`,
-          { settlementId: data.settlementId, type: "settlement_confirmed" },
-        );
-        import("@/stores/notification-store").then((m) =>
-          m.useNotificationStore.getState().addNotification({
-            title: "✅ Payout Processed",
-            body: `Settlement of D${data.amount.toFixed(2)} has been processed.`,
-            data: data as unknown as Record<string, unknown>,
-          }),
-        );
-      },
-    );
-
     // Listen for settlement/payout requests (driver or vendor)
     socket.on(
       "settlementRequest",
@@ -485,6 +451,66 @@ export function useOrderNotifications({
           m.useNotificationStore.getState().addNotification({
             title: `🚚 Express Delivery ${statusLabel}`,
             body: `Delivery #${data.deliveryId?.slice(-6).toUpperCase() ?? "—"}${data.amount ? ` · D${data.amount}` : ""}`,
+            data: data as unknown as Record<string, unknown>,
+          }),
+        );
+      },
+    );
+
+    // Vendor: Listen for settlement approval/confirmation
+    socket.on(
+      "settlementApproved",
+      (data: { settlementId?: string; amount?: number; status?: string }) => {
+        if (!vendorId || adminMode) return;
+
+        queryClient.invalidateQueries({
+          queryKey: ["vendor-settlements"],
+        });
+
+        playNotificationSound();
+        toast.success(`✅ Payout Approved`, {
+          description: `Your payout of D${data.amount?.toFixed(2) ?? "—"} has been approved`,
+          duration: 8000,
+        });
+        showBrowserNotification(
+          `✅ Payout Approved`,
+          `Your payout of D${data.amount?.toFixed(2) ?? "—"} has been approved`,
+          { settlementId: data.settlementId, type: "settlement_approved" },
+        );
+        import("@/stores/notification-store").then((m) =>
+          m.useNotificationStore.getState().addNotification({
+            title: "✅ Payout Approved",
+            body: `D${data.amount?.toFixed(2) ?? "—"} approved for payout`,
+            data: data as unknown as Record<string, unknown>,
+          }),
+        );
+      },
+    );
+
+    // Vendor: Listen for settlement rejection
+    socket.on(
+      "settlementRejected",
+      (data: { settlementId?: string; reason?: string }) => {
+        if (!vendorId || adminMode) return;
+
+        queryClient.invalidateQueries({
+          queryKey: ["vendor-settlements"],
+        });
+
+        playNotificationSound();
+        toast.error(`❌ Payout Rejected`, {
+          description: `Your payout request was rejected${data.reason ? `: ${data.reason}` : ""}`,
+          duration: 8000,
+        });
+        showBrowserNotification(
+          `❌ Payout Rejected`,
+          `Your payout request was rejected`,
+          { settlementId: data.settlementId, type: "settlement_rejected" },
+        );
+        import("@/stores/notification-store").then((m) =>
+          m.useNotificationStore.getState().addNotification({
+            title: "❌ Payout Rejected",
+            body: `Payout request rejected${data.reason ? `: ${data.reason}` : ""}`,
             data: data as unknown as Record<string, unknown>,
           }),
         );
