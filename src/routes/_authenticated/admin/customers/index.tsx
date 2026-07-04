@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import {
@@ -22,20 +22,20 @@ import { adminApi } from "@/lib/api";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Input } from "@/components/ui/input";
 import {
   Table,
   TableBody,
@@ -63,8 +63,13 @@ interface Customer {
   avatarUrl?: string;
 }
 
-// Deterministic accent so each customer's avatar ring/initial color is
-// stable across renders instead of random or uniform.
+interface Pagination {
+  page: number;
+  limit: number;
+  total: number;
+  pages: number;
+}
+
 const AVATAR_RINGS = [
   "ring-violet-200 bg-violet-50 text-violet-700 dark:ring-violet-900 dark:bg-violet-950 dark:text-violet-300",
   "ring-sky-200 bg-sky-50 text-sky-700 dark:ring-sky-900 dark:bg-sky-950 dark:text-sky-300",
@@ -87,59 +92,61 @@ function initials(name?: string) {
 }
 
 function CustomersPage() {
+  const [searchInput, setSearchInput] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [viewLayout, setViewLayout] = useState<"grid" | "list">("grid");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(
     null,
   );
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
 
-  const {
-    data: allCustomers = [],
-    isLoading,
-    isFetching,
-    refetch,
-  } = useQuery<Customer[]>({
-    queryKey: ["customers-all"],
+  // Debounce search input -> query, reset to page 1 on new search
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setSearchQuery(searchInput);
+      setCurrentPage(1);
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [searchInput]);
+
+  const { data, isLoading, isFetching, refetch } = useQuery<{
+    customers: Customer[];
+    pagination: Pagination;
+  }>({
+    queryKey: ["customers", currentPage, pageSize, searchQuery],
     queryFn: async () => {
-      const response = await adminApi.getUsers({});
+      const response = await adminApi.getUsers({
+        page: currentPage,
+        limit: pageSize,
+        search: searchQuery || undefined,
+      });
       const users = response.data.users || response.data || [];
-      return Array.isArray(users) ? users : [];
+      return {
+        customers: Array.isArray(users) ? users : [],
+        pagination: response.data.pagination,
+      };
     },
+    placeholderData: (prev) => prev,
   });
 
-  const stats = useMemo(() => {
-    const totalOrders = allCustomers.reduce(
-      (sum, c) => sum + (c.totalOrders || 0),
-      0,
-    );
-    return {
-      totalCustomers: allCustomers.length,
-      totalOrders,
-      averageOrdersPerCustomer:
-        allCustomers.length > 0
-          ? Math.round((totalOrders / allCustomers.length) * 10) / 10
-          : 0,
-    };
-  }, [allCustomers]);
-
-  const filteredCustomers = useMemo(() => {
-    if (!searchQuery.trim()) return allCustomers;
-    const q = searchQuery.toLowerCase();
-    return allCustomers.filter((customer) => {
-      return (
-        customer.fullName?.toLowerCase().includes(q) ||
-        customer.email?.toLowerCase().includes(q) ||
-        customer.phone?.toLowerCase().includes(q) ||
-        customer.city?.toLowerCase().includes(q)
-      );
-    });
-  }, [searchQuery, allCustomers]);
+  const customers = data?.customers ?? [];
+  const pagination = data?.pagination;
 
   const handleViewDetails = (customer: Customer) => {
     setSelectedCustomer(customer);
     setIsDetailsOpen(true);
   };
+
+  const pageOrdersTotal = customers.reduce(
+    (sum, c) => sum + (c.totalOrders || 0),
+    0,
+  );
+  const pageAvgOrders =
+    customers.length > 0
+      ? Math.round((pageOrdersTotal / customers.length) * 10) / 10
+      : 0;
 
   return (
     <div className="container mx-auto max-w-7xl space-y-8 p-4 md:p-8">
@@ -150,7 +157,9 @@ function CustomersPage() {
           <p className="text-muted-foreground text-sm">
             {isLoading
               ? "Loading your customer base…"
-              : `${stats.totalCustomers.toLocaleString()} customer${stats.totalCustomers === 1 ? "" : "s"} on record`}
+              : `${(pagination?.total ?? 0).toLocaleString()} customer${
+                  pagination?.total === 1 ? "" : "s"
+                } on record`}
           </p>
         </div>
         <Button
@@ -171,21 +180,21 @@ function CustomersPage() {
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <StatCard
           title="Total customers"
-          value={stats.totalCustomers.toLocaleString()}
+          value={(pagination?.total ?? 0).toLocaleString()}
           icon={Users}
           accent="violet"
           loading={isLoading}
         />
         <StatCard
-          title="Total orders"
-          value={stats.totalOrders.toLocaleString()}
+          title="Orders (this page)"
+          value={pageOrdersTotal.toLocaleString()}
           icon={ShoppingBag}
           accent="sky"
           loading={isLoading}
         />
         <StatCard
-          title="Avg. orders / customer"
-          value={stats.averageOrdersPerCustomer.toString()}
+          title="Avg. orders / customer (page)"
+          value={pageAvgOrders.toString()}
           icon={TrendingUp}
           accent="emerald"
           loading={isLoading}
@@ -198,18 +207,30 @@ function CustomersPage() {
           <Search className="text-muted-foreground absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2" />
           <Input
             placeholder="Search by name, email, phone, or city…"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
             className="pl-9"
           />
         </div>
         <div className="flex items-center gap-3">
-          {searchQuery && (
-            <span className="text-muted-foreground text-sm">
-              {filteredCustomers.length} match
-              {filteredCustomers.length === 1 ? "" : "es"}
-            </span>
-          )}
+          <div className="flex items-center gap-2">
+            <span className="text-muted-foreground text-sm">Show</span>
+            <select
+              title="Customers per page"
+              value={pageSize}
+              onChange={(e) => {
+                setPageSize(Number(e.target.value));
+                setCurrentPage(1);
+              }}
+              className="h-8 rounded-md border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-2 py-0 text-sm text-zinc-700 dark:text-zinc-300 focus:outline-none focus:ring-2 focus:ring-violet-500"
+            >
+              {[10, 20, 50, 100].map((n) => (
+                <option key={n} value={n}>
+                  {n}
+                </option>
+              ))}
+            </select>
+          </div>
           <div className="bg-muted flex items-center gap-0.5 rounded-lg p-1">
             <Button
               variant={viewLayout === "grid" ? "default" : "ghost"}
@@ -250,10 +271,10 @@ function CustomersPage() {
             </div>
           </Card>
         )
-      ) : filteredCustomers.length > 0 ? (
+      ) : customers.length > 0 ? (
         viewLayout === "grid" ? (
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {filteredCustomers.map((customer) => (
+            {customers.map((customer) => (
               <CustomerCard
                 key={customer.id}
                 customer={customer}
@@ -263,12 +284,73 @@ function CustomersPage() {
           </div>
         ) : (
           <CustomerTable
-            customers={filteredCustomers}
+            customers={customers}
             onViewDetails={handleViewDetails}
           />
         )
       ) : (
-        <EmptyState hasCustomers={allCustomers.length > 0} />
+        <EmptyState hasCustomers={(pagination?.total ?? 0) > 0} />
+      )}
+
+      {/* Pagination controls */}
+      {pagination && pagination.pages > 1 && (
+        <div className="flex flex-wrap items-center justify-between gap-3 border-t pt-4">
+          <p className="text-muted-foreground text-sm">
+            Page {pagination.page} of {pagination.pages} — {pagination.total}{" "}
+            customers
+          </p>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+              disabled={pagination.page <= 1 || isFetching}
+            >
+              Previous
+            </Button>
+            {Array.from({ length: pagination.pages }, (_, i) => i + 1)
+              .filter(
+                (p) =>
+                  Math.abs(p - pagination.page) <= 2 ||
+                  p === 1 ||
+                  p === pagination.pages,
+              )
+              .reduce<(number | "...")[]>((acc, p, idx, arr) => {
+                if (idx > 0 && p - (arr[idx - 1] as number) > 1)
+                  acc.push("...");
+                acc.push(p);
+                return acc;
+              }, [])
+              .map((p, i) =>
+                p === "..." ? (
+                  <span key={`ellipsis-${i}`} className="text-zinc-400 px-1">
+                    …
+                  </span>
+                ) : (
+                  <Button
+                    key={p}
+                    variant={p === pagination.page ? "default" : "outline"}
+                    size="sm"
+                    className="w-9"
+                    onClick={() => setCurrentPage(p as number)}
+                    disabled={isFetching}
+                  >
+                    {p}
+                  </Button>
+                ),
+              )}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() =>
+                setCurrentPage((p) => Math.min(pagination.pages, p + 1))
+              }
+              disabled={pagination.page >= pagination.pages || isFetching}
+            >
+              Next
+            </Button>
+          </div>
+        </div>
       )}
 
       {selectedCustomer && (

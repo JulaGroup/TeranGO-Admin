@@ -9,6 +9,8 @@ import {
   RefreshCw,
   Image as ImageIcon,
   X,
+  LayoutGrid,
+  List as ListIcon,
 } from "lucide-react";
 import { toast } from "sonner";
 import { api } from "@/lib/api";
@@ -75,6 +77,8 @@ async function uploadToCloudinary(file: File): Promise<string> {
     throw new Error("Failed to upload image to Cloudinary");
   }
 }
+
+type ViewMode = "grid" | "list";
 
 interface MenuItem {
   id: string;
@@ -156,6 +160,101 @@ const MEAL_TIMES = [
   "BEVERAGES",
 ];
 
+/* ------------------------------------------------------------------ */
+/*  Small shared UI pieces                                            */
+/* ------------------------------------------------------------------ */
+
+function ViewToggle({
+  value,
+  onChange,
+}: {
+  value: ViewMode;
+  onChange: (v: ViewMode) => void;
+}) {
+  return (
+    <div className="inline-flex shrink-0 items-center gap-0.5 rounded-lg bg-zinc-100 p-0.5 dark:bg-zinc-800">
+      <button
+        type="button"
+        aria-label="Grid view"
+        aria-pressed={value === "grid"}
+        onClick={() => onChange("grid")}
+        className={`inline-flex h-8 w-8 items-center justify-center rounded-md transition-colors ${
+          value === "grid"
+            ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900"
+            : "text-zinc-400 hover:text-zinc-700 dark:text-zinc-500 dark:hover:text-zinc-200"
+        }`}
+      >
+        <LayoutGrid className="h-4 w-4" />
+      </button>
+      <button
+        type="button"
+        aria-label="List view"
+        aria-pressed={value === "list"}
+        onClick={() => onChange("list")}
+        className={`inline-flex h-8 w-8 items-center justify-center rounded-md transition-colors ${
+          value === "list"
+            ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900"
+            : "text-zinc-400 hover:text-zinc-700 dark:text-zinc-500 dark:hover:text-zinc-200"
+        }`}
+      >
+        <ListIcon className="h-4 w-4" />
+      </button>
+    </div>
+  );
+}
+
+function AvailabilityPill({ isAvailable }: { isAvailable: boolean }) {
+  return (
+    <span
+      className={`absolute right-2 top-2 inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium shadow-sm backdrop-blur-sm ${
+        isAvailable
+          ? "bg-white/90 text-zinc-700 dark:bg-zinc-900/80 dark:text-zinc-200"
+          : "bg-white/90 text-zinc-400 dark:bg-zinc-900/80 dark:text-zinc-500"
+      }`}
+    >
+      <span
+        className={`h-1.5 w-1.5 rounded-full ${
+          isAvailable ? "bg-green-500" : "bg-zinc-400 dark:bg-zinc-600"
+        }`}
+      />
+      {isAvailable ? "Available" : "Unavailable"}
+    </span>
+  );
+}
+
+function EmptyState({
+  icon,
+  title,
+  description,
+  action,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  description: string;
+  action?: React.ReactNode;
+}) {
+  return (
+    <Card className="rounded-2xl border-2 border-dashed border-zinc-200 bg-white/60 shadow-none dark:border-zinc-800 dark:bg-zinc-900/60">
+      <CardContent className="flex min-h-[320px] flex-col items-center justify-center p-8 text-center">
+        <div className="mb-4 rounded-full bg-zinc-100 p-4 dark:bg-zinc-800">
+          {icon}
+        </div>
+        <h3 className="mb-1.5 text-lg font-semibold text-zinc-900 dark:text-zinc-50">
+          {title}
+        </h3>
+        <p className="max-w-sm text-sm text-zinc-500 dark:text-zinc-400">
+          {description}
+        </p>
+        {action && <div className="mt-4">{action}</div>}
+      </CardContent>
+    </Card>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  Vendor menu (restaurant items)                                    */
+/* ------------------------------------------------------------------ */
+
 function VendorMenu() {
   const queryClient = useQueryClient();
   const { vendor, isLoading: vendorLoading } = useVendorProfile();
@@ -193,6 +292,7 @@ function VendorMenu() {
   ) : null;
 
   const [searchQuery, setSearchQuery] = useState("");
+  const [viewMode, setViewMode] = useState<ViewMode>("grid");
   const [modalOpen, setModalOpen] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [selectedItem, setSelectedItem] = useState<MenuItem | null>(null);
@@ -595,37 +695,30 @@ function VendorMenu() {
 
   if (!restaurant && !shop) {
     return (
-      <Card className="border-dashed">
-        <CardContent className="flex min-h-[400px] flex-col items-center justify-center p-8 text-center">
-          <div className="bg-muted mb-4 rounded-full p-4">
-            <ImageIcon className="text-muted-foreground h-8 w-8" />
-          </div>
-          <h2 className="mb-2 text-xl font-semibold">No businesses found</h2>
-          <p className="text-muted-foreground max-w-sm text-sm">
-            Link a restaurant or shop to your vendor profile to start managing
-            menu items or products.
-          </p>
-        </CardContent>
-      </Card>
+      <div className="flex-1 p-6 md:p-8 bg-zinc-50 dark:bg-zinc-950 min-h-screen">
+        <div className="max-w-7xl mx-auto">
+          <EmptyState
+            icon={<ImageIcon className="h-8 w-8 text-zinc-400" />}
+            title="No businesses found"
+            description="Link a restaurant or shop to your vendor profile to start managing menu items or products."
+          />
+        </div>
+      </div>
     );
   }
 
   if (effectiveView === "PRODUCTS") {
     if (!shop) {
       return (
-        <div className="space-y-6">
-          {viewSwitcher}
-          <Card className="border-dashed">
-            <CardContent className="flex min-h-[400px] flex-col items-center justify-center p-8 text-center">
-              <div className="bg-muted mb-4 rounded-full p-4">
-                <ImageIcon className="text-muted-foreground h-8 w-8" />
-              </div>
-              <h2 className="mb-2 text-xl font-semibold">No shop found</h2>
-              <p className="text-muted-foreground max-w-sm text-sm">
-                Link a shop to your vendor profile to manage products.
-              </p>
-            </CardContent>
-          </Card>
+        <div className="flex-1 p-6 md:p-8 bg-zinc-50 dark:bg-zinc-950 min-h-screen">
+          <div className="max-w-7xl mx-auto space-y-6">
+            {viewSwitcher}
+            <EmptyState
+              icon={<ImageIcon className="h-8 w-8 text-zinc-400" />}
+              title="No shop found"
+              description="Link a shop to your vendor profile to manage products."
+            />
+          </div>
         </div>
       );
     }
@@ -640,41 +733,39 @@ function VendorMenu() {
 
   if (!restaurant) {
     return (
-      <div className="space-y-6">
-        {viewSwitcher}
-        <Card className="border-dashed">
-          <CardContent className="flex min-h-[400px] flex-col items-center justify-center p-8 text-center">
-            <div className="bg-muted mb-4 rounded-full p-4">
-              <ImageIcon className="text-muted-foreground h-8 w-8" />
-            </div>
-            <h2 className="mb-2 text-xl font-semibold">No restaurant found</h2>
-            <p className="text-muted-foreground max-w-sm text-sm">
-              Link a restaurant to your vendor profile to manage menu items.
-            </p>
-          </CardContent>
-        </Card>
+      <div className="flex-1 p-6 md:p-8 bg-zinc-50 dark:bg-zinc-950 min-h-screen">
+        <div className="max-w-7xl mx-auto space-y-6">
+          {viewSwitcher}
+          <EmptyState
+            icon={<ImageIcon className="h-8 w-8 text-zinc-400" />}
+            title="No restaurant found"
+            description="Link a restaurant to your vendor profile to manage menu items."
+          />
+        </div>
       </div>
     );
   }
 
   return (
     <div className="flex-1 p-6 md:p-8 bg-zinc-50 dark:bg-zinc-950 min-h-screen">
-      <div className="max-w-7xl mx-auto space-y-8">
+      <div className="max-w-7xl mx-auto space-y-6">
         {viewSwitcher}
         {/* Header */}
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="space-y-1">
-            <h1 className="text-3xl font-bold tracking-tight text-zinc-950 dark:text-zinc-50">
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-zinc-950 dark:text-zinc-50">
               Menu Management
             </h1>
-            <p className="text-zinc-500 dark:text-zinc-400 mt-1 text-sm">
-              Control the catalog of published items for{" "}
+            <p className="text-zinc-500 dark:text-zinc-400 text-sm">
               <span className="font-medium text-orange-600 dark:text-orange-500">
                 {restaurant.name}
               </span>
+              <span className="mx-1.5 text-zinc-300 dark:text-zinc-700">·</span>
+              {filteredItems?.length ?? 0} item
+              {filteredItems?.length === 1 ? "" : "s"}
             </p>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
             <Button
               onClick={() => refetch()}
               variant="outline"
@@ -682,7 +773,7 @@ function VendorMenu() {
               size="sm"
             >
               <RefreshCw className="mr-2 h-4 w-4" />
-              Refresh List
+              <span className="hidden sm:inline">Refresh</span>
             </Button>
             <Button
               onClick={() => setModalOpen(true)}
@@ -690,159 +781,252 @@ function VendorMenu() {
               className="bg-zinc-900 hover:bg-zinc-800 text-white dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-200 shadow-sm"
             >
               <Plus className="mr-2 h-4 w-4 text-orange-500" />
-              Add Menu Item
+              Add Item
             </Button>
           </div>
         </div>
 
-        {/* Search */}
-        <Card className="rounded-2xl border-zinc-200 dark:border-zinc-800 shadow-sm overflow-hidden bg-white dark:bg-zinc-900">
-          <CardContent className="p-6">
-            <div className="relative">
-              <Search className="text-muted-foreground absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2" />
-              <Input
-                placeholder="Search menu items by name..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10"
-              />
+        {/* Search + view toggle */}
+        <Card className="rounded-2xl border-0 shadow-[0_1px_2px_rgba(0,0,0,0.04)] ring-1 ring-zinc-950/[0.06] overflow-hidden bg-white dark:bg-zinc-900 dark:ring-white/[0.08]">
+          <CardContent className="p-4">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+              <div className="relative flex-1">
+                <Search className="text-muted-foreground absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2" />
+                <Input
+                  placeholder="Search menu items by name..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+              <ViewToggle value={viewMode} onChange={setViewMode} />
             </div>
           </CardContent>
         </Card>
 
-        {/* Menu Items Grid */}
+        {/* Menu Items */}
         {isLoading ? (
           <div className="flex min-h-[300px] items-center justify-center">
             <RefreshCw className="text-muted-foreground h-8 w-8 animate-spin" />
           </div>
         ) : filteredItems && filteredItems.length > 0 ? (
-          <div className="grid gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-            {filteredItems.map((item) => (
-              <Card
-                key={item.id}
-                className="group overflow-hidden transition-shadow hover:shadow-lg"
-              >
-                <CardContent className="p-0">
-                  {/* Image Section */}
-                  <div className="bg-muted relative aspect-video overflow-hidden">
-                    {item.imageUrl ? (
-                      <img
-                        src={item.imageUrl}
-                        alt={item.name}
-                        className="h-full w-full object-cover transition-transform group-hover:scale-105"
-                      />
-                    ) : (
-                      <div className="flex h-full items-center justify-center">
-                        <ImageIcon className="text-muted-foreground h-12 w-12" />
-                      </div>
-                    )}
-                    {!item.isAvailable && (
-                      <Badge
-                        className="absolute right-2 top-2"
-                        variant="secondary"
-                      >
-                        Unavailable
-                      </Badge>
-                    )}
-                    {item.isAvailable && (
-                      <Badge className="absolute right-2 top-2 bg-green-600 hover:bg-green-700">
-                        Available
-                      </Badge>
-                    )}
-                  </div>
+          viewMode === "grid" ? (
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+              {filteredItems.map((item) => (
+                <Card
+                  key={item.id}
+                  className="group relative overflow-hidden rounded-2xl border-0 bg-white shadow-[0_1px_2px_rgba(0,0,0,0.04),0_1px_6px_rgba(0,0,0,0.04)] ring-1 ring-zinc-950/[0.06] transition-shadow hover:shadow-[0_4px_16px_rgba(0,0,0,0.08)] dark:bg-zinc-900 dark:ring-white/[0.08]"
+                >
+                  <CardContent className="p-0">
+                    {/* Image Section */}
+                    <div className="relative aspect-[4/3] overflow-hidden bg-zinc-100 dark:bg-zinc-800">
+                      {item.imageUrl ? (
+                        <img
+                          src={item.imageUrl}
+                          alt={item.name}
+                          className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
+                        />
+                      ) : (
+                        <div className="flex h-full items-center justify-center">
+                          <ImageIcon className="h-8 w-8 text-zinc-300 dark:text-zinc-700" />
+                        </div>
+                      )}
+                      <AvailabilityPill isAvailable={item.isAvailable} />
 
-                  {/* Content Section */}
-                  <div className="space-y-4 p-5">
-                    {/* Title and Price */}
-                    <div className="space-y-2">
+                      {/* Actions - revealed on hover (desktop only) */}
+                      <div className="absolute bottom-2 right-2 hidden gap-1 opacity-0 transition-opacity duration-150 group-hover:opacity-100 sm:flex">
+                        <button
+                          type="button"
+                          onClick={() => handleEdit(item)}
+                          title="Edit item"
+                          className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-white/95 text-zinc-600 shadow-sm backdrop-blur-sm transition-colors hover:bg-white hover:text-zinc-900 dark:bg-zinc-900/95 dark:text-zinc-300 dark:hover:text-white"
+                        >
+                          <Edit className="h-3.5 w-3.5" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDelete(item.id)}
+                          title="Delete item"
+                          className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-white/95 text-zinc-600 shadow-sm backdrop-blur-sm transition-colors hover:bg-red-50 hover:text-red-600 dark:bg-zinc-900/95 dark:text-zinc-300 dark:hover:bg-red-950/60 dark:hover:text-red-400"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Content Section */}
+                    <div className="space-y-2 p-3.5">
                       <div className="flex items-start justify-between gap-2">
-                        <h3 className="line-clamp-1 font-semibold leading-tight">
+                        <h3 className="line-clamp-1 text-sm font-semibold leading-tight text-zinc-900 dark:text-zinc-50">
                           {item.name}
                         </h3>
                         {item.mealTime && (
-                          <Badge variant="outline" className="shrink-0 text-xs">
+                          <span className="shrink-0 rounded-full bg-zinc-100 px-2 py-0.5 text-[10px] font-medium text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400">
                             {item.mealTime}
-                          </Badge>
+                          </span>
                         )}
                       </div>
+
                       {item.description && (
-                        <p className="text-muted-foreground line-clamp-2 text-sm">
+                        <p className="line-clamp-1 text-xs text-zinc-500 dark:text-zinc-400">
                           {item.description}
                         </p>
                       )}
-                    </div>
 
-                    {/* Price and Details */}
-                    <div className="flex items-end justify-between">
-                      <div>
-                        <div className="flex items-baseline gap-2">
-                          <span className="text-2xl font-bold">
+                      <div className="flex items-baseline justify-between pt-1">
+                        <div className="flex items-baseline gap-1.5">
+                          <span className="text-base font-bold text-zinc-900 dark:text-zinc-50">
                             D{item.price.toFixed(2)}
                           </span>
                           {item.discountedPrice && (
-                            <span className="text-muted-foreground text-sm line-through">
+                            <span className="text-xs text-zinc-400 line-through">
                               D{item.discountedPrice.toFixed(2)}
                             </span>
                           )}
                         </div>
                         {item.preparationTime && (
-                          <p className="text-muted-foreground mt-1 text-xs">
-                            Prep time: {item.preparationTime} min
-                          </p>
+                          <span className="text-[11px] text-zinc-400">
+                            {item.preparationTime}m
+                          </span>
                         )}
                       </div>
                     </div>
 
-                    <Separator />
-
-                    {/* Actions */}
-                    <div className="flex gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
+                    {/* Mobile action bar (no hover on touch) */}
+                    <div className="flex border-t border-zinc-100 dark:border-zinc-800 sm:hidden">
+                      <button
+                        type="button"
                         onClick={() => handleEdit(item)}
-                        className="flex-1"
+                        className="flex flex-1 items-center justify-center gap-1.5 py-2.5 text-xs font-medium text-zinc-600 active:bg-zinc-50 dark:text-zinc-400 dark:active:bg-zinc-800"
                       >
-                        <Edit className="mr-2 h-3.5 w-3.5" />
-                        Edit
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
+                        <Edit className="h-3.5 w-3.5" /> Edit
+                      </button>
+                      <div className="w-px bg-zinc-100 dark:bg-zinc-800" />
+                      <button
+                        type="button"
                         onClick={() => handleDelete(item.id)}
-                        className="flex-1 text-destructive hover:bg-destructive hover:text-destructive-foreground"
+                        className="flex flex-1 items-center justify-center gap-1.5 py-2.5 text-xs font-medium text-red-600 active:bg-red-50 dark:text-red-400 dark:active:bg-red-950/40"
                       >
-                        <Trash2 className="mr-2 h-3.5 w-3.5" />
-                        Delete
-                      </Button>
+                        <Trash2 className="h-3.5 w-3.5" /> Delete
+                      </button>
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          ) : (
+            <div className="space-y-2.5">
+              {filteredItems.map((item) => (
+                <Card
+                  key={item.id}
+                  className="overflow-hidden rounded-xl border-0 bg-white shadow-[0_1px_2px_rgba(0,0,0,0.04)] ring-1 ring-zinc-950/[0.06] transition-shadow hover:shadow-[0_2px_10px_rgba(0,0,0,0.06)] dark:bg-zinc-900 dark:ring-white/[0.08]"
+                >
+                  <CardContent className="flex flex-col gap-3 p-3 sm:flex-row sm:items-center sm:gap-4">
+                    <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-lg bg-zinc-100 dark:bg-zinc-800">
+                      {item.imageUrl ? (
+                        <img
+                          src={item.imageUrl}
+                          alt={item.name}
+                          className="h-full w-full object-cover"
+                        />
+                      ) : (
+                        <div className="flex h-full items-center justify-center">
+                          <ImageIcon className="h-5 w-5 text-zinc-300 dark:text-zinc-700" />
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="min-w-0 flex-1 space-y-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <h3 className="font-semibold text-zinc-900 dark:text-zinc-50">
+                          {item.name}
+                        </h3>
+                        {item.mealTime && (
+                          <Badge
+                            variant="outline"
+                            className="text-[10px] font-normal text-zinc-500 dark:text-zinc-400"
+                          >
+                            {item.mealTime}
+                          </Badge>
+                        )}
+                        <span className="inline-flex items-center gap-1.5 text-xs text-zinc-500 dark:text-zinc-400">
+                          <span
+                            className={`h-1.5 w-1.5 rounded-full ${
+                              item.isAvailable
+                                ? "bg-green-500"
+                                : "bg-zinc-400 dark:bg-zinc-600"
+                            }`}
+                          />
+                          {item.isAvailable ? "Available" : "Unavailable"}
+                        </span>
+                      </div>
+                      {item.description && (
+                        <p className="line-clamp-1 text-sm text-zinc-500 dark:text-zinc-400">
+                          {item.description}
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="flex items-center justify-between gap-4 sm:justify-end sm:shrink-0">
+                      <div className="text-left sm:text-right">
+                        <div className="flex items-baseline gap-2">
+                          <span className="text-base font-bold text-zinc-900 dark:text-zinc-50">
+                            D{item.price.toFixed(2)}
+                          </span>
+                          {item.discountedPrice && (
+                            <span className="text-xs text-zinc-400 line-through">
+                              D{item.discountedPrice.toFixed(2)}
+                            </span>
+                          )}
+                        </div>
+                        {item.preparationTime && (
+                          <p className="text-xs text-zinc-400">
+                            {item.preparationTime} min
+                          </p>
+                        )}
+                      </div>
+                      <div className="flex gap-1">
+                        <button
+                          type="button"
+                          onClick={() => handleEdit(item)}
+                          title="Edit item"
+                          className="inline-flex h-8 w-8 items-center justify-center rounded-full text-zinc-500 transition-colors hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-white"
+                        >
+                          <Edit className="h-3.5 w-3.5" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDelete(item.id)}
+                          title="Delete item"
+                          className="inline-flex h-8 w-8 items-center justify-center rounded-full text-zinc-500 transition-colors hover:bg-red-50 hover:text-red-600 dark:text-zinc-400 dark:hover:bg-red-950/40 dark:hover:text-red-400"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )
         ) : (
-          <Card className="border-dashed">
-            <CardContent className="flex min-h-[300px] flex-col items-center justify-center p-8 text-center">
-              <div className="bg-muted mb-4 rounded-full p-4">
-                <Search className="text-muted-foreground h-8 w-8" />
-              </div>
-              <h3 className="mb-2 text-lg font-semibold">
-                No menu items found
-              </h3>
-              <p className="text-muted-foreground mb-4 max-w-sm text-sm">
-                {searchQuery
-                  ? "Try adjusting your search terms"
-                  : "Get started by adding your first menu item"}
-              </p>
-              {!searchQuery && (
+          <EmptyState
+            icon={<Search className="h-8 w-8 text-zinc-400" />}
+            title="No menu items found"
+            description={
+              searchQuery
+                ? "Try adjusting your search terms"
+                : "Get started by adding your first menu item"
+            }
+            action={
+              !searchQuery && (
                 <Button onClick={() => setModalOpen(true)} size="sm">
                   <Plus className="mr-2 h-4 w-4" />
                   Add Menu Item
                 </Button>
-              )}
-            </CardContent>
-          </Card>
+              )
+            }
+          />
         )}
 
         {/* Add/Edit Dialog */}
@@ -1221,6 +1405,10 @@ function VendorMenu() {
   );
 }
 
+/* ------------------------------------------------------------------ */
+/*  Shop products                                                     */
+/* ------------------------------------------------------------------ */
+
 function ShopProductManager({ shop }: { shop: VendorShop }) {
   const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState("");
@@ -1230,6 +1418,7 @@ function ShopProductManager({ shop }: { shop: VendorShop }) {
   const [sortBy, setSortBy] = useState("createdAt_desc");
   const [currentPage, setCurrentPage] = useState(1);
   const [productsPerPage, setProductsPerPage] = useState(50);
+  const [viewMode, setViewMode] = useState<ViewMode>("grid");
   const [modalOpen, setModalOpen] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<ShopProduct | null>(
@@ -1541,27 +1730,34 @@ function ShopProductManager({ shop }: { shop: VendorShop }) {
   const isSaving =
     createProductMutation.isPending || updateProductMutation.isPending;
 
+  const hasActiveFilters =
+    filterAvailability !== "all" ||
+    filterFeatured !== "all" ||
+    sortBy !== "createdAt_desc";
+
   return (
     <div className="flex-1 p-6 md:p-8 bg-zinc-50 dark:bg-zinc-950 min-h-screen">
-      <div className="max-w-7xl mx-auto space-y-8">
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+      <div className="max-w-7xl mx-auto space-y-6">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="space-y-1">
-            <h1 className="text-3xl font-bold tracking-tight text-zinc-950 dark:text-zinc-50">
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-zinc-950 dark:text-zinc-50">
               Product Management
             </h1>
-            <p className="text-zinc-500 dark:text-zinc-400 mt-1 text-sm">
-              Manage products for{" "}
+            <p className="text-zinc-500 dark:text-zinc-400 text-sm">
               <span className="font-medium text-orange-600 dark:text-orange-500">
                 {shop.name}
               </span>
               {pagination && (
-                <span className="ml-2 text-zinc-400">
-                  ({pagination.total} total)
-                </span>
+                <>
+                  <span className="mx-1.5 text-zinc-300 dark:text-zinc-700">
+                    ·
+                  </span>
+                  {pagination.total} total
+                </>
               )}
             </p>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
             <Button
               onClick={() => refetch()}
               variant="outline"
@@ -1569,7 +1765,7 @@ function ShopProductManager({ shop }: { shop: VendorShop }) {
               className="shadow-sm border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-zinc-600 dark:text-zinc-400"
             >
               <RefreshCw className="mr-2 h-4 w-4" />
-              Refresh
+              <span className="hidden sm:inline">Refresh</span>
             </Button>
             <Button
               onClick={handleAddProduct}
@@ -1582,9 +1778,9 @@ function ShopProductManager({ shop }: { shop: VendorShop }) {
           </div>
         </div>
 
-        <Card className="rounded-2xl border-zinc-200 dark:border-zinc-800 shadow-sm overflow-hidden bg-white dark:bg-zinc-900">
-          <CardContent className="p-6">
-            <div className="flex flex-wrap gap-3">
+        <Card className="rounded-2xl border-0 shadow-[0_1px_2px_rgba(0,0,0,0.04)] ring-1 ring-zinc-950/[0.06] overflow-hidden bg-white dark:bg-zinc-900 dark:ring-white/[0.08]">
+          <CardContent className="p-4">
+            <div className="flex flex-wrap items-center gap-3">
               <div className="relative min-w-48 flex-1">
                 <Search className="text-muted-foreground absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2" />
                 <Input
@@ -1649,9 +1845,7 @@ function ShopProductManager({ shop }: { shop: VendorShop }) {
                   <SelectItem value="stock_desc">Most Stock</SelectItem>
                 </SelectContent>
               </Select>
-              {(filterAvailability !== "all" ||
-                filterFeatured !== "all" ||
-                sortBy !== "createdAt_desc") && (
+              {hasActiveFilters && (
                 <Button
                   variant="ghost"
                   size="sm"
@@ -1666,6 +1860,7 @@ function ShopProductManager({ shop }: { shop: VendorShop }) {
                   <X className="h-4 w-4" /> Clear
                 </Button>
               )}
+              <ViewToggle value={viewMode} onChange={setViewMode} />
             </div>
           </CardContent>
         </Card>
@@ -1673,48 +1868,152 @@ function ShopProductManager({ shop }: { shop: VendorShop }) {
         {isLoading ? (
           <ProductsGridSkeleton count={12} />
         ) : products.length > 0 ? (
-          <div className="grid gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-            {products.map((product) => {
-              const toggling =
-                availabilityMutation.isPending &&
-                availabilityMutation.variables?.id === product.id;
-              const deleting =
-                deleteProductMutation.isPending &&
-                deleteProductMutation.variables === product.id;
+          viewMode === "grid" ? (
+            <div className="grid gap-5 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+              {products.map((product) => {
+                const toggling =
+                  availabilityMutation.isPending &&
+                  availabilityMutation.variables?.id === product.id;
+                const deleting =
+                  deleteProductMutation.isPending &&
+                  deleteProductMutation.variables === product.id;
 
-              return (
-                <ProductCard
-                  key={product.id}
-                  product={product}
-                  onEdit={handleEditProduct}
-                  onDelete={handleDelete}
-                  onToggleAvailability={handleToggleAvailability}
-                  isToggling={toggling}
-                  isDeleting={deleting}
-                />
-              );
-            })}
-          </div>
+                return (
+                  <ProductCard
+                    key={product.id}
+                    product={product}
+                    onEdit={handleEditProduct}
+                    onDelete={handleDelete}
+                    onToggleAvailability={handleToggleAvailability}
+                    isToggling={toggling}
+                    isDeleting={deleting}
+                  />
+                );
+              })}
+            </div>
+          ) : (
+            <div className="space-y-2.5">
+              {products.map((product) => {
+                const toggling =
+                  availabilityMutation.isPending &&
+                  availabilityMutation.variables?.id === product.id;
+                const deleting =
+                  deleteProductMutation.isPending &&
+                  deleteProductMutation.variables === product.id;
+
+                return (
+                  <Card
+                    key={product.id}
+                    className="overflow-hidden rounded-xl border-0 bg-white shadow-[0_1px_2px_rgba(0,0,0,0.04)] ring-1 ring-zinc-950/[0.06] transition-shadow hover:shadow-[0_2px_10px_rgba(0,0,0,0.06)] dark:bg-zinc-900 dark:ring-white/[0.08]"
+                  >
+                    <CardContent className="flex flex-col gap-3 p-3 sm:flex-row sm:items-center sm:gap-4">
+                      <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-lg bg-zinc-100 dark:bg-zinc-800">
+                        {product.imageUrl ? (
+                          <img
+                            src={product.imageUrl}
+                            alt={product.name}
+                            className="h-full w-full object-cover"
+                          />
+                        ) : (
+                          <div className="flex h-full items-center justify-center">
+                            <ImageIcon className="h-5 w-5 text-zinc-300 dark:text-zinc-700" />
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="min-w-0 flex-1 space-y-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <h3 className="font-semibold text-zinc-900 dark:text-zinc-50">
+                            {product.name}
+                          </h3>
+                          <span className="inline-flex items-center gap-1.5 text-xs text-zinc-500 dark:text-zinc-400">
+                            <span
+                              className={`h-1.5 w-1.5 rounded-full ${
+                                product.isAvailable
+                                  ? "bg-green-500"
+                                  : "bg-zinc-400 dark:bg-zinc-600"
+                              }`}
+                            />
+                            {product.isAvailable ? "Available" : "Unavailable"}
+                          </span>
+                          {typeof product.stock === "number" && (
+                            <span className="text-xs text-zinc-400 dark:text-zinc-500">
+                              {product.stock} in stock
+                            </span>
+                          )}
+                        </div>
+                        {product.description && (
+                          <p className="line-clamp-1 text-sm text-zinc-500 dark:text-zinc-400">
+                            {product.description}
+                          </p>
+                        )}
+                      </div>
+
+                      <div className="flex items-center justify-between gap-3 border-t border-zinc-100 pt-3 dark:border-zinc-800 sm:justify-end sm:gap-5 sm:border-t-0 sm:pt-0 sm:shrink-0">
+                        <div className="text-left sm:text-right">
+                          <div className="flex items-baseline gap-2">
+                            <span className="text-base font-bold text-zinc-900 dark:text-zinc-50">
+                              D{product.price.toFixed(2)}
+                            </span>
+                            {product.discountedPrice && (
+                              <span className="text-xs text-zinc-400 line-through">
+                                D{product.discountedPrice.toFixed(2)}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        <Switch
+                          checked={product.isAvailable}
+                          disabled={toggling}
+                          onCheckedChange={() =>
+                            handleToggleAvailability(product)
+                          }
+                          aria-label="Toggle availability"
+                        />
+                        <div className="flex gap-1">
+                          <button
+                            type="button"
+                            onClick={() => handleEditProduct(product)}
+                            title="Edit product"
+                            className="inline-flex h-8 w-8 items-center justify-center rounded-full text-zinc-500 transition-colors hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-white"
+                          >
+                            <Edit className="h-3.5 w-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleDelete(product.id)}
+                            disabled={deleting}
+                            title="Delete product"
+                            className="inline-flex h-8 w-8 items-center justify-center rounded-full text-zinc-500 transition-colors hover:bg-red-50 hover:text-red-600 disabled:opacity-50 dark:text-zinc-400 dark:hover:bg-red-950/40 dark:hover:text-red-400"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          )
         ) : (
-          <Card className="border-dashed">
-            <CardContent className="flex min-h-[400px] flex-col items-center justify-center p-8 text-center">
-              <div className="bg-muted mb-4 rounded-full p-4">
-                <Search className="text-muted-foreground h-8 w-8" />
-              </div>
-              <h3 className="mb-2 text-lg font-semibold">No products found</h3>
-              <p className="text-muted-foreground mb-4 max-w-sm text-sm">
-                {searchQuery
-                  ? "Try adjusting your search terms"
-                  : "Get started by adding your first product"}
-              </p>
-              {!searchQuery && (
+          <EmptyState
+            icon={<Search className="h-8 w-8 text-zinc-400" />}
+            title="No products found"
+            description={
+              searchQuery
+                ? "Try adjusting your search terms"
+                : "Get started by adding your first product"
+            }
+            action={
+              !searchQuery && (
                 <Button onClick={handleAddProduct} size="sm">
                   <Plus className="mr-2 h-4 w-4" />
                   Add Product
                 </Button>
-              )}
-            </CardContent>
-          </Card>
+              )
+            }
+          />
         )}
 
         {/* Pagination */}
