@@ -143,6 +143,17 @@ export interface Order {
   driver?: Driver;
   createdAt: string;
   updatedAt?: string;
+  paymentMethod?: string;
+  subtotalAmount?: number;
+  discountAmount?: number;
+  // Promo code applied to this order
+  appliedPromoCode?: {
+    code: string;
+    type: string;
+    value: number;
+    freeDelivery: boolean;
+    description?: string;
+  } | null;
   // Weight & Vehicle Requirements
   totalWeightKg?: number;
   requiredVehicleType?: string;

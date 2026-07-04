@@ -24,6 +24,10 @@ import {
   Gift,
   ArrowRight,
   ShoppingBag,
+  Receipt,
+  Banknote,
+  Calendar,
+  Banknote,
 } from "lucide-react";
 import { toast } from "sonner";
 import { adminApi } from "@/lib/api";
@@ -531,6 +535,7 @@ function OrdersPage() {
                     <TableHead>Items</TableHead>
                     <TableHead>Amount</TableHead>
                     <TableHead>Status</TableHead>
+                    <TableHead>Payment</TableHead>
                     <TableHead>Driver</TableHead>
                     <TableHead>Date</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
@@ -565,11 +570,41 @@ function OrdersPage() {
                           order.vendor?.businessName ||
                           "N/A"}
                       </TableCell>
-                      <TableCell>{order.items?.length || 0} items</TableCell>
-                      <TableCell className="font-medium">
-                        D{order.totalAmount?.toFixed(2) || "0.00"}
+                      <TableCell className="text-sm text-muted-foreground">
+                        {order.items?.length || 0} item
+                        {order.items?.length !== 1 ? "s" : ""}
+                      </TableCell>
+                      <TableCell>
+                        <div className="space-y-0.5">
+                          <p className="font-semibold text-sm">
+                            D{order.totalAmount?.toFixed(2) || "0.00"}
+                          </p>
+                          {order.deliveryFee ? (
+                            <p className="text-xs text-muted-foreground flex items-center gap-1">
+                              <Truck className="h-2.5 w-2.5" />D
+                              {order.deliveryFee.toFixed(2)} del.
+                            </p>
+                          ) : null}
+                        </div>
                       </TableCell>
                       <TableCell>{getStatusBadge(order.status)}</TableCell>
+                      <TableCell>
+                        <Badge
+                          variant="outline"
+                          className={`text-xs ${
+                            order.paymentStatus === "PAID"
+                              ? "border-green-300 bg-green-50 text-green-700"
+                              : "border-amber-300 bg-amber-50 text-amber-700"
+                          }`}
+                        >
+                          {order.paymentStatus === "PAID" ? (
+                            <BadgeCheck className="h-3 w-3 mr-1" />
+                          ) : (
+                            <Clock className="h-3 w-3 mr-1" />
+                          )}
+                          {order.paymentStatus || "PENDING"}
+                        </Badge>
+                      </TableCell>
                       <TableCell>
                         {order.driver ? (
                           <div className="flex items-center gap-1">
@@ -655,12 +690,39 @@ function OrdersPage() {
 
       {/* Order Details Dialog */}
       <Dialog open={isDetailsOpen} onOpenChange={setIsDetailsOpen}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>Order Details</DialogTitle>
-            <DialogDescription>
-              Order TG{selectedOrder?.id?.slice(-4).toUpperCase()}
-            </DialogDescription>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader className="border-b pb-4">
+            <div className="flex items-start justify-between gap-4">
+              <div className="space-y-1">
+                <DialogTitle className="text-xl flex items-center gap-2">
+                  Order Details
+                  {selectedOrder?.isGiftOrder && (
+                    <Gift className="h-4 w-4 text-pink-500" />
+                  )}
+                </DialogTitle>
+                <DialogDescription className="font-mono text-xs text-muted-foreground">
+                  Full ID: {selectedOrder?.id || selectedOrder?._id}
+                </DialogDescription>
+              </div>
+              <div className="flex items-center gap-2 pt-1 shrink-0">
+                {getStatusBadge(selectedOrder?.status || "")}
+                <Badge
+                  variant="outline"
+                  className={`text-xs ${
+                    selectedOrder?.paymentStatus === "PAID"
+                      ? "border-green-300 bg-green-50 text-green-700"
+                      : "border-amber-300 bg-amber-50 text-amber-700"
+                  }`}
+                >
+                  {selectedOrder?.paymentStatus === "PAID" ? (
+                    <BadgeCheck className="h-3 w-3 mr-1" />
+                  ) : (
+                    <Clock className="h-3 w-3 mr-1" />
+                  )}
+                  {selectedOrder?.paymentStatus || "PENDING"}
+                </Badge>
+              </div>
+            </div>
           </DialogHeader>
 
           {selectedOrder && (
@@ -760,58 +822,270 @@ function OrdersPage() {
 
               {/* Order Items */}
               <div>
-                <h3 className="mb-2 flex items-center gap-2 font-semibold">
+                <h3 className="mb-3 flex items-center gap-2 font-semibold">
                   <Package className="h-4 w-4" />
                   Order Items
+                  <span className="ml-auto text-xs font-normal text-muted-foreground">
+                    {selectedOrder.items?.length || 0} item
+                    {selectedOrder.items?.length !== 1 ? "s" : ""}
+                  </span>
                 </h3>
                 <div className="space-y-2">
-                  {selectedOrder.items?.map((item) => (
-                    <div
-                      key={item.product?._id || item._id}
-                      className="flex items-center justify-between rounded-lg border p-3"
-                    >
-                      <div>
-                        <p className="font-medium">
-                          {item.product?.name || "Product"}
-                        </p>
-                        <p className="text-muted-foreground text-sm">
-                          Qty: {item.quantity} × D{item.price?.toFixed(2)}
+                  {selectedOrder.items?.map((item, idx) => {
+                    const name =
+                      item.product?.name ||
+                      item.menuItem?.name ||
+                      item.medicine?.name ||
+                      item.productName ||
+                      "Product";
+                    const imageUrl =
+                      item.product?.imageUrl || item.menuItem?.imageUrl;
+                    return (
+                      <div
+                        key={item.product?._id || item._id || idx}
+                        className="flex items-center gap-3 rounded-lg border p-3 bg-gray-50/50"
+                      >
+                        {imageUrl ? (
+                          <img
+                            src={imageUrl}
+                            alt={name}
+                            className="w-12 h-12 rounded-lg object-cover border shrink-0"
+                          />
+                        ) : (
+                          <div className="w-12 h-12 rounded-lg bg-gray-100 border flex items-center justify-center shrink-0">
+                            <Package className="h-5 w-5 text-gray-400" />
+                          </div>
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-sm leading-snug">
+                            {name}
+                          </p>
+                          <p className="text-muted-foreground text-xs mt-0.5">
+                            {item.quantity} × D{item.price?.toFixed(2)}
+                          </p>
+                        </div>
+                        <p className="font-semibold text-sm text-right shrink-0">
+                          D{(item.price * item.quantity).toFixed(2)}
                         </p>
                       </div>
-                      <p className="font-medium">
-                        D{(item.price * item.quantity).toFixed(2)}
-                      </p>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
 
-              {/* Order Summary */}
-              <div className="bg-muted rounded-lg border p-3">
-                <div className="mt-2 flex items-center justify-between border-t pt-2">
-                  <span className="font-semibold">Total</span>
-                  <span className="text-lg font-bold">
-                    D{selectedOrder.totalAmount?.toFixed(2)}
-                  </span>
+              {/* Promo Code Banner */}
+              {selectedOrder.appliedPromoCode && (
+                <div className="rounded-lg border border-purple-200 bg-purple-50 dark:bg-purple-900/20 dark:border-purple-800 p-3 flex items-start gap-3">
+                  <Gift className="h-5 w-5 text-purple-600 dark:text-purple-400 shrink-0 mt-0.5" />
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold text-sm text-purple-800 dark:text-purple-300 flex items-center gap-2">
+                      Promo Code Applied
+                      <span className="font-mono bg-purple-100 dark:bg-purple-800 text-purple-700 dark:text-purple-200 px-2 py-0.5 rounded text-xs tracking-widest">
+                        {selectedOrder.appliedPromoCode.code}
+                      </span>
+                    </p>
+                    <p className="text-xs text-purple-700 dark:text-purple-400 mt-1">
+                      {selectedOrder.appliedPromoCode.description ||
+                        (selectedOrder.appliedPromoCode.type === "PERCENTAGE"
+                          ? `${selectedOrder.appliedPromoCode.value}% off`
+                          : `D${selectedOrder.appliedPromoCode.value} off`)}
+                      {selectedOrder.appliedPromoCode.freeDelivery &&
+                        " · Free delivery included"}
+                    </p>
+                  </div>
+                  {selectedOrder.discountAmount != null &&
+                    selectedOrder.discountAmount > 0 && (
+                      <div className="text-right shrink-0">
+                        <p className="text-xs text-purple-600 dark:text-purple-400 font-medium">
+                          Saved
+                        </p>
+                        <p className="font-bold text-purple-800 dark:text-purple-300 text-sm">
+                          D{selectedOrder.discountAmount.toFixed(2)}
+                        </p>
+                      </div>
+                    )}
+                </div>
+              )}
+
+              {/* Financial Breakdown */}
+              <div className="rounded-lg border overflow-hidden">
+                <div className="bg-gray-50 dark:bg-gray-800/50 px-4 py-2.5 border-b flex items-center gap-2">
+                  <Receipt className="h-4 w-4 text-gray-500" />
+                  <h3 className="font-semibold text-sm text-gray-700 dark:text-gray-300">
+                    Financial Summary
+                  </h3>
+                </div>
+                <div className="p-4 space-y-2.5 text-sm">
+                  {(() => {
+                    const freeDelivery =
+                      selectedOrder.appliedPromoCode?.freeDelivery === true;
+                    // subtotalAmount from API, or fall back to calculation
+                    const subtotal =
+                      selectedOrder.subtotalAmount ??
+                      (selectedOrder.totalAmount || 0) +
+                        (selectedOrder.discountAmount || 0) -
+                        (selectedOrder.deliveryFee || 0) -
+                        (selectedOrder.serviceFee || 0);
+                    // item-only discount (excludes delivery fee absorbed into discount)
+                    const itemDiscount = freeDelivery
+                      ? Math.max(
+                          0,
+                          (selectedOrder.discountAmount || 0) -
+                            (selectedOrder.deliveryFee || 0),
+                        )
+                      : selectedOrder.discountAmount || 0;
+                    return (
+                      <>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">
+                            Items subtotal
+                          </span>
+                          <span className="font-medium">
+                            D{subtotal.toFixed(2)}
+                          </span>
+                        </div>
+                        {itemDiscount > 0 && (
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground flex items-center gap-1.5">
+                              <Gift className="h-3 w-3 text-purple-500" />
+                              Promo discount
+                            </span>
+                            <span className="font-medium text-purple-600">
+                              −D{itemDiscount.toFixed(2)}
+                            </span>
+                          </div>
+                        )}
+                        {selectedOrder.deliveryFee != null && (
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground flex items-center gap-1.5">
+                              <Truck className="h-3 w-3" />
+                              Delivery fee
+                            </span>
+                            {freeDelivery ? (
+                              <span className="flex items-center gap-1.5">
+                                <span className="line-through text-muted-foreground text-xs">
+                                  D{selectedOrder.deliveryFee.toFixed(2)}
+                                </span>
+                                <Badge className="text-xs bg-purple-100 text-purple-700 border-purple-300 h-5">
+                                  FREE
+                                </Badge>
+                              </span>
+                            ) : (
+                              <span className="font-medium">
+                                D{selectedOrder.deliveryFee.toFixed(2)}
+                              </span>
+                            )}
+                          </div>
+                        )}
+                        {selectedOrder.serviceFee != null &&
+                          selectedOrder.serviceFee > 0 && (
+                            <div className="flex justify-between">
+                              <span className="text-muted-foreground">
+                                Platform fee
+                              </span>
+                              <span className="font-medium">
+                                D{selectedOrder.serviceFee.toFixed(2)}
+                              </span>
+                            </div>
+                          )}
+                        <div className="flex justify-between border-t pt-2.5 font-bold text-base">
+                          <span>Total charged</span>
+                          <span className="text-green-700 dark:text-green-400">
+                            D{selectedOrder.totalAmount?.toFixed(2)}
+                          </span>
+                        </div>
+                        {freeDelivery && (
+                          <p className="text-xs text-purple-600 dark:text-purple-400 flex items-center gap-1 border-t pt-2">
+                            <Truck className="h-3 w-3" />
+                            Driver earns on full delivery fee — platform absorbs
+                            the D{selectedOrder.deliveryFee?.toFixed(2)} promo
+                            cost.
+                          </p>
+                        )}
+                      </>
+                    );
+                  })()}
                 </div>
               </div>
 
-              {/* Order Info */}
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div>
-                  <span className="text-muted-foreground">Status:</span>{" "}
-                  {getStatusBadge(selectedOrder.status)}
+              {/* Payment & Order Detail Cards */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="rounded-lg border p-3 space-y-1">
+                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                    Payment Method
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <Banknote className="h-4 w-4 text-gray-400" />
+                    <span className="font-semibold text-sm">
+                      {selectedOrder.paymentMethod || "N/A"}
+                    </span>
+                  </div>
                 </div>
-                <div>
-                  <span className="text-muted-foreground">Payment:</span>{" "}
-                  <Badge variant="outline">
-                    {selectedOrder.paymentMethod || "N/A"}
+                <div className="rounded-lg border p-3 space-y-1">
+                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                    Payment Status
+                  </p>
+                  <Badge
+                    variant="outline"
+                    className={`text-xs ${
+                      selectedOrder.paymentStatus === "PAID"
+                        ? "border-green-300 bg-green-50 text-green-700"
+                        : "border-amber-300 bg-amber-50 text-amber-700"
+                    }`}
+                  >
+                    {selectedOrder.paymentStatus === "PAID" ? (
+                      <BadgeCheck className="h-3 w-3 mr-1" />
+                    ) : (
+                      <Clock className="h-3 w-3 mr-1" />
+                    )}
+                    {selectedOrder.paymentStatus || "PENDING"}
                   </Badge>
                 </div>
-                <div>
-                  <span className="text-muted-foreground">Created:</span>{" "}
-                  {format(new Date(selectedOrder.createdAt), "PPpp")}
+                <div className="rounded-lg border p-3 space-y-1">
+                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                    Order Type
+                  </p>
+                  <div className="flex items-center gap-2">
+                    {selectedOrder.orderType === "PICKUP" ? (
+                      <Store className="h-4 w-4 text-gray-400" />
+                    ) : (
+                      <Truck className="h-4 w-4 text-gray-400" />
+                    )}
+                    <span className="font-semibold text-sm">
+                      {selectedOrder.orderType || "DELIVERY"}
+                    </span>
+                  </div>
                 </div>
+                <div className="rounded-lg border p-3 space-y-1">
+                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                    Order Status
+                  </p>
+                  {getStatusBadge(selectedOrder.status)}
+                </div>
+              </div>
+
+              {/* Timestamps */}
+              <div className="grid grid-cols-2 gap-3 text-xs text-muted-foreground">
+                <div className="flex items-start gap-2 rounded-lg border p-3">
+                  <Calendar className="h-3.5 w-3.5 shrink-0 mt-0.5" />
+                  <div>
+                    <p className="font-medium text-gray-600 dark:text-gray-400 mb-0.5">
+                      Order Placed
+                    </p>
+                    <p>{format(new Date(selectedOrder.createdAt), "PPp")}</p>
+                  </div>
+                </div>
+                {selectedOrder.updatedAt && (
+                  <div className="flex items-start gap-2 rounded-lg border p-3">
+                    <RefreshCw className="h-3.5 w-3.5 shrink-0 mt-0.5" />
+                    <div>
+                      <p className="font-medium text-gray-600 dark:text-gray-400 mb-0.5">
+                        Last Updated
+                      </p>
+                      <p>{format(new Date(selectedOrder.updatedAt), "PPp")}</p>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Assigned Driver */}
