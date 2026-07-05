@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import {
@@ -21,7 +21,6 @@ import {
   UserPlus,
   DollarSign,
   Clock,
-  AlertCircle,
 } from "lucide-react";
 import { toast } from "sonner";
 import { adminApi } from "@/lib/api";
@@ -147,6 +146,59 @@ function DriversPage() {
   });
 
   const drivers = Array.isArray(driversData) ? driversData : [];
+
+  // Local (client-side) filtering as an extra safety net in case backend filtering is inactive
+  const filteredDrivers = useMemo(() => {
+    return drivers.filter((driver) => {
+      // 1. Status Filter
+      if (statusFilter !== "all" && statusFilter !== "") {
+        const driverStatus = (
+          driver.status ||
+          driver.approvalStatus ||
+          "approved"
+        ).toLowerCase();
+        if (driverStatus !== statusFilter.toLowerCase()) {
+          return false;
+        }
+      }
+
+      // 2. Driver Type Filter
+      if (typeFilter !== "all" && typeFilter !== "") {
+        if (driver.driverType !== typeFilter) {
+          return false;
+        }
+      }
+
+      // 3. Search Query
+      if (searchQuery && searchQuery.trim() !== "") {
+        const query = searchQuery.toLowerCase();
+        const name = (driver.name || driver.user?.fullName || "").toLowerCase();
+        const phone = (
+          driver.phoneNumber ||
+          driver.phone ||
+          driver.user?.phone ||
+          ""
+        ).toLowerCase();
+        const email = (driver.email || driver.user?.email || "").toLowerCase();
+        const plate = (
+          driver.vehicleNo ||
+          driver.vehicleNumber ||
+          ""
+        ).toLowerCase();
+        const type = (driver.vehicleType || "").toLowerCase();
+
+        return (
+          name.includes(query) ||
+          phone.includes(query) ||
+          email.includes(query) ||
+          plate.includes(query) ||
+          type.includes(query)
+        );
+      }
+
+      return true;
+    });
+  }, [drivers, statusFilter, typeFilter, searchQuery]);
 
   // Create driver mutation
   const createMutation = useMutation({
@@ -587,7 +639,7 @@ function DriversPage() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Bike className="h-5 w-5" />
-                All Drivers ({drivers?.length || 0})
+                All Drivers ({filteredDrivers?.length || 0})
               </CardTitle>
               <CardDescription>
                 View and manage all registered drivers
@@ -598,7 +650,7 @@ function DriversPage() {
                 <div className="flex items-center justify-center py-8">
                   <p className="text-muted-foreground">Loading drivers...</p>
                 </div>
-              ) : drivers && drivers.length > 0 ? (
+              ) : filteredDrivers && filteredDrivers.length > 0 ? (
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -614,7 +666,7 @@ function DriversPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {drivers.map((driver: any) => (
+                    {filteredDrivers.map((driver: any) => (
                       <TableRow key={driver._id || driver.id}>
                         <TableCell>
                           <div className="flex items-center gap-3">
@@ -703,9 +755,6 @@ function DriversPage() {
                           </div>
                         </TableCell>
                         <TableCell>
-                          {getStatusBadge(driver.status || "approved")}
-                        </TableCell>
-                        <TableCell>
                           <Badge
                             variant={
                               driver.driverType === "THIRD_PARTY"
@@ -722,6 +771,9 @@ function DriversPage() {
                               ? "Third-Party"
                               : "TeranGO"}
                           </Badge>
+                        </TableCell>
+                        <TableCell>
+                          {getStatusBadge(driver.status || "approved")}
                         </TableCell>
                         <TableCell>
                           {getAvailabilityBadge(
