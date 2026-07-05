@@ -10,6 +10,7 @@ import {
   ShoppingCart,
   Clock,
   CheckCircle,
+  BadgeCheck,
   Truck,
   MapPin,
   Phone,
@@ -27,7 +28,6 @@ import {
   Receipt,
   Banknote,
   Calendar,
-  Banknote,
 } from "lucide-react";
 import { toast } from "sonner";
 import { adminApi } from "@/lib/api";
