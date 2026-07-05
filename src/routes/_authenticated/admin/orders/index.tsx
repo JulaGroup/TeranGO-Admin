@@ -10,7 +10,7 @@ import {
   ShoppingCart,
   Clock,
   CheckCircle,
-  BadgeCheck,
+  Check,
   Truck,
   MapPin,
   Phone,
@@ -598,7 +598,7 @@ function OrdersPage() {
                           }`}
                         >
                           {order.paymentStatus === "PAID" ? (
-                            <BadgeCheck className="h-3 w-3 mr-1" />
+                            <Check className="h-3 w-3 mr-1" />
                           ) : (
                             <Clock className="h-3 w-3 mr-1" />
                           )}
@@ -715,7 +715,7 @@ function OrdersPage() {
                   }`}
                 >
                   {selectedOrder?.paymentStatus === "PAID" ? (
-                    <BadgeCheck className="h-3 w-3 mr-1" />
+                    <Check className="h-3 w-3 mr-1" />
                   ) : (
                     <Clock className="h-3 w-3 mr-1" />
                   )}
@@ -1034,7 +1034,7 @@ function OrdersPage() {
                     }`}
                   >
                     {selectedOrder.paymentStatus === "PAID" ? (
-                      <BadgeCheck className="h-3 w-3 mr-1" />
+                      <Check className="h-3 w-3 mr-1" />
                     ) : (
                       <Clock className="h-3 w-3 mr-1" />
                     )}
