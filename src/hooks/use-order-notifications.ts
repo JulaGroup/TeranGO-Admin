@@ -149,12 +149,19 @@ export function useOrderNotifications({
       }
     };
 
-    // Initialize socket connection
+    // Initialize socket connection.
+    // IMPORTANT: polling-first, then upgrade to websocket. With
+    // websocket-first, a proxy/load-balancer that stalls the WS handshake
+    // (e.g. some CDN/ingress setups) makes every attempt time out with NO
+    // fallback — polling uses plain HTTPS (which we know works, since the
+    // REST API does) and Socket.IO upgrades to websocket when possible.
     const socket = io(SOCKET_URL, {
-      transports: ["websocket", "polling"],
+      transports: ["polling", "websocket"],
       reconnection: true,
-      reconnectionDelay: 1000,
-      reconnectionAttempts: 5,
+      reconnectionDelay: 2000,
+      reconnectionDelayMax: 15000,
+      reconnectionAttempts: Infinity, // dashboards are long-lived — never give up
+      timeout: 20000,
       auth: authToken ? { token: authToken } : undefined,
     });
 
