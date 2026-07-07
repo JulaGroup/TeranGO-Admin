@@ -24,7 +24,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { api } from "@/lib/api";
-import { useOrderNotifications } from "@/hooks/use-order-notifications";
+import { useOrderSocketConnected } from "@/hooks/use-order-notifications";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -278,15 +278,15 @@ function TerangoStoreOrders() {
   const [selectedDriverId, setSelectedDriverId] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
 
-  // Real-time order notifications
-  const { isConnected } = useOrderNotifications({
-    vendorId: "terango-official",
-    adminMode: true, // Enable admin mode for global notifications
-    enabled: true,
-    onNewOrder: () => {
-      queryClient.invalidateQueries({ queryKey: ["terango-store-orders"] });
-    },
-  });
+  // Real-time order notifications — the socket/sound/toast is already
+  // mounted once, globally, in main.tsx (adminMode). Mounting a SECOND
+  // admin socket here caused two competing connections fighting over the
+  // same "join_admin_room" + events, which is what made the WebSocket
+  // upgrade flap (rapid connect/disconnect) and silenced the notification
+  // sound. We just read the shared connection status here, and rely on the
+  // global instance's `queryClient.invalidateQueries(["terango-store-orders"])`
+  // (fired for every new order regardless of mode) to refresh this list.
+  const isConnected = useOrderSocketConnected();
 
   // Fetch orders
   const {
