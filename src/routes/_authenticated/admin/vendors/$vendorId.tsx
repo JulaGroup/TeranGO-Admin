@@ -280,7 +280,7 @@ function VendorDetailPage() {
     queryKey: ["vendor-earnings-summary", vendorId],
     queryFn: async () => {
       const res = await api.get(
-        `/api/vendorEarnings/admin/vendor/${vendorId}/summary`,
+        `/api/vendor/earnings/admin/vendor/${vendorId}/summary`,
       );
       return res.data as EarningsSummary;
     },
@@ -293,7 +293,7 @@ function VendorDetailPage() {
       queryKey: ["vendor-earnings-history", vendorId, earningsPage],
       queryFn: async () => {
         const res = await api.get(
-          `/api/vendorEarnings/admin/vendor/${vendorId}/history?page=${earningsPage}&pageSize=20`,
+          `/api/vendor/earnings/admin/vendor/${vendorId}/history?page=${earningsPage}&pageSize=20`,
         );
         return res.data as EarningsHistory;
       },
