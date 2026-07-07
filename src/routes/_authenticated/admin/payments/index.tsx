@@ -66,6 +66,7 @@ import { Separator } from "@/components/ui/separator";
 type Payment = {
   id: string;
   orderId: string | null;
+  customDeliveryId: string | null;
   amount: number;
   currency: string;
   network: string;
@@ -78,7 +79,18 @@ type Payment = {
     shop?: { name?: string; vendorId?: string };
     pharmacy?: { name?: string; vendorId?: string };
     payouts?: Array<{ id?: string; amount?: number; status?: string }>;
-  };
+  } | null;
+  customDelivery?: {
+    id?: string;
+    senderName?: string | null;
+    senderPhone?: string | null;
+    receiverName?: string | null;
+    pickupAddress?: string;
+    dropoffAddress?: string;
+    isExpress?: boolean;
+    paymentStatus?: string;
+    status?: string;
+  } | null;
 };
 
 type PaginatedPayments = {
@@ -318,6 +330,28 @@ function PaymentsPage() {
   );
 }
 
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+function getPaymentCustomer(payment: Payment): string {
+  if (payment.order?.customerName) return payment.order.customerName;
+  if (payment.customDelivery?.senderName) return payment.customDelivery.senderName;
+  return "—";
+}
+
+function getPaymentService(payment: Payment): string {
+  if (payment.order) {
+    return (
+      payment.order.restaurant?.name ||
+      payment.order.shop?.name ||
+      payment.order.pharmacy?.name ||
+      "—"
+    );
+  }
+  if (payment.customDelivery) {
+    return payment.customDelivery.isExpress ? "⚡ Express Delivery" : "Custom Delivery";
+  }
+  return "—";
+}
+
 // Sub-components
 const StatCard = ({
   title,
@@ -381,14 +415,10 @@ const PaymentCard = ({
   payment,
   onViewDetails,
 }: {
-  payment: any;
-  onViewDetails: (payment: any) => void;
+  payment: Payment;
+  onViewDetails: (payment: Payment) => void;
 }) => {
-  const vendorName =
-    payment.order?.restaurant?.name ||
-    payment.order?.shop?.name ||
-    payment.order?.pharmacy?.name ||
-    "N/A";
+  const vendorName = getPaymentService(payment);
 
   return (
     <Card className="flex flex-col justify-between transition-all hover:shadow-lg">
@@ -414,9 +444,7 @@ const PaymentCard = ({
         </div>
         <div className="flex items-center justify-between">
           <span className="text-muted-foreground">Customer</span>
-          <span className="font-medium">
-            {payment.order?.customerName || "N/A"}
-          </span>
+          <span className="font-medium">{getPaymentCustomer(payment)}</span>
         </div>
         <div className="flex items-center justify-between">
           <span className="text-muted-foreground">Vendor</span>
@@ -464,19 +492,13 @@ const PaymentTable = ({
         </TableRow>
       </TableHeader>
       <TableBody>
-        {payments.map((payment) => {
-          const vendorName =
-            payment.order?.restaurant?.name ||
-            payment.order?.shop?.name ||
-            payment.order?.pharmacy?.name ||
-            "N/A";
-          return (
+        {payments.map((payment) => (
             <TableRow key={payment.id}>
               <TableCell className="font-mono text-xs">
                 {payment.id.slice(-8).toUpperCase()}
               </TableCell>
-              <TableCell>{payment.order?.customerName || "N/A"}</TableCell>
-              <TableCell>{vendorName}</TableCell>
+              <TableCell>{getPaymentCustomer(payment)}</TableCell>
+              <TableCell>{getPaymentService(payment)}</TableCell>
               <TableCell className="font-semibold">
                 D {payment.amount.toLocaleString()}
               </TableCell>
@@ -497,8 +519,7 @@ const PaymentTable = ({
                 </Button>
               </TableCell>
             </TableRow>
-          );
-        })}
+          ))}
       </TableBody>
     </Table>
   </Card>
@@ -543,14 +564,12 @@ const PaymentDetailsDialog = ({
 }: {
   isOpen: boolean;
   setIsOpen: (isOpen: boolean) => void;
-  payment: any;
+  payment: Payment;
 }) => {
-  const vendorName =
-    payment.order?.restaurant?.name ||
-    payment.order?.shop?.name ||
-    payment.order?.pharmacy?.name ||
-    "N/A";
+  const vendorName = getPaymentService(payment);
+  const customerName = getPaymentCustomer(payment);
   const payout = payment.order?.payouts?.[0];
+  const isCustomDelivery = !!payment.customDelivery;
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -577,10 +596,16 @@ const PaymentDetailsDialog = ({
             <InfoRow label="Payment ID" value={payment.id} isMonospace />
           </InfoSection>
 
-          <InfoSection title="Order Information">
-            <InfoRow label="Order ID" value={payment.orderId} isMonospace />
-            <InfoRow label="Customer" value={payment.order?.customerName} />
-            <InfoRow label="Vendor" value={vendorName} />
+          <InfoSection title={isCustomDelivery ? "Delivery Information" : "Order Information"}>
+            <InfoRow label={isCustomDelivery ? "Delivery ID" : "Order ID"} value={payment.orderId ?? payment.customDeliveryId} isMonospace />
+            <InfoRow label="Customer" value={customerName} />
+            <InfoRow label={isCustomDelivery ? "Service" : "Vendor"} value={vendorName} />
+            {payment.customDelivery && (
+              <>
+                <InfoRow label="Pickup" value={payment.customDelivery.pickupAddress} />
+                <InfoRow label="Dropoff" value={payment.customDelivery.dropoffAddress} />
+              </>
+            )}
           </InfoSection>
 
           {payout && (
@@ -617,7 +642,7 @@ const InfoRow = ({
   isMonospace = false,
 }: {
   label: string;
-  value: string;
+  value?: string | null;
   isMonospace?: boolean;
 }) => (
   <div className="flex justify-between">

@@ -8,14 +8,12 @@ import {
   FolderTree,
   Layers,
   BarChart3,
-  FileText,
   Settings,
   Crown,
   Star,
   ClipboardList,
   Megaphone,
   Package,
-  Shield,
   DollarSign,
   Wallet,
   Zap,
@@ -26,19 +24,29 @@ import {
   Briefcase,
   Sofa,
   Wrench,
+  BadgeDollarSign,
+  ReceiptText,
+  ArrowLeftRight,
+  ShieldCheck,
+  Tag,
+  Sparkles,
+  Globe,
+  Radio,
+  // ChartBar intentionally omitted — not yet used
 } from "lucide-react";
 import { type SidebarData } from "../types";
 
 export const sidebarData: SidebarData = {
   user: {
-    name: "Admin",
+    name: "Super Admin",
     email: "admin@teranggo.com",
     avatar: "/avatars/shadcn.jpg",
   },
   teams: [],
   navGroups: [
+    /* ─── 1. Home ─── */
     {
-      title: "Overview",
+      title: "Home",
       items: [
         {
           title: "Dashboard",
@@ -47,93 +55,20 @@ export const sidebarData: SidebarData = {
         },
       ],
     },
+
+    /* ─── 2. Platform Operations ─── */
     {
-      title: "TeranGO Official Store",
-      items: [
-        {
-          title: "Store Dashboard",
-          url: "/admin/terango-store",
-          icon: Crown,
-        },
-        {
-          title: "Store Orders",
-          url: "/admin/terango-store/orders",
-          icon: ShoppingCart,
-        },
-        {
-          title: "Store Settings",
-          url: "/admin/terango-store/settings",
-          icon: Shield,
-        },
-        {
-          title: "Product Management",
-          url: "/admin/terango-products",
-          icon: Package,
-        },
-      ],
-    },
-    {
-      title: "Delivery Services",
-      items: [
-        {
-          title: "Express Delivery",
-          url: "/express",
-          icon: Zap,
-        },
-      ],
-    },
-    {
-      title: "KërSpace Real Estate",
-      items: [
-        {
-          title: "Properties",
-          url: "/admin/kerspace",
-          icon: Building2,
-        },
-      ],
-    },
-    {
-      title: "TeranPro Services",
-      items: [
-        {
-          title: "Pro Services",
-          url: "/admin/teranpro",
-          icon: Briefcase,
-        },
-      ],
-    },
-    {
-      title: "Furniture Marketplace",
-      items: [
-        {
-          title: "Furniture",
-          url: "/admin/furniture",
-          icon: Sofa,
-        },
-      ],
-    },
-    {
-      title: "Management",
+      title: "Platform",
       items: [
         {
           title: "Vendors",
-          url: "/admin/vendors",
           icon: Store,
-        },
-        {
-          title: "Restaurants",
-          url: "/admin/restaurants",
-          icon: UtensilsCrossed,
-        },
-        {
-          title: "Shops",
-          url: "/admin/shops",
-          icon: Package,
-        },
-        {
-          title: "Vendor Applications",
-          url: "/admin/vendor-applications",
-          icon: ClipboardList,
+          items: [
+            { title: "All Vendors",           url: "/admin/vendors",              icon: Store },
+            { title: "Restaurants",           url: "/admin/restaurants",          icon: UtensilsCrossed },
+            { title: "Shops",                 url: "/admin/shops",                icon: Package },
+            { title: "Applications",          url: "/admin/vendor-applications",  icon: ClipboardList },
+          ],
         },
         {
           title: "Customers",
@@ -145,41 +80,97 @@ export const sidebarData: SidebarData = {
           url: "/admin/orders",
           icon: ShoppingCart,
         },
-
-        {
-          title: "Payments",
-          url: "/admin/payments",
-          icon: DollarSign,
-        },
-        {
-          title: "Finance",
-          url: "/admin/earnings",
-          icon: TrendingUp,
-        },
         {
           title: "Drivers",
           url: "/drivers",
           icon: Truck,
         },
+      ],
+    },
+
+    /* ─── 3. Finance ─── */
+    {
+      title: "Finance",
+      items: [
         {
-          title: "Vendor Settlements",
-          url: "/admin/vendor-settlements",
-          icon: DollarSign,
+          title: "Payments",
+          url: "/admin/payments",
+          icon: BadgeDollarSign,
         },
         {
-          title: "Driver Settlements",
-          url: "/admin/settlements",
-          icon: Wallet,
+          title: "Earnings",
+          url: "/admin/earnings",
+          icon: TrendingUp,
+        },
+        {
+          title: "Settlements",
+          icon: ArrowLeftRight,
+          items: [
+            { title: "Vendor Settlements", url: "/admin/vendor-settlements", icon: Wallet },
+            { title: "Driver Settlements", url: "/admin/settlements",         icon: DollarSign },
+          ],
+        },
+      ],
+    },
+
+    /* ─── 4. TeranGO Verticals ─── */
+    {
+      title: "TeranGO Services",
+      items: [
+        {
+          title: "Official Store",
+          icon: Crown,
+          items: [
+            { title: "Store Overview",  url: "/admin/terango-store",           icon: LayoutDashboard },
+            { title: "Products",        url: "/admin/terango-products",        icon: Package },
+            { title: "Store Orders",    url: "/admin/terango-store/orders",    icon: ShoppingCart },
+            { title: "Store Settings",  url: "/admin/terango-store/settings",  icon: ShieldCheck },
+          ],
+        },
+        {
+          title: "Express Delivery",
+          url: "/express",
+          icon: Zap,
+        },
+        {
+          title: "KerSpace",
+          url: "/admin/kerspace",
+          icon: Building2,
+        },
+        {
+          title: "TeranPro",
+          url: "/admin/teranpro",
+          icon: Briefcase,
+        },
+        {
+          title: "Furniture",
+          url: "/admin/furniture",
+          icon: Sofa,
+        },
+      ],
+    },
+
+    /* ─── 5. Catalog & Growth ─── */
+    {
+      title: "Catalog & Growth",
+      items: [
+        {
+          title: "Categories",
+          icon: FolderTree,
+          items: [
+            { title: "Categories",    url: "/admin/categories",    icon: FolderTree },
+            { title: "Subcategories", url: "/admin/subcategories", icon: Layers },
+          ],
         },
         {
           title: "Promo Codes",
           url: "/admin/promocodes",
-          icon: Star,
+          icon: Tag,
         },
         {
           title: "Subscriptions",
           url: "/admin/subscriptions",
-          icon: Crown,
+          icon: Sparkles,
         },
         {
           title: "Featured Vendors",
@@ -194,21 +185,7 @@ export const sidebarData: SidebarData = {
       ],
     },
 
-    {
-      title: "Product Management",
-      items: [
-        {
-          title: "Categories",
-          url: "/admin/categories",
-          icon: FolderTree,
-        },
-        {
-          title: "Subcategories",
-          url: "/admin/subcategories",
-          icon: Layers,
-        },
-      ],
-    },
+    /* ─── 6. Analytics ─── */
     {
       title: "Insights",
       items: [
@@ -220,32 +197,27 @@ export const sidebarData: SidebarData = {
         {
           title: "Reports",
           url: "/reports",
-          icon: FileText,
+          icon: ReceiptText,
         },
-      ],
-    },
-    {
-      title: "Communications",
-      items: [
         {
-          title: "Broadcast Notifications",
+          title: "Broadcasts",
           url: "/admin/broadcasts",
-          icon: Megaphone,
+          icon: Radio,
         },
       ],
     },
+
+    /* ─── 7. System ─── */
     {
       title: "System",
       items: [
         {
-          title: "Delivery Fees",
-          url: "/admin/delivery-settings",
-          icon: DollarSign,
-        },
-        {
-          title: "Delivery Towns",
-          url: "/admin/delivery-towns",
-          icon: MapPin,
+          title: "Delivery",
+          icon: Globe,
+          items: [
+            { title: "Delivery Fees",  url: "/admin/delivery-settings", icon: DollarSign },
+            { title: "Delivery Towns", url: "/admin/delivery-towns",    icon: MapPin },
+          ],
         },
         {
           title: "Notifications",

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { cn } from '@/lib/utils'
-import { Separator } from '@/components/ui/separator'
 import { SidebarTrigger } from '@/components/ui/sidebar'
+import { Separator } from '@/components/ui/separator'
 import NotificationBell from '@/components/ui/notification-bell'
 
 type HeaderProps = React.HTMLAttributes<HTMLElement> & {
@@ -10,43 +10,47 @@ type HeaderProps = React.HTMLAttributes<HTMLElement> & {
 }
 
 export function Header({ className, fixed, children, ...props }: HeaderProps) {
-  const [offset, setOffset] = useState(0)
+  const [scrolled, setScrolled] = useState(false)
 
   useEffect(() => {
     const onScroll = () => {
-      setOffset(document.body.scrollTop || document.documentElement.scrollTop)
+      setScrolled((document.body.scrollTop || document.documentElement.scrollTop) > 8)
     }
-
-    // Add scroll listener to the body
     document.addEventListener('scroll', onScroll, { passive: true })
-
-    // Clean up the event listener on unmount
     return () => document.removeEventListener('scroll', onScroll)
   }, [])
 
   return (
     <header
       className={cn(
-        'z-50 h-16',
+        'z-50 h-14',
         fixed && 'header-fixed peer/header sticky top-0 w-[inherit]',
-        offset > 10 && fixed ? 'shadow' : 'shadow-none',
-        className
+        className,
       )}
       {...props}
     >
       <div
         className={cn(
-          'relative flex h-full items-center gap-3 p-4 sm:gap-4',
-          offset > 10 &&
-            fixed &&
-            'after:bg-background/20 after:absolute after:inset-0 after:-z-10 after:backdrop-blur-lg'
+          'relative flex h-full items-center gap-2 px-3 sm:px-4 transition-all duration-200',
+          scrolled && fixed
+            ? 'bg-background/80 backdrop-blur-xl border-b border-border/50 shadow-sm'
+            : 'bg-transparent',
         )}
       >
-        <SidebarTrigger variant='outline' className='max-md:scale-125' />
-        <Separator orientation='vertical' className='h-6' />
-        {children}
-        {/* Global notification bell, inline at the far right of every header */}
-        <div className='ms-auto flex items-center'>
+        {/* Sidebar / hamburger trigger — larger tap target on mobile */}
+        <SidebarTrigger
+          variant='ghost'
+          className='h-9 w-9 rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent shrink-0 md:h-8 md:w-8'
+        />
+        <Separator orientation='vertical' className='h-5 mx-0.5 hidden sm:block' />
+
+        {/* Page-specific nav / breadcrumbs */}
+        <div className='flex flex-1 items-center gap-2 overflow-hidden min-w-0'>
+          {children}
+        </div>
+
+        {/* Right-side actions */}
+        <div className='flex items-center gap-1 ms-auto shrink-0'>
           <NotificationBell />
         </div>
       </div>

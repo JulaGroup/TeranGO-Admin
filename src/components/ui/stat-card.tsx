@@ -1,60 +1,33 @@
 import * as React from "react";
-import { TrendingUp, TrendingDown, Minus, LucideIcon } from "lucide-react";
+import { TrendingUp, TrendingDown, Minus, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Badge } from "@/components/ui/badge";
 
-// Sparkline Chart Component
+/* ─── Sparkline ─── */
 interface SparklineProps {
   data: number[];
   className?: string;
   color?: string;
 }
 
-function Sparkline({
-  data,
-  className,
-  color = "hsl(var(--primary))",
-}: SparklineProps) {
-  if (!data || data.length === 0) return null;
-
-  const max = Math.max(...data);
-  const min = Math.min(...data);
+function Sparkline({ data, className, color = "var(--color-primary)" }: SparklineProps) {
+  if (!data?.length) return null;
+  const max   = Math.max(...data);
+  const min   = Math.min(...data);
   const range = max - min || 1;
-
-  const points = data
-    .map((value, index) => {
-      const x = (index / (data.length - 1)) * 100;
-      const y = 100 - ((value - min) / range) * 100;
-      return `${x},${y}`;
-    })
+  const pts   = data
+    .map((v, i) => `${(i / (data.length - 1)) * 100},${100 - ((v - min) / range) * 100}`)
     .join(" ");
 
   return (
-    <svg
-      className={cn("h-8 w-full", className)}
-      viewBox="0 0 100 100"
-      preserveAspectRatio="none"
-    >
-      <polyline
-        fill="none"
-        stroke={color}
-        strokeWidth="2"
-        points={points}
-        vectorEffect="non-scaling-stroke"
-      />
+    <svg className={cn("h-8 w-full", className)} viewBox="0 0 100 100" preserveAspectRatio="none">
+      <polyline fill="none" stroke={color} strokeWidth="2.5" points={pts} vectorEffect="non-scaling-stroke" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }
 
-// Trend Indicator Component
+/* ─── Trend indicator ─── */
 interface TrendIndicatorProps {
   value: number;
   className?: string;
@@ -62,27 +35,20 @@ interface TrendIndicatorProps {
   showValue?: boolean;
 }
 
-function TrendIndicator({
-  value,
-  className,
-  showIcon = true,
-  showValue = true,
-}: TrendIndicatorProps) {
+function TrendIndicator({ value, className, showIcon = true, showValue = true }: TrendIndicatorProps) {
   const isPositive = value > 0;
-  const isNeutral = value === 0;
-
-  const Icon = isNeutral ? Minus : isPositive ? TrendingUp : TrendingDown;
+  const isNeutral  = value === 0;
+  const Icon  = isNeutral ? Minus : isPositive ? TrendingUp : TrendingDown;
   const color = isNeutral
     ? "text-muted-foreground"
-    : isPositive
-      ? "text-green-600 dark:text-green-500"
-      : "text-red-600 dark:text-red-500";
+    : isPositive ? "text-emerald-600 dark:text-emerald-400"
+                 : "text-red-500 dark:text-red-400";
 
   return (
     <div className={cn("flex items-center gap-1", color, className)}>
-      {showIcon && <Icon className="h-4 w-4" />}
+      {showIcon  && <Icon className="h-3.5 w-3.5" />}
       {showValue && (
-        <span className="text-sm font-medium">
+        <span className="text-xs font-semibold">
           {isPositive && "+"}
           {value.toFixed(1)}%
         </span>
@@ -91,16 +57,44 @@ function TrendIndicator({
   );
 }
 
-// Main Stat Card Types
+/* ─── Colour maps ─── */
+const iconBg: Record<string, string> = {
+  default: "bg-muted",
+  blue:    "bg-blue-50   dark:bg-blue-900/25",
+  green:   "bg-emerald-50 dark:bg-emerald-900/25",
+  red:     "bg-red-50    dark:bg-red-900/25",
+  yellow:  "bg-amber-50  dark:bg-amber-900/25",
+  purple:  "bg-violet-50 dark:bg-violet-900/25",
+  orange:  "bg-orange-50 dark:bg-orange-900/25",
+};
+
+const iconColor: Record<string, string> = {
+  default: "text-muted-foreground",
+  blue:    "text-blue-600   dark:text-blue-400",
+  green:   "text-emerald-600 dark:text-emerald-400",
+  red:     "text-red-600    dark:text-red-400",
+  yellow:  "text-amber-600  dark:text-amber-400",
+  purple:  "text-violet-600 dark:text-violet-400",
+  orange:  "text-orange-600 dark:text-orange-400",
+};
+
+const cardBorder: Record<string, string> = {
+  default: "",
+  blue:    "border-blue-200/60   dark:border-blue-800/40",
+  green:   "border-emerald-200/60 dark:border-emerald-800/40",
+  red:     "border-red-200/60    dark:border-red-800/40",
+  yellow:  "border-amber-200/60  dark:border-amber-800/40",
+  purple:  "border-violet-200/60 dark:border-violet-800/40",
+  orange:  "border-orange-200/60 dark:border-orange-800/40",
+};
+
+/* ─── Main StatCard ─── */
 export interface StatCardProps {
   title: string;
   value: string | number;
   description?: string;
   icon?: LucideIcon;
-  trend?: {
-    value: number;
-    label?: string;
-  };
+  trend?: { value: number; label?: string };
   sparkline?: number[];
   loading?: boolean;
   className?: string;
@@ -120,52 +114,16 @@ export function StatCard({
   variant = "default",
   color = "default",
 }: StatCardProps) {
-  const colorClasses = {
-    default: "",
-    blue: "border-blue-200 dark:border-blue-900",
-    green: "border-green-200 dark:border-green-900",
-    red: "border-red-200 dark:border-red-900",
-    yellow: "border-yellow-200 dark:border-yellow-900",
-    purple: "border-purple-200 dark:border-purple-900",
-    orange: "border-orange-200 dark:border-orange-900",
-  };
-
-  const iconColorClasses = {
-    default: "text-muted-foreground",
-    blue: "text-blue-600 dark:text-blue-500",
-    green: "text-green-600 dark:text-green-500",
-    red: "text-red-600 dark:text-red-500",
-    yellow: "text-yellow-600 dark:text-yellow-500",
-    purple: "text-purple-600 dark:text-purple-500",
-    orange: "text-orange-600 dark:text-orange-500",
-  };
-
-  const gradientClasses = {
-    default: "",
-    blue: "bg-gradient-to-br from-blue-50 to-background dark:from-blue-950/20",
-    green:
-      "bg-gradient-to-br from-green-50 to-background dark:from-green-950/20",
-    red: "bg-gradient-to-br from-red-50 to-background dark:from-red-950/20",
-    yellow:
-      "bg-gradient-to-br from-yellow-50 to-background dark:from-yellow-950/20",
-    purple:
-      "bg-gradient-to-br from-purple-50 to-background dark:from-purple-950/20",
-    orange:
-      "bg-gradient-to-br from-orange-50 to-background dark:from-orange-950/20",
-  };
-
   if (loading) {
     return (
       <Card className={className}>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">
-            <Skeleton className="h-4 w-[100px]" />
-          </CardTitle>
-          <Skeleton className="h-4 w-4 rounded" />
+          <Skeleton className="h-4 w-24" />
+          <Skeleton className="h-9 w-9 rounded-xl" />
         </CardHeader>
         <CardContent>
-          <Skeleton className="h-8 w-[120px] mb-2" />
-          <Skeleton className="h-4 w-[80px]" />
+          <Skeleton className="h-7 w-28 mb-2" />
+          <Skeleton className="h-3 w-20" />
         </CardContent>
       </Card>
     );
@@ -174,18 +132,21 @@ export function StatCard({
   return (
     <Card
       className={cn(
-        "transition-all hover:shadow-md",
-        variant === "outlined" && colorClasses[color],
-        variant === "gradient" && gradientClasses[color],
+        "group hover:-translate-y-0.5 hover:shadow-md transition-all duration-200",
+        variant === "outlined" && cardBorder[color],
         className,
       )}
     >
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-sm font-medium">{title}</CardTitle>
-        {Icon && <Icon className={cn("h-4 w-4", iconColorClasses[color])} />}
+        <CardTitle className="text-sm font-medium text-muted-foreground">{title}</CardTitle>
+        {Icon && (
+          <div className={cn("flex h-9 w-9 items-center justify-center rounded-xl transition-transform group-hover:scale-110", iconBg[color])}>
+            <Icon className={cn("h-4 w-4", iconColor[color])} />
+          </div>
+        )}
       </CardHeader>
       <CardContent>
-        <div className="text-2xl font-bold">{value}</div>
+        <div className="text-2xl font-bold tracking-tight">{value}</div>
         {(description || trend) && (
           <div className="flex items-center gap-2 mt-1">
             {trend && <TrendIndicator value={trend.value} />}
@@ -197,7 +158,7 @@ export function StatCard({
           </div>
         )}
         {sparkline && sparkline.length > 0 && (
-          <div className="mt-3">
+          <div className="mt-3 opacity-70">
             <Sparkline data={sparkline} />
           </div>
         )}
@@ -206,7 +167,7 @@ export function StatCard({
   );
 }
 
-// Compact Stat Card Variant
+/* ─── Compact Stat Card ─── */
 export interface CompactStatCardProps {
   title: string;
   value: string | number;
@@ -216,87 +177,53 @@ export interface CompactStatCardProps {
   className?: string;
 }
 
-export function CompactStatCard({
-  title,
-  value,
-  icon: Icon,
-  trend,
-  loading = false,
-  className,
-}: CompactStatCardProps) {
+export function CompactStatCard({ title, value, icon: Icon, trend, loading = false, className }: CompactStatCardProps) {
   if (loading) {
     return (
-      <div
-        className={cn(
-          "flex items-center gap-3 rounded-lg border p-3",
-          className,
-        )}
-      >
-        <Skeleton className="h-10 w-10 rounded-full" />
-        <div className="flex-1 space-y-1">
-          <Skeleton className="h-4 w-[60px]" />
-          <Skeleton className="h-5 w-[80px]" />
+      <div className={cn("flex items-center gap-3 rounded-xl border bg-card/80 p-3", className)}>
+        <Skeleton className="h-10 w-10 rounded-xl" />
+        <div className="flex-1 space-y-1.5">
+          <Skeleton className="h-3 w-16" />
+          <Skeleton className="h-5 w-20" />
         </div>
       </div>
     );
   }
 
   return (
-    <div
-      className={cn(
-        "flex items-center gap-3 rounded-lg border p-3 transition-all hover:shadow-md",
-        className,
-      )}
-    >
+    <div className={cn("flex items-center gap-3 rounded-xl border bg-card/80 p-3 hover:bg-card hover:shadow-sm transition-all", className)}>
       {Icon && (
-        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
-          <Icon className="h-5 w-5 text-primary" />
+        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 shrink-0">
+          <Icon className="h-4.5 w-4.5 text-primary" />
         </div>
       )}
-      <div className="flex-1">
-        <p className="text-sm font-medium text-muted-foreground">{title}</p>
-        <div className="flex items-center gap-2">
-          <p className="text-lg font-bold">{value}</p>
-          {trend !== undefined && (
-            <TrendIndicator value={trend} showValue={false} />
-          )}
+      <div className="flex-1 min-w-0">
+        <p className="text-xs font-medium text-muted-foreground truncate">{title}</p>
+        <div className="flex items-center gap-2 mt-0.5">
+          <p className="text-base font-bold">{value}</p>
+          {trend !== undefined && <TrendIndicator value={trend} showValue={false} />}
         </div>
       </div>
     </div>
   );
 }
 
-// Comparison Stat Card (Before/After)
+/* ─── Comparison Card ─── */
 export interface ComparisonStatCardProps {
   title: string;
-  current: {
-    label: string;
-    value: string | number;
-  };
-  previous: {
-    label: string;
-    value: string | number;
-  };
+  current: { label: string; value: string | number };
+  previous: { label: string; value: string | number };
   icon?: LucideIcon;
   loading?: boolean;
   className?: string;
 }
 
-export function ComparisonStatCard({
-  title,
-  current,
-  previous,
-  icon: Icon,
-  loading = false,
-  className,
-}: ComparisonStatCardProps) {
+export function ComparisonStatCard({ title, current, previous, icon: Icon, loading = false, className }: ComparisonStatCardProps) {
   if (loading) {
     return (
       <Card className={className}>
         <CardHeader className="pb-3">
-          <CardTitle className="text-sm font-medium">
-            <Skeleton className="h-4 w-[120px]" />
-          </CardTitle>
+          <Skeleton className="h-4 w-28" />
         </CardHeader>
         <CardContent className="space-y-3">
           <Skeleton className="h-8 w-full" />
@@ -307,48 +234,41 @@ export function ComparisonStatCard({
   }
 
   return (
-    <Card className={cn("transition-all hover:shadow-md", className)}>
+    <Card className={cn("hover:shadow-md transition-all duration-200", className)}>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-        <CardTitle className="text-sm font-medium">{title}</CardTitle>
+        <CardTitle className="text-sm font-medium text-muted-foreground">{title}</CardTitle>
         {Icon && <Icon className="h-4 w-4 text-muted-foreground" />}
       </CardHeader>
       <CardContent className="space-y-3">
         <div>
-          <p className="text-xs text-muted-foreground mb-1">{current.label}</p>
+          <p className="text-[11px] text-muted-foreground uppercase tracking-wide font-medium mb-0.5">{current.label}</p>
           <p className="text-2xl font-bold">{current.value}</p>
         </div>
         <div className="pt-3 border-t">
-          <p className="text-xs text-muted-foreground mb-1">{previous.label}</p>
-          <p className="text-lg font-semibold text-muted-foreground">
-            {previous.value}
-          </p>
+          <p className="text-[11px] text-muted-foreground uppercase tracking-wide font-medium mb-0.5">{previous.label}</p>
+          <p className="text-lg font-semibold text-muted-foreground">{previous.value}</p>
         </div>
       </CardContent>
     </Card>
   );
 }
 
-// Stats Grid Container
+/* ─── Stats Grid ─── */
 export interface StatsGridProps {
   children: React.ReactNode;
   columns?: 1 | 2 | 3 | 4;
   className?: string;
 }
 
-export function StatsGrid({
-  children,
-  columns = 4,
-  className,
-}: StatsGridProps) {
-  const gridClasses = {
+export function StatsGrid({ children, columns = 4, className }: StatsGridProps) {
+  const gridCols = {
     1: "grid-cols-1",
     2: "grid-cols-1 md:grid-cols-2",
     3: "grid-cols-1 md:grid-cols-2 lg:grid-cols-3",
     4: "grid-cols-1 md:grid-cols-2 lg:grid-cols-4",
   };
-
   return (
-    <div className={cn("grid gap-4", gridClasses[columns], className)}>
+    <div className={cn("grid gap-4", gridCols[columns], className)}>
       {children}
     </div>
   );

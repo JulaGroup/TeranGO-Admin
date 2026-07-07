@@ -90,6 +90,7 @@ interface ExpressDelivery {
   priorityLevel: "STANDARD" | "EXPRESS" | "URGENT";
   guaranteedDeliveryTime?: string;
   estimatedFee: number;
+  driverTransportFee?: number;
   expressMultiplier: number;
   createdAt: string;
   verificationStatus: string;
@@ -776,6 +777,46 @@ const ExpressDeliveryManagement: React.FC = () => {
                                         </p>
                                       </div>
                                     )}
+
+                                    {/* Fee Breakdown */}
+                                    <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
+                                      <h4 className="font-medium text-gray-900 mb-2 flex items-center gap-1">
+                                        <DollarSign className="h-4 w-4" />
+                                        Fee Breakdown
+                                      </h4>
+                                      {(() => {
+                                        const transport = selectedDelivery.driverTransportFee ?? selectedDelivery.estimatedFee;
+                                        const platformFees = selectedDelivery.estimatedFee - transport;
+                                        const driverEarns = Math.round(transport * 0.75);
+                                        const platformFromTransport = transport - driverEarns;
+                                        return (
+                                          <div className="space-y-1 text-sm">
+                                            <div className="flex justify-between">
+                                              <span className="text-gray-600">Transport fee</span>
+                                              <span className="font-mono">{formatCurrency(transport)}</span>
+                                            </div>
+                                            {platformFees > 0 && (
+                                              <div className="flex justify-between">
+                                                <span className="text-gray-600">Booking & service fees</span>
+                                                <span className="font-mono">{formatCurrency(platformFees)}</span>
+                                              </div>
+                                            )}
+                                            <div className="flex justify-between font-medium border-t border-gray-300 pt-1 mt-1">
+                                              <span>Customer pays</span>
+                                              <span className="font-mono">{formatCurrency(selectedDelivery.estimatedFee)}</span>
+                                            </div>
+                                            <div className="flex justify-between text-green-700 mt-2">
+                                              <span>Driver earns (75% of transport)</span>
+                                              <span className="font-mono font-medium">{formatCurrency(driverEarns)}</span>
+                                            </div>
+                                            <div className="flex justify-between text-blue-700">
+                                              <span>TeranGO earns</span>
+                                              <span className="font-mono font-medium">{formatCurrency(platformFromTransport + platformFees)}</span>
+                                            </div>
+                                          </div>
+                                        );
+                                      })()}
+                                    </div>
 
                                     {selectedDelivery.verificationStatus ===
                                       "PENDING" && (

@@ -1,5 +1,5 @@
 import { Link } from '@tanstack/react-router'
-import { Menu, X } from 'lucide-react'
+import { PanelLeft } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import {
   SidebarMenu,
@@ -10,7 +10,9 @@ import {
 import { Button } from '../ui/button'
 
 export function AppTitle() {
-  const { setOpenMobile } = useSidebar()
+  const { state, setOpenMobile } = useSidebar()
+  const isCollapsed = state === 'collapsed'
+
   return (
     <SidebarMenu>
       <SidebarMenuItem>
@@ -19,18 +21,30 @@ export function AppTitle() {
           className='gap-0 py-0 hover:bg-transparent active:bg-transparent'
           asChild
         >
-          <div>
+          <div className='flex items-center gap-3'>
+            {/* Brand mark */}
             <Link
               to='/'
               onClick={() => setOpenMobile(false)}
-              className='grid flex-1 text-start text-sm leading-tight'
+              className='flex items-center gap-3 min-w-0'
             >
-              <span className='truncate font-bold'>
-                Teran<span className='text-orange-500'>GO</span> Admin
-              </span>
-              <span className='truncate text-xs'>Management Panel</span>
+              <div className='flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary shadow-sm shadow-primary/30'>
+                <span className='text-sm font-black text-primary-foreground leading-none select-none'>T</span>
+              </div>
+              {!isCollapsed && (
+                <div className='grid min-w-0 leading-tight'>
+                  <span className='truncate text-sm font-bold tracking-tight'>
+                    Teran<span className='text-primary'>GO</span>
+                  </span>
+                  <span className='truncate text-[10px] text-sidebar-foreground/50 font-medium tracking-widest uppercase'>
+                    Super Admin
+                  </span>
+                </div>
+              )}
             </Link>
-            <ToggleSidebar />
+
+            {/* Toggle — only render when expanded (it acts as collapse trigger) */}
+            {!isCollapsed && <ToggleSidebar className='ml-auto' />}
           </div>
         </SidebarMenuButton>
       </SidebarMenuItem>
@@ -51,15 +65,17 @@ export function ToggleSidebar({
       data-slot='sidebar-trigger'
       variant='ghost'
       size='icon'
-      className={cn('aspect-square size-8 max-md:scale-125', className)}
+      className={cn(
+        'aspect-square h-7 w-7 rounded-md text-sidebar-foreground/50 hover:text-sidebar-foreground hover:bg-sidebar-accent',
+        className,
+      )}
       onClick={(event) => {
         onClick?.(event)
         toggleSidebar()
       }}
       {...props}
     >
-      <X className='md:hidden' />
-      <Menu className='max-md:hidden' />
+      <PanelLeft className='h-4 w-4' />
       <span className='sr-only'>Toggle Sidebar</span>
     </Button>
   )
