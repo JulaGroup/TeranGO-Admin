@@ -65,6 +65,7 @@ export function useOrderNotifications({
 }: UseOrderNotificationsOptions) {
   const socketRef = useRef<Socket | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const connectErrorNotified = useRef(false);
   const queryClient = useQueryClient();
   const [isConnected, setIsConnected] = useState(false);
 
@@ -162,6 +163,7 @@ export function useOrderNotifications({
     socket.on("connect", () => {
       setIsConnected(true);
       publishConnected(true);
+      connectErrorNotified.current = false;
 
       if (adminMode) {
         // Join admin room for global notifications
@@ -177,9 +179,23 @@ export function useOrderNotifications({
       publishConnected(false);
     });
 
-    socket.on("connect_error", () => {
+    socket.on("connect_error", (err) => {
       setIsConnected(false);
       publishConnected(false);
+      // Surface the failure once instead of silently living without
+      // real-time notifications (e.g. Socket.IO CORS or server down)
+      if (!connectErrorNotified.current) {
+        connectErrorNotified.current = true;
+        console.error(
+          "[notifications] Socket connection failed — real-time alerts are OFF:",
+          err?.message || err,
+        );
+        toast.warning("Real-time notifications unavailable", {
+          description:
+            "Could not connect to the notification server. New orders will not alert until this reconnects.",
+          duration: 10000,
+        });
+      }
     });
 
     // Listen for new orders (vendor and admin events)
