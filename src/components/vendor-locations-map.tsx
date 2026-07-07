@@ -1,23 +1,14 @@
 /**
  * Vendor Locations Map Component
  *
- * Displays vendor businesses (restaurants, shops, pharmacies) on an interactive Leaflet map.
- * Supports clicking to set/update business coordinates.
+ * Displays vendor businesses (restaurants, shops, pharmacies) on an interactive
+ * Google Map (consistent with the mobile apps). Supports clicking to set/update
+ * business coordinates.
  */
 
-import { useEffect, useRef, useState } from "react";
-import L from "leaflet";
-import "leaflet/dist/leaflet.css";
-import { UtensilsCrossed, Package, Pill } from "lucide-react";
-
-// Fix Leaflet default marker icon paths
-delete (L.Icon.Default.prototype as any)._getIconUrl;
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl:
-    "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
-  iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
-  shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
-});
+import { useCallback, useEffect, useRef, useState } from "react";
+import { GoogleMap, Marker, InfoWindow } from "@react-google-maps/api";
+import { useGoogleMaps, GAMBIA_CENTER } from "@/lib/googleMaps";
 
 export interface VendorBusiness {
   id: string;
@@ -37,6 +28,26 @@ interface VendorLocationsMapProps {
   highlightedBusinessId?: string | null;
 }
 
+const BUSINESS_COLOR: Record<string, string> = {
+  Restaurant: "#f97316", // orange
+  Shop: "#3b82f6", // blue
+  Pharmacy: "#ef4444", // red
+};
+
+const BUSINESS_EMOJI: Record<string, string> = {
+  Restaurant: "🍽️",
+  Shop: "🏪",
+  Pharmacy: "💊",
+};
+
+function getBusinessColor(type: string) {
+  return BUSINESS_COLOR[type] || "#6b7280";
+}
+
+function getBusinessEmoji(type: string) {
+  return BUSINESS_EMOJI[type] || "📍";
+}
+
 export function VendorLocationsMap({
   businesses,
   onMapClick,
@@ -44,254 +55,176 @@ export function VendorLocationsMap({
   selectedLocation,
   highlightedBusinessId,
 }: VendorLocationsMapProps) {
-  const mapRef = useRef<L.Map | null>(null);
-  const mapContainerRef = useRef<HTMLDivElement | null>(null);
-  const markersRef = useRef<L.Marker[]>([]);
-  const selectedMarkerRef = useRef<L.Marker | null>(null);
+  const { isLoaded, loadError, hasKey } = useGoogleMaps();
+  const mapRef = useRef<google.maps.Map | null>(null);
+  const [activeBusinessId, setActiveBusinessId] = useState<string | null>(null);
 
-  // Initialize map
-  useEffect(() => {
-    if (!mapContainerRef.current || mapRef.current) return;
+  const validBusinesses = businesses.filter(
+    (b) =>
+      b.latitude !== null &&
+      b.latitude !== undefined &&
+      b.longitude !== null &&
+      b.longitude !== undefined,
+  );
 
-    // Create map centered on The Gambia
-    const map = L.map(mapContainerRef.current).setView([13.4549, -16.5790], 11);
-
-    // Add OpenStreetMap tiles
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      attribution:
-        '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-      maxZoom: 19,
-    }).addTo(map);
-
+  const onMapLoad = useCallback((map: google.maps.Map) => {
     mapRef.current = map;
-
-    // Cleanup on unmount
-    return () => {
-      if (mapRef.current) {
-        mapRef.current.remove();
-        mapRef.current = null;
-      }
-    };
   }, []);
 
-  // Handle map clicks
+  // Auto-fit bounds to all business markers (+ selected location if present)
   useEffect(() => {
     if (!mapRef.current) return;
+    if (validBusinesses.length === 0 && !selectedLocation) return;
 
-    const handleClick = (e: L.LeafletMouseEvent) => {
-      if (clickable && onMapClick) {
-        onMapClick(e.latlng.lat, e.latlng.lng);
-      }
-    };
-
-    if (clickable) {
-      mapRef.current.on("click", handleClick);
-      mapRef.current.getContainer().style.cursor = "crosshair";
-    } else {
-      mapRef.current.off("click");
-      mapRef.current.getContainer().style.cursor = "";
-    }
-
-    return () => {
-      if (mapRef.current) {
-        mapRef.current.off("click", handleClick);
-      }
-    };
-  }, [clickable, onMapClick]);
-
-  // Update business markers
-  useEffect(() => {
-    if (!mapRef.current) return;
-
-    // Remove existing markers
-    markersRef.current.forEach((marker) => marker.remove());
-    markersRef.current = [];
-
-    // Get business type color
-    const getBusinessColor = (type: string) => {
-      switch (type) {
-        case "Restaurant":
-          return "#f97316"; // orange
-        case "Shop":
-          return "#3b82f6"; // blue
-        case "Pharmacy":
-          return "#ef4444"; // red
-        default:
-          return "#6b7280"; // gray
-      }
-    };
-
-    // Get business icon HTML
-    const getBusinessIcon = (type: string) => {
-      switch (type) {
-        case "Restaurant":
-          return "🍽️";
-        case "Shop":
-          return "🏪";
-        case "Pharmacy":
-          return "💊";
-        default:
-          return "📍";
-      }
-    };
-
-    // Filter businesses with valid coordinates
-    const validBusinesses = businesses.filter(
-      (b) =>
-        b.latitude !== null &&
-        b.latitude !== undefined &&
-        b.longitude !== null &&
-        b.longitude !== undefined,
+    const bounds = new google.maps.LatLngBounds();
+    validBusinesses.forEach((b) =>
+      bounds.extend({ lat: b.latitude!, lng: b.longitude! }),
     );
-
-    // Add markers for each business
-    validBusinesses.forEach((business) => {
-      const color = getBusinessColor(business.type);
-      const icon = getBusinessIcon(business.type);
-      const isHighlighted = business.id === highlightedBusinessId;
-
-      // Create custom icon
-      const customIcon = L.divIcon({
-        className: "custom-div-icon",
-        html: `
-          <div style="
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            ${isHighlighted ? "filter: drop-shadow(0 0 8px " + color + ");" : ""}
-          ">
-            <div style="
-              background-color: ${color};
-              color: white;
-              padding: 4px 8px;
-              border-radius: 4px;
-              font-size: 11px;
-              font-weight: 600;
-              white-space: nowrap;
-              margin-bottom: 2px;
-              box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-              border: ${isHighlighted ? "2px solid white" : "none"};
-            ">
-              ${icon} ${business.name}
-            </div>
-            <div style="
-              width: 0;
-              height: 0;
-              border-left: 6px solid transparent;
-              border-right: 6px solid transparent;
-              border-top: 8px solid ${color};
-            "></div>
-          </div>
-        `,
-        iconSize: [120, 40],
-        iconAnchor: [60, 40],
-      });
-
-      const marker = L.marker([business.latitude!, business.longitude!], {
-        icon: customIcon,
-      }).addTo(mapRef.current!);
-
-      // Add popup with business details
-      const popupContent = `
-        <div style="min-width: 200px;">
-          <strong style="font-size: 14px;">${business.name}</strong>
-          <br/>
-          <span style="color: ${color}; font-size: 12px; font-weight: 600;">
-            ${business.type}
-          </span>
-          ${business.vendorName ? `<br/><span style="font-size: 11px; color: #6b7280;">Vendor: ${business.vendorName}</span>` : ""}
-          ${business.address ? `<br/><span style="font-size: 11px;">${business.address}</span>` : ""}
-          <br/>
-          <span style="font-size: 11px; color: #6b7280;">
-            ${business.latitude?.toFixed(6)}, ${business.longitude?.toFixed(6)}
-          </span>
-        </div>
-      `;
-
-      marker.bindPopup(popupContent);
-
-      markersRef.current.push(marker);
-    });
-
-    // Auto-fit bounds if businesses exist
-    if (validBusinesses.length > 0) {
-      const group = L.featureGroup(markersRef.current);
-      mapRef.current.fitBounds(group.getBounds().pad(0.1), {
-        maxZoom: 15,
-      });
-    }
-  }, [businesses, highlightedBusinessId]);
-
-  // Handle selected location marker (for setting new coordinates)
-  useEffect(() => {
-    if (!mapRef.current) return;
-
-    // Remove previous selected marker
-    if (selectedMarkerRef.current) {
-      selectedMarkerRef.current.remove();
-      selectedMarkerRef.current = null;
-    }
-
-    // Add new selected marker if location provided
     if (selectedLocation) {
-      const redIcon = L.divIcon({
-        className: "custom-div-icon",
-        html: `
-          <div style="
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-          ">
-            <div style="
-              background-color: #dc2626;
-              color: white;
-              padding: 4px 8px;
-              border-radius: 4px;
-              font-size: 11px;
-              font-weight: 600;
-              white-space: nowrap;
-              margin-bottom: 2px;
-              box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-              border: 2px solid white;
-              animation: pulse 1.5s infinite;
-            ">
-              📍 New Location
-            </div>
-            <div style="
-              width: 0;
-              height: 0;
-              border-left: 6px solid transparent;
-              border-right: 6px solid transparent;
-              border-top: 8px solid #dc2626;
-            "></div>
-          </div>
-          <style>
-            @keyframes pulse {
-              0%, 100% { opacity: 1; }
-              50% { opacity: 0.6; }
-            }
-          </style>
-        `,
-        iconSize: [120, 40],
-        iconAnchor: [60, 40],
-      });
-
-      selectedMarkerRef.current = L.marker(
-        [selectedLocation.lat, selectedLocation.lng],
-        { icon: redIcon },
-      ).addTo(mapRef.current);
-
-      selectedMarkerRef.current.bindPopup(
-        `<strong>Selected Location</strong><br/>${selectedLocation.lat.toFixed(6)}, ${selectedLocation.lng.toFixed(6)}`,
-      );
+      bounds.extend({ lat: selectedLocation.lat, lng: selectedLocation.lng });
     }
-  }, [selectedLocation]);
+
+    if (validBusinesses.length + (selectedLocation ? 1 : 0) === 1) {
+      // Single point — fitBounds would zoom in too far
+      mapRef.current.setCenter(bounds.getCenter());
+      mapRef.current.setZoom(15);
+    } else {
+      mapRef.current.fitBounds(bounds, 40);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [businesses, selectedLocation, highlightedBusinessId, isLoaded]);
+
+  const handleClick = (e: google.maps.MapMouseEvent) => {
+    if (clickable && onMapClick && e.latLng) {
+      onMapClick(e.latLng.lat(), e.latLng.lng());
+    }
+  };
+
+  if (!hasKey) {
+    return (
+      <div className="w-full h-[400px] rounded-lg border shadow-sm flex items-center justify-center bg-muted text-sm text-muted-foreground p-4 text-center">
+        Google Maps API key not configured (VITE_GOOGLE_MAPS_API_KEY).
+      </div>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <div className="w-full h-[400px] rounded-lg border shadow-sm flex items-center justify-center bg-muted text-sm text-destructive p-4 text-center">
+        Failed to load Google Maps.
+      </div>
+    );
+  }
+
+  if (!isLoaded) {
+    return (
+      <div className="w-full h-[400px] rounded-lg border shadow-sm flex items-center justify-center bg-muted text-sm text-muted-foreground">
+        Loading map…
+      </div>
+    );
+  }
 
   return (
-    <div
-      ref={mapContainerRef}
-      className="w-full h-[400px] rounded-lg border shadow-sm"
-      style={{ zIndex: 0 }}
-    />
+    <div className="w-full h-[400px] rounded-lg border shadow-sm overflow-hidden">
+      <GoogleMap
+        mapContainerStyle={{ height: "100%", width: "100%" }}
+        center={GAMBIA_CENTER}
+        zoom={11}
+        onLoad={onMapLoad}
+        onClick={handleClick}
+        options={{
+          streetViewControl: false,
+          mapTypeControl: false,
+          draggableCursor: clickable ? "crosshair" : undefined,
+        }}
+      >
+        {validBusinesses.map((business) => {
+          const color = getBusinessColor(business.type);
+          const isHighlighted = business.id === highlightedBusinessId;
+          return (
+            <Marker
+              key={business.id}
+              position={{ lat: business.latitude!, lng: business.longitude! }}
+              label={{
+                text: getBusinessEmoji(business.type),
+                fontSize: "16px",
+              }}
+              icon={{
+                path: google.maps.SymbolPath.CIRCLE,
+                scale: isHighlighted ? 18 : 14,
+                fillColor: color,
+                fillOpacity: 1,
+                strokeColor: "#fff",
+                strokeWeight: isHighlighted ? 4 : 2,
+              }}
+              onClick={() => setActiveBusinessId(business.id)}
+            />
+          );
+        })}
+
+        {activeBusinessId &&
+          (() => {
+            const business = validBusinesses.find(
+              (b) => b.id === activeBusinessId,
+            );
+            if (!business) return null;
+            const color = getBusinessColor(business.type);
+            return (
+              <InfoWindow
+                position={{
+                  lat: business.latitude!,
+                  lng: business.longitude!,
+                }}
+                onCloseClick={() => setActiveBusinessId(null)}
+              >
+                <div className="min-w-50">
+                  <strong className="text-sm">{business.name}</strong>
+                  <br />
+                  <span
+                    className="text-xs font-semibold"
+                    style={{ color }}
+                  >
+                    {business.type}
+                  </span>
+                  {business.vendorName && (
+                    <>
+                      <br />
+                      <span className="text-[11px] text-gray-500">
+                        Vendor: {business.vendorName}
+                      </span>
+                    </>
+                  )}
+                  {business.address && (
+                    <>
+                      <br />
+                      <span className="text-[11px]">{business.address}</span>
+                    </>
+                  )}
+                  <br />
+                  <span className="text-[11px] text-gray-500 font-mono">
+                    {business.latitude?.toFixed(6)},{" "}
+                    {business.longitude?.toFixed(6)}
+                  </span>
+                </div>
+              </InfoWindow>
+            );
+          })()}
+
+        {selectedLocation && (
+          <Marker
+            position={{ lat: selectedLocation.lat, lng: selectedLocation.lng }}
+            label={{ text: "📍", fontSize: "16px" }}
+            icon={{
+              path: google.maps.SymbolPath.CIRCLE,
+              scale: 16,
+              fillColor: "#dc2626",
+              fillOpacity: 1,
+              strokeColor: "#fff",
+              strokeWeight: 3,
+            }}
+          />
+        )}
+      </GoogleMap>
+    </div>
   );
 }

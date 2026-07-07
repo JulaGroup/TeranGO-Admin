@@ -28,8 +28,8 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { teranProApi } from "@/lib/api";
-import L from "leaflet";
-import "leaflet/dist/leaflet.css";
+import { GoogleMap, Marker } from "@react-google-maps/api";
+import { useGoogleMaps, GAMBIA_CENTER } from "@/lib/googleMaps";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -95,15 +95,6 @@ async function uploadToCloudinary(file: File): Promise<string> {
   return data.secure_url;
 }
 
-// Fix Leaflet default marker icons
-delete (L.Icon.Default.prototype as any)._getIconUrl;
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl:
-    "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
-  iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
-  shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
-});
-
 // ─── Location Picker Map ──────────────────────────────────────────────────────
 function LocationPickerMap({
   lat,
@@ -114,71 +105,56 @@ function LocationPickerMap({
   lng: number | null;
   onChange: (lat: number, lng: number) => void;
 }) {
-  const mapContainerRef = useRef<HTMLDivElement | null>(null);
-  const mapRef = useRef<L.Map | null>(null);
-  const markerRef = useRef<L.Marker | null>(null);
+  const { isLoaded, loadError, hasKey } = useGoogleMaps();
+  const mapRef = useRef<google.maps.Map | null>(null);
 
-  useEffect(() => {
-    if (!mapContainerRef.current || mapRef.current) return;
+  const center =
+    lat !== null && lng !== null ? { lat, lng } : GAMBIA_CENTER;
 
-    const initialLat = lat ?? 13.4549;
-    const initialLng = lng ?? -16.579;
-
-    const map = L.map(mapContainerRef.current).setView(
-      [initialLat, initialLng],
-      13,
-    );
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      attribution:
-        '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-      maxZoom: 19,
-    }).addTo(map);
-
-    if (lat !== null && lng !== null) {
-      markerRef.current = L.marker([lat, lng]).addTo(map);
-    }
-
-    map.on("click", (e: L.LeafletMouseEvent) => {
-      const { lat: clickLat, lng: clickLng } = e.latlng;
-      onChange(clickLat, clickLng);
-      if (markerRef.current) {
-        markerRef.current.setLatLng([clickLat, clickLng]);
-      } else {
-        markerRef.current = L.marker([clickLat, clickLng]).addTo(map);
-      }
-    });
-
-    mapRef.current = map;
-    return () => {
-      if (mapRef.current) {
-        mapRef.current.remove();
-        mapRef.current = null;
-        markerRef.current = null;
-      }
-    };
-  }, []);
-
-  // Sync external lat/lng changes (e.g. editing existing service)
-  useEffect(() => {
-    if (!mapRef.current || lat === null || lng === null) return;
-    if (markerRef.current) {
-      markerRef.current.setLatLng([lat, lng]);
-    } else {
-      markerRef.current = L.marker([lat, lng]).addTo(mapRef.current);
-    }
-    mapRef.current.setView([lat, lng], mapRef.current.getZoom());
-  }, [lat, lng]);
+  const handleClick = (e: google.maps.MapMouseEvent) => {
+    if (!e.latLng) return;
+    onChange(e.latLng.lat(), e.latLng.lng());
+  };
 
   return (
     <div className="space-y-1">
       <div
-        ref={mapContainerRef}
         style={{
           height: 300,
           borderRadius: 8,
           border: "1px solid hsl(var(--border))",
+          overflow: "hidden",
         }}
-      />
+      >
+        {!hasKey ? (
+          <div className="h-full w-full flex items-center justify-center bg-muted text-sm text-muted-foreground p-4 text-center">
+            Google Maps API key not configured (VITE_GOOGLE_MAPS_API_KEY).
+          </div>
+        ) : loadError ? (
+          <div className="h-full w-full flex items-center justify-center bg-muted text-sm text-destructive p-4 text-center">
+            Failed to load Google Maps.
+          </div>
+        ) : !isLoaded ? (
+          <div className="h-full w-full flex items-center justify-center bg-muted text-sm text-muted-foreground">
+            Loading map…
+          </div>
+        ) : (
+          <GoogleMap
+            mapContainerStyle={{ height: "100%", width: "100%", cursor: "crosshair" }}
+            center={center}
+            zoom={13}
+            onLoad={(map) => {
+              mapRef.current = map;
+            }}
+            onClick={handleClick}
+            options={{ streetViewControl: false, mapTypeControl: false }}
+          >
+            {lat !== null && lng !== null && (
+              <Marker position={{ lat, lng }} />
+            )}
+          </GoogleMap>
+        )}
+      </div>
       {lat !== null && lng !== null ? (
         <p className="text-xs text-muted-foreground">
           📍 {lat.toFixed(6)}, {lng.toFixed(6)} — click map to change

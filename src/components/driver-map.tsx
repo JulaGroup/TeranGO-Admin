@@ -1,13 +1,12 @@
 /**
  * Real-Time Driver Map Component
  * Shows all active drivers on a map with live location updates
- * Using Leaflet + OpenStreetMap (100% Free, No Credit Card Required!)
+ * Using Google Maps (consistent with the mobile apps)
  */
 
-import { useEffect, useState, useRef } from "react";
-import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
-import L from "leaflet";
-import "leaflet/dist/leaflet.css";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { GoogleMap, Marker, InfoWindow } from "@react-google-maps/api";
+import { useGoogleMaps, GAMBIA_CENTER } from "@/lib/googleMaps";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -22,16 +21,6 @@ import {
   Maximize2,
   Minimize2,
 } from "lucide-react";
-import { toast } from "sonner";
-
-// Fix for default marker icons in Leaflet
-delete (L.Icon.Default.prototype as any)._getIconUrl;
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl:
-    "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
-  iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
-  shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
-});
 
 interface Driver {
   id: string;
@@ -51,20 +40,27 @@ interface DriverMapProps {
   height?: string;
 }
 
+const VEHICLE_EMOJI: Record<string, string> = {
+  BIKE: "🏍️",
+  CAR: "🚗",
+  VAN: "🚙",
+  LORRY: "🚛",
+};
+
 export function DriverMap({
   className = "",
   showControls = true,
   height = "600px",
 }: DriverMapProps) {
+  const { isLoaded, loadError, hasKey } = useGoogleMaps();
   const [drivers, setDrivers] = useState<Driver[]>([]);
   const [selectedDriver, setSelectedDriver] = useState<Driver | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [filterAvailable, setFilterAvailable] = useState(false);
-  const mapRef = useRef<any>(null);
+  const mapRef = useRef<google.maps.Map | null>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // Fetch drivers with location data
   const fetchDriverLocations = async () => {
     try {
       const token = localStorage.getItem("auth_token");
@@ -75,7 +71,6 @@ export function DriverMap({
         },
       });
 
-      // Check if response is ok
       if (!response.ok) {
         if (response.status === 401) {
           console.warn(
@@ -89,7 +84,6 @@ export function DriverMap({
 
       const data = await response.json();
 
-      // Ensure data is an array before filtering
       if (!Array.isArray(data)) {
         console.warn("Driver data is not an array:", data);
         setDrivers([]);
@@ -97,13 +91,11 @@ export function DriverMap({
         return;
       }
 
-      // Filter drivers with valid location data
       const driversWithLocation = data.filter(
         (d: any) =>
           d.currentLatitude &&
           d.currentLongitude &&
           d.lastLocationUpdate &&
-          // Relax threshold to 12 hours so active today/last seen is visible on map
           new Date(d.lastLocationUpdate).getTime() >
             Date.now() - 12 * 60 * 60 * 1000,
       );
@@ -116,7 +108,6 @@ export function DriverMap({
     }
   };
 
-  // Initial load and refresh every 10 seconds
   useEffect(() => {
     fetchDriverLocations();
     intervalRef.current = setInterval(fetchDriverLocations, 10000);
@@ -128,10 +119,22 @@ export function DriverMap({
     };
   }, []);
 
-  // Filter drivers based on availability
   const filteredDrivers = filterAvailable
     ? drivers.filter((d) => d.isAvailable)
     : drivers;
+
+  useEffect(() => {
+    if (!mapRef.current || filteredDrivers.length === 0) return;
+    const bounds = new google.maps.LatLngBounds();
+    filteredDrivers.forEach((d) =>
+      bounds.extend({ lat: d.currentLatitude, lng: d.currentLongitude }),
+    );
+    mapRef.current.fitBounds(bounds, 50);
+  }, [filteredDrivers]);
+
+  const onMapLoad = useCallback((map: google.maps.Map) => {
+    mapRef.current = map;
+  }, []);
 
   const getVehicleIcon = (type: string) => {
     switch (type) {
@@ -159,58 +162,6 @@ export function DriverMap({
     return `${hours}h ago`;
   };
 
-  // Custom marker icons for different vehicle types
-  const getMarkerIcon = (vehicleType: string, isAvailable: boolean) => {
-    const color = isAvailable ? "green" : "gray";
-    const iconHtml = `
-      <div style="
-        background-color: ${color};
-        width: 32px;
-        height: 32px;
-        border-radius: 50% 50% 50% 0;
-        transform: rotate(-45deg);
-        border: 3px solid white;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-      ">
-        <span style="transform: rotate(45deg); color: white; font-size: 16px; font-weight: bold;">
-          ${vehicleType === "BIKE" ? "🏍️" : vehicleType === "CAR" ? "🚗" : vehicleType === "VAN" ? "🚙" : "🚛"}
-        </span>
-      </div>
-    `;
-
-    return L.divIcon({
-      html: iconHtml,
-      className: "custom-marker-icon",
-      iconSize: [32, 32],
-      iconAnchor: [16, 32],
-      popupAnchor: [0, -32],
-    });
-  };
-
-  // Component to auto-fit map bounds to show all drivers
-  function MapBoundsHandler({ drivers }: { drivers: Driver[] }) {
-    const map = useMap();
-
-    useEffect(() => {
-      if (drivers.length > 0) {
-        const bounds = L.latLngBounds(
-          drivers.map(
-            (d) => [d.currentLatitude, d.currentLongitude] as [number, number],
-          ),
-        );
-        map.fitBounds(bounds, { padding: [50, 50], maxZoom: 14 });
-      }
-    }, [drivers, map]);
-
-    return null;
-  }
-
-  // Default center (Banjul, The Gambia) for empty map
-  const defaultCenter: [number, number] = [13.4549, -16.579];
-
   if (isLoading) {
     return (
       <Card className={className}>
@@ -231,7 +182,7 @@ export function DriverMap({
 
   return (
     <Card className={className}>
-      <CardHeader className="flex flex-row items-center justify-between pb-2">
+      <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-2">
         <div>
           <CardTitle className="flex items-center gap-2">
             <Navigation className="h-5 w-5 text-primary" />
@@ -245,7 +196,7 @@ export function DriverMap({
           </p>
         </div>
         {showControls && (
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <Button
               variant="outline"
               size="sm"
@@ -282,7 +233,6 @@ export function DriverMap({
           }}
         >
           {filteredDrivers.length === 0 ? (
-            // Empty state
             <div className="h-full flex items-center justify-center bg-slate-50 dark:bg-slate-900">
               <div className="text-center p-8">
                 <MapPin className="h-16 w-16 mx-auto mb-4 text-blue-500 opacity-50" />
@@ -299,121 +249,113 @@ export function DriverMap({
                 </p>
               </div>
             </div>
+          ) : !hasKey ? (
+            <div className="h-full flex items-center justify-center bg-muted text-sm text-muted-foreground p-4 text-center">
+              Google Maps API key not configured (VITE_GOOGLE_MAPS_API_KEY).
+            </div>
+          ) : loadError ? (
+            <div className="h-full flex items-center justify-center bg-muted text-sm text-destructive p-4 text-center">
+              Failed to load Google Maps.
+            </div>
+          ) : !isLoaded ? (
+            <div className="h-full flex items-center justify-center bg-muted text-sm text-muted-foreground">
+              Loading map…
+            </div>
           ) : (
-            // Actual interactive map with Leaflet + OpenStreetMap
-            <MapContainer
-              center={defaultCenter}
+            <GoogleMap
+              mapContainerStyle={{ height: "100%", width: "100%" }}
+              center={GAMBIA_CENTER}
               zoom={13}
-              style={{ height: "100%", width: "100%", zIndex: 0 }}
-              ref={mapRef}
+              onLoad={onMapLoad}
+              options={{ streetViewControl: false, mapTypeControl: false }}
             >
-              {/* OpenStreetMap tiles - 100% FREE, no credit card needed! */}
-              <TileLayer
-                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-              />
-
-              {/* Auto-fit bounds to show all drivers */}
-              <MapBoundsHandler drivers={filteredDrivers} />
-
-              {/* Markers for each driver */}
               {filteredDrivers.map((driver) => (
                 <Marker
                   key={driver.id}
-                  position={[driver.currentLatitude, driver.currentLongitude]}
-                  icon={getMarkerIcon(driver.vehicleType, driver.isAvailable)}
-                  eventHandlers={{
-                    click: () => setSelectedDriver(driver),
+                  position={{
+                    lat: driver.currentLatitude,
+                    lng: driver.currentLongitude,
                   }}
+                  label={{
+                    text: VEHICLE_EMOJI[driver.vehicleType] || "📍",
+                    fontSize: "16px",
+                  }}
+                  icon={{
+                    path: google.maps.SymbolPath.CIRCLE,
+                    scale: 16,
+                    fillColor: driver.isAvailable ? "#16a34a" : "#6b7280",
+                    fillOpacity: 1,
+                    strokeColor: "#fff",
+                    strokeWeight: 3,
+                  }}
+                  onClick={() => setSelectedDriver(driver)}
+                />
+              ))}
+
+              {selectedDriver && (
+                <InfoWindow
+                  position={{
+                    lat: selectedDriver.currentLatitude,
+                    lng: selectedDriver.currentLongitude,
+                  }}
+                  onCloseClick={() => setSelectedDriver(null)}
                 >
-                  <Popup>
-                    <div className="min-w-50">
-                      <div className="flex items-center gap-2 mb-2">
-                        <div
-                          className={`p-1.5 rounded ${driver.isAvailable ? "bg-green-100" : "bg-gray-100"}`}
-                        >
-                          {getVehicleIcon(driver.vehicleType)}
-                        </div>
-                        <div>
-                          <p className="font-semibold text-sm">{driver.name}</p>
-                          <p className="text-xs text-gray-600">
-                            {driver.phone}
-                          </p>
-                        </div>
+                  <div className="min-w-50">
+                    <div className="flex items-center gap-2 mb-2">
+                      <div
+                        className={`p-1.5 rounded ${selectedDriver.isAvailable ? "bg-green-100" : "bg-gray-100"}`}
+                      >
+                        {getVehicleIcon(selectedDriver.vehicleType)}
                       </div>
-                      <div className="space-y-1 text-xs">
-                        <div className="flex justify-between">
-                          <span className="text-gray-600">Vehicle:</span>
-                          <span className="font-medium">
-                            {driver.vehicleType}
-                          </span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-gray-600">Plate:</span>
-                          <span className="font-medium">
-                            {driver.vehicleNumber || "N/A"}
-                          </span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-gray-600">Status:</span>
-                          <Badge
-                            variant={
-                              driver.isAvailable ? "default" : "secondary"
-                            }
-                            className={`text-[10px] ${driver.isAvailable ? "bg-green-600" : ""}`}
-                          >
-                            {driver.isAvailable ? "AVAILABLE" : "BUSY"}
-                          </Badge>
-                        </div>
-                        <div className="flex justify-between items-center pt-1 border-t">
-                          <span className="text-gray-600">Last Update:</span>
-                          <span className="text-[10px] text-gray-500 flex items-center gap-1">
-                            <Clock className="h-3 w-3" />
-                            {getTimeSinceUpdate(driver.lastLocationUpdate)}
-                          </span>
-                        </div>
-                        <div className="text-[10px] text-gray-400 font-mono pt-1">
-                          {driver.currentLatitude.toFixed(5)},{" "}
-                          {driver.currentLongitude.toFixed(5)}
-                        </div>
+                      <div>
+                        <p className="font-semibold text-sm">
+                          {selectedDriver.name}
+                        </p>
+                        <p className="text-xs text-gray-600">
+                          {selectedDriver.phone}
+                        </p>
                       </div>
                     </div>
-                  </Popup>
-                </Marker>
-              ))}
-            </MapContainer>
-          )}
-
-          {/* Mini driver info overlay when driver is selected */}
-          {filteredDrivers.length > 0 && selectedDriver && (
-            <div className="absolute top-4 right-4 w-64 bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm rounded-lg shadow-lg border p-3 z-[1000]">
-              <div className="flex items-center justify-between mb-2">
-                <h4 className="font-semibold text-sm">Selected Driver</h4>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-6 w-6 p-0"
-                  onClick={() => setSelectedDriver(null)}
-                >
-                  ✕
-                </Button>
-              </div>
-              <div className="flex items-center gap-2">
-                <div
-                  className={`p-2 rounded ${selectedDriver.isAvailable ? "bg-green-100" : "bg-gray-100"}`}
-                >
-                  {getVehicleIcon(selectedDriver.vehicleType)}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="font-medium text-sm truncate">
-                    {selectedDriver.name}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    {selectedDriver.vehicleType}
-                  </p>
-                </div>
-              </div>
-            </div>
+                    <div className="space-y-1 text-xs">
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Vehicle:</span>
+                        <span className="font-medium">
+                          {selectedDriver.vehicleType}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Plate:</span>
+                        <span className="font-medium">
+                          {selectedDriver.vehicleNumber || "N/A"}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Status:</span>
+                        <Badge
+                          variant={
+                            selectedDriver.isAvailable ? "default" : "secondary"
+                          }
+                          className={`text-[10px] ${selectedDriver.isAvailable ? "bg-green-600" : ""}`}
+                        >
+                          {selectedDriver.isAvailable ? "AVAILABLE" : "BUSY"}
+                        </Badge>
+                      </div>
+                      <div className="flex justify-between items-center pt-1 border-t">
+                        <span className="text-gray-600">Last Update:</span>
+                        <span className="text-[10px] text-gray-500 flex items-center gap-1">
+                          <Clock className="h-3 w-3" />
+                          {getTimeSinceUpdate(selectedDriver.lastLocationUpdate)}
+                        </span>
+                      </div>
+                      <div className="text-[10px] text-gray-400 font-mono pt-1">
+                        {selectedDriver.currentLatitude.toFixed(5)},{" "}
+                        {selectedDriver.currentLongitude.toFixed(5)}
+                      </div>
+                    </div>
+                  </div>
+                </InfoWindow>
+              )}
+            </GoogleMap>
           )}
         </div>
       </CardContent>

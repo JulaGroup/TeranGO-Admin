@@ -4,9 +4,10 @@
  * Admin can configure:
  * - Gift order zone-based delivery fees
  * - Fallback delivery fee tiers (used when vehicle-based pricing is off/unavailable)
- * - Free delivery thresholds
- * - Service fees
- * - Driver commission
+ * - Vehicle-based pricing (base fee + per-km rate)
+ * - Hub-based distance calculation
+ * - Express delivery service fee
+ * - Third-party driver split rate
  */
 
 import { createFileRoute } from "@tanstack/react-router";
@@ -31,6 +32,15 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { Switch } from "@/components/ui/switch";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import {
   MapPin,
   Truck,
@@ -41,6 +51,7 @@ import {
   Info,
   Users,
   Weight,
+  Zap,
 } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/admin/delivery-settings")(
@@ -59,10 +70,7 @@ interface SystemSettings {
   deliveryFee10to20km: number;
   deliveryFee20to30km: number;
   deliveryFeeAbove30km: number;
-  freeDeliveryMinAmount: number;
-  freeDeliveryMaxKm: number;
   serviceFeePercent: number;
-  driverCommissionPercent: number;
 
   // Vehicle-specific delivery pricing (Base fees)
   bikeDeliveryFee: number;
@@ -80,7 +88,6 @@ interface SystemSettings {
 
   // Weight-based pricing configuration
   weightPricingEnabled: boolean;
-  distancePricingEnabled: boolean;
 
   // Central hub coordinates for driver dispatch
   hubLatitude: number;
@@ -156,10 +163,7 @@ function DeliverySettingsPage() {
       return formData[field] as number | boolean;
     }
     // Handle boolean fields
-    if (
-      field === "weightPricingEnabled" ||
-      field === "distancePricingEnabled"
-    ) {
+    if (field === "weightPricingEnabled" || field === "useHubBasedDistance") {
       return Boolean(settings?.[field]) || false;
     }
     return (settings?.[field] as number) || 0;
@@ -283,25 +287,25 @@ function DeliverySettingsPage() {
                     + distance × per-km rate)
                   </p>
                   <div className="overflow-x-auto">
-                    <table className="w-full text-xs">
-                      <thead>
-                        <tr className="text-muted-foreground">
-                          <th className="pb-1 text-left font-medium">Zone</th>
-                          <th className="pb-1 text-center font-medium">
+                    <Table className="text-xs">
+                      <TableHeader>
+                        <TableRow className="text-muted-foreground">
+                          <TableHead className="text-left font-medium">Zone</TableHead>
+                          <TableHead className="text-center font-medium">
                             🏍️ Bike
-                          </th>
-                          <th className="pb-1 text-center font-medium">
+                          </TableHead>
+                          <TableHead className="text-center font-medium">
                             🛺 Keke
-                          </th>
-                          <th className="pb-1 text-center font-medium">
+                          </TableHead>
+                          <TableHead className="text-center font-medium">
                             🚗 Car
-                          </th>
-                          <th className="pb-1 text-center font-medium">
+                          </TableHead>
+                          <TableHead className="text-center font-medium">
                             🚐 Van
-                          </th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y">
+                          </TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
                         {[
                           {
                             label: "Zone 1 · Central",
@@ -319,10 +323,10 @@ function DeliverySettingsPage() {
                             extraKm: 12,
                           },
                         ].map(({ label, color, extraKm }) => (
-                          <tr key={label}>
-                            <td className={`py-1 font-medium ${color}`}>
+                          <TableRow key={label}>
+                            <TableCell className={`font-medium ${color}`}>
                               {label}
-                            </td>
+                            </TableCell>
                             {(
                               [
                                 "bikeDeliveryFee",
@@ -340,18 +344,18 @@ function DeliverySettingsPage() {
                                   extraKm * getNumericValue(perKmField),
                               );
                               return (
-                                <td
+                                <TableCell
                                   key={field}
-                                  className="py-1 text-center font-mono"
+                                  className="text-center font-mono"
                                 >
                                   ~D{est}
-                                </td>
+                                </TableCell>
                               );
                             })}
-                          </tr>
+                          </TableRow>
                         ))}
-                      </tbody>
-                    </table>
+                      </TableBody>
+                    </Table>
                   </div>
                   <p className="mt-1 text-xs text-muted-foreground">
                     Estimates based on ≈3 km / 6 km / 12 km typical distances.
@@ -444,60 +448,6 @@ function DeliverySettingsPage() {
             </CardContent>
           </Card>
 
-          {/* Free Delivery Settings */}
-          <Card>
-            <CardHeader>
-              <div className="flex items-center gap-2">
-                <Gift className="h-5 w-5 text-green-500" />
-                <CardTitle>Free Delivery Threshold</CardTitle>
-              </div>
-              <CardDescription>
-                Configure when customers qualify for free delivery
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label>Minimum Order Amount (GMD)</Label>
-                <div className="flex items-center gap-2">
-                  <span className="text-muted-foreground">D</span>
-                  <Input
-                    type="number"
-                    value={getNumericValue("freeDeliveryMinAmount")}
-                    onChange={(e) =>
-                      handleInputChange("freeDeliveryMinAmount", e.target.value)
-                    }
-                    disabled={!isEditing}
-                    className="w-32"
-                  />
-                </div>
-                <p className="text-sm text-muted-foreground">
-                  Orders above this amount may qualify for free delivery
-                </p>
-              </div>
-
-              <Separator />
-
-              <div className="space-y-2">
-                <Label>Maximum Distance (km)</Label>
-                <div className="flex items-center gap-2">
-                  <Input
-                    type="number"
-                    value={getNumericValue("freeDeliveryMaxKm")}
-                    onChange={(e) =>
-                      handleInputChange("freeDeliveryMaxKm", e.target.value)
-                    }
-                    disabled={!isEditing}
-                    className="w-24"
-                  />
-                  <span className="text-muted-foreground">km</span>
-                </div>
-                <p className="text-sm text-muted-foreground">
-                  Free delivery only applies within this distance
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-
           {/* Vehicle-Specific Pricing */}
           <Card>
             <CardHeader>
@@ -510,18 +460,12 @@ function DeliverySettingsPage() {
                   <label className="text-sm text-muted-foreground">
                     Enable Weight-Based Pricing
                   </label>
-                  <input
-                    title="Enable Weight-Based Pricing"
-                    type="checkbox"
+                  <Switch
                     checked={Boolean(getValue("weightPricingEnabled"))}
-                    onChange={(e) =>
-                      handleInputChange(
-                        "weightPricingEnabled",
-                        e.target.checked,
-                      )
+                    onCheckedChange={(checked) =>
+                      handleInputChange("weightPricingEnabled", checked)
                     }
                     disabled={!isEditing}
-                    className="rounded"
                   />
                 </div>
               </div>
@@ -545,7 +489,7 @@ function DeliverySettingsPage() {
                     </div>
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="flex items-center gap-2">
                     <label className="text-sm font-medium">Base Fee:</label>
                     <span className="text-muted-foreground">D</span>
@@ -586,7 +530,7 @@ function DeliverySettingsPage() {
                     </div>
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="flex items-center gap-2">
                     <label className="text-sm font-medium">Base Fee:</label>
                     <span className="text-muted-foreground">D</span>
@@ -630,7 +574,7 @@ function DeliverySettingsPage() {
                     </div>
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="flex items-center gap-2">
                     <label className="text-sm font-medium">Base Fee:</label>
                     <span className="text-muted-foreground">D</span>
@@ -671,7 +615,7 @@ function DeliverySettingsPage() {
                     </div>
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="flex items-center gap-2">
                     <label className="text-sm font-medium">Base Fee:</label>
                     <span className="text-muted-foreground">D</span>
@@ -712,7 +656,7 @@ function DeliverySettingsPage() {
                     </div>
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="flex items-center gap-2">
                     <label className="text-sm font-medium">Base Fee:</label>
                     <span className="text-muted-foreground">D</span>
@@ -840,19 +784,18 @@ function DeliverySettingsPage() {
                         Calculate delivery distance from hub instead of vendor
                       </p>
                     </div>
-                    <label className="relative inline-flex items-center cursor-pointer">
-                      <input
-                        type="checkbox"
-                        id="useHubBasedDistance"
-                        checked={isEditing && formData.useHubBasedDistance !== undefined 
-                          ? Boolean(formData.useHubBasedDistance) 
-                          : Boolean(settings?.useHubBasedDistance)}
-                        onChange={(e) => handleInputChange("useHubBasedDistance" as any, e.target.checked)}
-                        disabled={!isEditing}
-                        className="sr-only peer"
-                      />
-                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-purple-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
-                    </label>
+                    <Switch
+                      id="useHubBasedDistance"
+                      checked={
+                        isEditing && formData.useHubBasedDistance !== undefined
+                          ? Boolean(formData.useHubBasedDistance)
+                          : Boolean(settings?.useHubBasedDistance)
+                      }
+                      onCheckedChange={(checked) =>
+                        handleInputChange("useHubBasedDistance" as any, checked)
+                      }
+                      disabled={!isEditing}
+                    />
                   </div>
 
                   {(isEditing ? formData.useHubBasedDistance : settings?.useHubBasedDistance) && (
@@ -993,20 +936,23 @@ function DeliverySettingsPage() {
             </CardContent>
           </Card>
 
-          {/* Service Fee & Driver Commission */}
+          {/* Service Fee & Driver Split */}
           <Card>
             <CardHeader>
               <div className="flex items-center gap-2">
                 <DollarSign className="h-5 w-5 text-yellow-500" />
-                <CardTitle>Fees & Commission</CardTitle>
+                <CardTitle>Fees & Driver Split</CardTitle>
               </div>
               <CardDescription>
-                Platform service fee and driver commission rates
+                Express delivery service fee and driver payout split
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label>Service Fee (%)</Label>
+                <div className="flex items-center gap-2">
+                  <Zap className="h-4 w-4 text-muted-foreground" />
+                  <Label>Express Delivery Service Fee (%)</Label>
+                </div>
                 <div className="flex items-center gap-2">
                   <Input
                     type="number"
@@ -1021,35 +967,8 @@ function DeliverySettingsPage() {
                   <span className="text-muted-foreground">%</span>
                 </div>
                 <p className="text-sm text-muted-foreground">
-                  Applied to each order subtotal
-                </p>
-              </div>
-
-              <Separator />
-
-              <div className="space-y-2">
-                <div className="flex items-center gap-2">
-                  <Users className="h-4 w-4 text-muted-foreground" />
-                  <Label>Driver Commission (%)</Label>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Input
-                    type="number"
-                    value={getNumericValue("driverCommissionPercent")}
-                    onChange={(e) =>
-                      handleInputChange(
-                        "driverCommissionPercent",
-                        e.target.value,
-                      )
-                    }
-                    disabled={!isEditing}
-                    className="w-24"
-                    step="1"
-                  />
-                  <span className="text-muted-foreground">%</span>
-                </div>
-                <p className="text-sm text-muted-foreground">
-                  Percentage of delivery fee paid to driver (legacy field)
+                  Applied only to Express/custom delivery order subtotals —
+                  regular restaurant/shop orders do not use this fee.
                 </p>
               </div>
 
@@ -1110,7 +1029,7 @@ function DeliverySettingsPage() {
             <CardTitle>Current Configuration Summary</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid gap-4 md:grid-cols-3">
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               <div className="p-4 bg-muted rounded-lg">
                 <p className="text-sm text-muted-foreground">
                   Gift Order Pricing
@@ -1140,22 +1059,29 @@ function DeliverySettingsPage() {
                 )}
               </div>
               <div className="p-4 bg-muted rounded-lg">
-                <p className="text-sm text-muted-foreground">Free Delivery</p>
-                <p className="text-lg font-semibold">
-                  Orders &gt; D{getValue("freeDeliveryMinAmount")}
+                <p className="text-sm text-muted-foreground">
+                  Express Service Fee
                 </p>
-                <p className="text-xs text-muted-foreground">
-                  Within {getValue("freeDeliveryMaxKm")} km
-                </p>
-              </div>
-              <div className="p-4 bg-muted rounded-lg">
-                <p className="text-sm text-muted-foreground">Service Fee</p>
                 <p className="text-lg font-semibold">
                   {getValue("serviceFeePercent")}%
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  Driver gets {getValue("driverCommissionPercent")}% of delivery
-                  fee
+                  Express/custom delivery orders only
+                </p>
+              </div>
+              <div className="p-4 bg-muted rounded-lg">
+                <p className="text-sm text-muted-foreground">
+                  Third-Party Driver Split
+                </p>
+                <p className="text-lg font-semibold">
+                  {Math.round(getNumericValue("thirdPartyDriverRate") * 100)}%
+                  to driver
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {Math.round(
+                    (1 - getNumericValue("thirdPartyDriverRate")) * 100,
+                  )}
+                  % to platform
                 </p>
               </div>
             </div>

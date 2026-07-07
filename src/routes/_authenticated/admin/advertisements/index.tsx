@@ -93,6 +93,8 @@ interface Advertisement {
   amount?: number
   paidAt?: string
   advertiserId?: string
+  vendorId?: string | null
+  vendorType?: string | null
   advertiser?: {
     id: string
     name: string
@@ -166,6 +168,8 @@ const emptyFormState = {
   isPaid: false,
   amount: 0,
   advertiserId: '',
+  vendorType: '', // '' | 'SHOP' | 'RESTAURANT'
+  vendorId: '',
 }
 
 export const Route = createFileRoute('/_authenticated/admin/advertisements/')({
@@ -218,6 +222,31 @@ function AdvertisementsPage() {
     },
   })
 
+  // Fetch vendors of the selected type for the "Visit Shop" deep-link picker
+  const { data: vendorOptions = [], isLoading: vendorsLoading } = useQuery({
+    queryKey: ['ad-vendor-options', formData.vendorType],
+    enabled: formData.vendorType === 'SHOP' || formData.vendorType === 'RESTAURANT',
+    queryFn: async () => {
+      const endpoint =
+        formData.vendorType === 'RESTAURANT'
+          ? '/api/admin/restaurants'
+          : '/api/admin/shops'
+      const res = await api.get(endpoint, { params: { limit: 200 } })
+      const list =
+        res.data?.shops ??
+        res.data?.restaurants ??
+        res.data?.data?.shops ??
+        res.data?.data?.restaurants ??
+        res.data?.data ??
+        res.data ??
+        []
+      return (Array.isArray(list) ? list : []).map((v: any) => ({
+        id: v.id as string,
+        name: (v.name as string) || 'Unnamed',
+      }))
+    },
+  })
+
   // Create advertisement
   const createMutation = useMutation({
     mutationFn: async (data: typeof emptyFormState) => {
@@ -228,6 +257,8 @@ function AdvertisementsPage() {
         startDate: data.startDate || new Date().toISOString(),
         endDate: data.endDate || null,
         advertiserId: data.advertiserId || null,
+        vendorType: data.vendorType || null,
+        vendorId: data.vendorType ? data.vendorId || null : null,
       }
       const res = await api.post('/api/admin/advertisements', payload)
       return res.data
@@ -262,6 +293,8 @@ function AdvertisementsPage() {
         startDate: data.startDate || new Date().toISOString(),
         endDate: data.endDate || null,
         advertiserId: data.advertiserId || null,
+        vendorType: data.vendorType || null,
+        vendorId: data.vendorType ? data.vendorId || null : null,
       }
       const res = await api.put(`/api/admin/advertisements/${id}`, payload)
       return res.data
@@ -381,6 +414,8 @@ function AdvertisementsPage() {
       isPaid: ad.isPaid,
       amount: ad.amount || 0,
       advertiserId: ad.advertiserId || '',
+      vendorType: ad.vendorType || '',
+      vendorId: ad.vendorId || '',
     })
     setShowEditDialog(true)
   }
@@ -755,6 +790,68 @@ function AdvertisementsPage() {
                 }
                 placeholder='https://example.com (optional)'
               />
+            </div>
+
+            {/* Link to an in-app vendor (adds a "Visit Shop" button on the ad) */}
+            <div className='grid gap-4 md:grid-cols-2 rounded-lg border p-3'>
+              <div className='space-y-2'>
+                <Label>Link to Vendor (optional)</Label>
+                <Select
+                  value={formData.vendorType || 'NONE'}
+                  onValueChange={(value) =>
+                    setFormData({
+                      ...formData,
+                      vendorType: value === 'NONE' ? '' : value,
+                      vendorId: '',
+                    })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder='No vendor link' />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value='NONE'>No vendor link</SelectItem>
+                    <SelectItem value='SHOP'>Shop</SelectItem>
+                    <SelectItem value='RESTAURANT'>Restaurant</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className='text-xs text-muted-foreground'>
+                  Adds a "Visit Shop" button that opens the vendor in the app.
+                </p>
+              </div>
+              {(formData.vendorType === 'SHOP' ||
+                formData.vendorType === 'RESTAURANT') && (
+                <div className='space-y-2'>
+                  <Label>
+                    Select{' '}
+                    {formData.vendorType === 'RESTAURANT'
+                      ? 'Restaurant'
+                      : 'Shop'}
+                  </Label>
+                  <Select
+                    value={formData.vendorId || ''}
+                    onValueChange={(value) =>
+                      setFormData({ ...formData, vendorId: value })
+                    }
+                    disabled={vendorsLoading}
+                  >
+                    <SelectTrigger>
+                      <SelectValue
+                        placeholder={
+                          vendorsLoading ? 'Loading…' : 'Choose a vendor'
+                        }
+                      />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {vendorOptions.map((v) => (
+                        <SelectItem key={v.id} value={v.id}>
+                          {v.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
             </div>
 
             {/* Type, Orientation and Position */}

@@ -62,21 +62,43 @@ export function Dashboard() {
     },
   })
 
-  // Map API response to dashboard format
+  // Map API response to dashboard format.
+  // Growth percentages are intentionally omitted — the API does not provide
+  // period-over-period deltas, so we don't render misleading "+0.0%" trends.
   const stats = {
     totalRevenue: statsResponse?.overview?.totalRevenue || 0,
-    revenueGrowth: 0, // API doesn't provide growth percentage
     totalOrders: statsResponse?.overview?.totalOrders || 0,
-    ordersGrowth: 0,
     activeVendors: statsResponse?.overview?.totalVendors || 0,
-    vendorsGrowth: 0,
     activeDrivers: statsResponse?.overview?.totalCustomers || 0,
-    driversGrowth: 0,
   }
 
   // Use recentOrders from the API response
   const recentOrders = statsResponse?.recentOrders || []
   const totalSalesCount = statsResponse?.overview?.totalOrders || 0
+
+  // Export the headline metrics as a CSV snapshot
+  const handleDownloadReport = () => {
+    const rows: [string, string | number][] = [
+      ['Metric', 'Value'],
+      ['Total Revenue (GMD)', stats.totalRevenue],
+      ['Total Orders', stats.totalOrders],
+      ['Active Vendors', stats.activeVendors],
+      ['Active Drivers', stats.activeDrivers],
+      ['Express Deliveries', expressStats?.totalDeliveries ?? 0],
+      ['TeranGO Products', terangoStats?.totalProducts ?? 0],
+      ['Low Stock Items', terangoStats?.lowStockCount ?? 0],
+    ]
+    const csv = rows
+      .map(([k, v]) => `"${String(k).replace(/"/g, '""')}","${v}"`)
+      .join('\n')
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `terango-dashboard-${new Date().toISOString().split('T')[0]}.csv`
+    link.click()
+    URL.revokeObjectURL(url)
+  }
 
   return (
     <>
@@ -96,7 +118,7 @@ export function Dashboard() {
         <div className='mb-2 flex items-center justify-between space-y-2'>
           <h1 className='text-2xl font-bold tracking-tight'>Dashboard</h1>
           <div className='flex items-center space-x-2'>
-            <Button>Download Report</Button>
+            <Button onClick={handleDownloadReport}>Download Report</Button>
           </div>
         </div>
         <Tabs
@@ -108,12 +130,6 @@ export function Dashboard() {
             <TabsList>
               <TabsTrigger value='overview'>Overview</TabsTrigger>
               <TabsTrigger value='analytics'>Analytics</TabsTrigger>
-              <TabsTrigger value='reports' disabled>
-                Reports
-              </TabsTrigger>
-              <TabsTrigger value='notifications' disabled>
-                Notifications
-              </TabsTrigger>
             </TabsList>
           </div>
           <TabsContent value='overview' className='space-y-4'>
@@ -123,10 +139,6 @@ export function Dashboard() {
                 title="Total Revenue"
                 value={`D${stats.totalRevenue?.toLocaleString() || '0'}`}
                 icon={Banknote}
-                trend={{
-                  value: stats.revenueGrowth || 0,
-                  label: "from last month"
-                }}
                 loading={isLoading}
                 variant="gradient"
                 color="green"
@@ -135,10 +147,6 @@ export function Dashboard() {
                 title="Total Orders"
                 value={stats.totalOrders?.toLocaleString() || '0'}
                 icon={ShoppingCart}
-                trend={{
-                  value: stats.ordersGrowth || 0,
-                  label: "from last month"
-                }}
                 loading={isLoading}
                 variant="outlined"
                 color="blue"
@@ -147,10 +155,6 @@ export function Dashboard() {
                 title="Active Vendors"
                 value={stats.activeVendors?.toLocaleString() || '0'}
                 icon={Store}
-                trend={{
-                  value: stats.vendorsGrowth || 0,
-                  label: "from last month"
-                }}
                 loading={isLoading}
                 color="purple"
               />
@@ -158,10 +162,6 @@ export function Dashboard() {
                 title="Active Drivers"
                 value={stats.activeDrivers?.toLocaleString() || '0'}
                 icon={Truck}
-                trend={{
-                  value: stats.driversGrowth || 0,
-                  label: "from last month"
-                }}
                 loading={isLoading}
                 variant="outlined"
                 color="blue"
@@ -312,23 +312,5 @@ const topNav = [
     href: 'dashboard/overview',
     isActive: true,
     disabled: false,
-  },
-  {
-    title: 'Customers',
-    href: 'dashboard/customers',
-    isActive: false,
-    disabled: true,
-  },
-  {
-    title: 'Products',
-    href: 'dashboard/products',
-    isActive: false,
-    disabled: true,
-  },
-  {
-    title: 'Settings',
-    href: 'dashboard/settings',
-    isActive: false,
-    disabled: true,
   },
 ]

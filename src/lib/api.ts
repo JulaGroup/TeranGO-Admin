@@ -281,6 +281,10 @@ export const adminApi = {
   ) => api.put(`/api/express-delivery/${id}/status`, { status, ...data }),
   confirmExpressDelivery: (id: string, reason: string) =>
     api.post(`/api/express-delivery/${id}/admin-confirm`, { reason }),
+  cancelExpressDelivery: (id: string, reason?: string) =>
+    api.post(`/api/express-delivery/${id}/admin-cancel`, { reason }),
+  reassignExpressDelivery: (id: string, driverId: string) =>
+    api.post(`/api/express-delivery/${id}/reassign`, { driverId }),
   getExpressMetrics: () => api.get("/api/express-delivery/metrics/dashboard"),
 
   // Express Delivery Tracking

@@ -106,6 +106,7 @@ interface ExpressDelivery {
   actualDeliveryTime?: number;
   packageDescription?: string;
   customerNote?: string;
+  arrivedAt?: string;
 }
 
 const ExpressDeliveryManagement: React.FC = () => {
@@ -199,6 +200,25 @@ const ExpressDeliveryManagement: React.FC = () => {
     },
   });
 
+  // Cancel delivery mutation
+  const cancelDeliveryMutation = useMutation({
+    mutationFn: ({
+      deliveryId,
+      reason,
+    }: {
+      deliveryId: string;
+      reason?: string;
+    }) => adminApi.cancelExpressDelivery(deliveryId, reason),
+    onSuccess: () => {
+      toast.success("Delivery cancelled");
+      queryClient.invalidateQueries({ queryKey: ["express-deliveries"] });
+      queryClient.invalidateQueries({ queryKey: ["urgent-express-deliveries"] });
+    },
+    onError: (error: any) => {
+      toast.error(`Failed to cancel delivery: ${error.message}`);
+    },
+  });
+
   // Filter deliveries
   const filteredDeliveries =
     deliveries?.filter((delivery) => {
@@ -232,6 +252,12 @@ const ExpressDeliveryManagement: React.FC = () => {
     }
   };
 
+  const handleCancelDelivery = (deliveryId: string) => {
+    const reason = window.prompt("Reason for cancelling this delivery:");
+    if (reason === null) return; // user dismissed the prompt
+    cancelDeliveryMutation.mutate({ deliveryId, reason: reason || undefined });
+  };
+
   const getPriorityColor = (priority: string) => {
     switch (priority) {
       case "URGENT":
@@ -253,6 +279,8 @@ const ExpressDeliveryManagement: React.FC = () => {
         return "bg-purple-100 text-purple-800 border-purple-200";
       case "IN_TRANSIT":
         return "bg-indigo-100 text-indigo-800 border-indigo-200";
+      case "ARRIVED":
+        return "bg-teal-100 text-teal-800 border-teal-200";
       case "DELIVERED":
         return "bg-green-100 text-green-800 border-green-200";
       case "CANCELLED":
@@ -515,6 +543,7 @@ const ExpressDeliveryManagement: React.FC = () => {
                 <SelectItem value="DRIVER_ASSIGNED">Driver Assigned</SelectItem>
                 <SelectItem value="PICKED_UP">Picked Up</SelectItem>
                 <SelectItem value="IN_TRANSIT">In Transit</SelectItem>
+                <SelectItem value="ARRIVED">Arrived</SelectItem>
                 <SelectItem value="DELIVERED">Delivered</SelectItem>
                 <SelectItem value="CANCELLED">Cancelled</SelectItem>
               </SelectContent>
@@ -616,6 +645,16 @@ const ExpressDeliveryManagement: React.FC = () => {
                                 ? "Approved"
                                 : "Awaiting Review"}
                             </Badge>
+                            {delivery.paymentStatus === "PAID" &&
+                              !delivery.driverName &&
+                              delivery.status === "PENDING" && (
+                                <Badge
+                                  variant="outline"
+                                  className="bg-red-100 text-red-800 border-red-200"
+                                >
+                                  Auto-assign failed — no drivers
+                                </Badge>
+                              )}
                           </div>
                         </TableCell>
                         <TableCell>
@@ -712,6 +751,19 @@ const ExpressDeliveryManagement: React.FC = () => {
                                       </div>
                                     </div>
 
+                                    {selectedDelivery.arrivedAt && (
+                                      <div>
+                                        <h4 className="font-medium text-gray-900">
+                                          Arrived at Destination
+                                        </h4>
+                                        <p className="text-sm text-gray-600">
+                                          {new Date(
+                                            selectedDelivery.arrivedAt,
+                                          ).toLocaleString()}
+                                        </p>
+                                      </div>
+                                    )}
+
                                     {selectedDelivery.packageDescription && (
                                       <div>
                                         <h4 className="font-medium text-gray-900">
@@ -794,6 +846,19 @@ const ExpressDeliveryManagement: React.FC = () => {
                                       : "Await Payment"}
                                   </Button>
                                 </>
+                              )}
+
+                            {delivery.status !== "DELIVERED" &&
+                              delivery.status !== "CANCELLED" && (
+                                <Button
+                                  onClick={() => handleCancelDelivery(delivery.id)}
+                                  size="sm"
+                                  variant="outline"
+                                  className="text-red-600 border-red-200 hover:bg-red-50"
+                                  disabled={cancelDeliveryMutation.isPending}
+                                >
+                                  Cancel
+                                </Button>
                               )}
                           </div>
                         </TableCell>
