@@ -184,17 +184,18 @@ export function useOrderNotifications({
       }
     };
 
-    // Initialize socket connection.
-    // IMPORTANT: polling-first, then upgrade to websocket. With
-    // websocket-first, a proxy/load-balancer that stalls the WS handshake
-    // (e.g. some CDN/ingress setups) makes every attempt time out with NO
-    // fallback — polling uses plain HTTPS (which we know works, since the
-    // REST API does) and Socket.IO upgrades to websocket when possible.
+    // IMPORTANT: WebSocket-only transport.
+    // DigitalOcean App Platform (and most cloud hosts) run multiple
+    // app instances without sticky sessions. With polling, the first
+    // GET establishes a session on instance A, but the next POST can
+    // hit instance B which returns 400 "Unknown sid" — causing a
+    // reconnect storm. WebSocket is a single persistent TCP connection
+    // to ONE instance, so session mismatch can't happen. DO supports WS.
     const socket = io(SOCKET_URL, {
-      transports: ["polling", "websocket"],
+      transports: ["websocket"],
       reconnection: true,
-      reconnectionDelay: 2000,
-      reconnectionDelayMax: 15000,
+      reconnectionDelay: 3000,
+      reconnectionDelayMax: 30000,
       reconnectionAttempts: Infinity, // dashboards are long-lived — never give up
       timeout: 20000,
       auth: authToken ? { token: authToken } : undefined,
