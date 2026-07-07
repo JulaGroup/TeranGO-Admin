@@ -73,16 +73,51 @@ export function useOrderNotifications({
   useEffect(() => {
     audioRef.current = new Audio();
     // Simple notification beep sound
+    // (unlocked on first user gesture below — see the "unlock" effect)
     audioRef.current.src =
       "data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBTGH0fPTgjMGHm7A7+OZSA0PVqzn77BdGAU+ltrywnAjBSlzy/DejD4IElyv6O2nVBELTKXh8bllHAU2kNXzzn0pBSh+zPDZijoHGGS66+ObTQ8MUKjk8LVjHQU4jtXy0IEzBiF0yO/ilkYLFWO16+ylVxIJSqDi8rdnHgU0j9Tz1IAsBx9xwu/nmkoODlOr5O+zYxwFOZHX8s16LAUpds3w3Ik5BxpnvOzim0oODlCp4/C1Yx0FOI7V8tCBMwYhdMjv4pZGCxVjtevspVcSCUqg4vK3Zx4FNI/U89SBLAcfccLv5ppKDg5Tq+TvsmQcBTmP1/LNeitFKnbM8N2JOQcaZ7zr4ptKDg5QqezvtWMcBTiO1fLQgTMGIXTI7+KWRgsVY7Xr7KVXEglKoOLyt2ceBTSP1PPUgCwHH3HC7+abSg0PUqvk77JkHAU5j9fyzXosRSt1y+/dijsHG2a76+OaSQ0PUKjk7rVjHAU4jtXy0IEzBiF0yO/ilkYLFWO16+ylVxIJSqDi8rdnHgU0j9Tz1IAsAh9xwu/mm0oND1Kr5O+yZBwFOY/X8s16LEUrdcvv3Yo7Bxtmu+vjmkkND1Co5O61YxwFOI7V8tCBMwYhdMjv4pZGCxVjtevspVcSCUqg4vK3Zx4FNI/U89SALAYfccLv5ptKDQ9Sq+TvsmQcBTmP1/LNeiyFKnTL7+aaSw8OUKfk7rRkHAU4jtXy0IEzBiF0yO/ilkYLFWO16+ylVxIJSqDi8rdnHgU0j9Tz1IAsAh9xwu/mm0oND1Kr5O+yZBwFOY/X8s16LEUpdcvv3Yo7Bxtmu+vjmkkND1Co5O61YxwFOI7V8tCBMwYhdMjv4pZGCxVjtevspVcSCUqg4vK3Zx4FNI/U89SALAYfccLv5ptKDQ9Sq+TvsmQcBTmP1/LNeiyFKnTL792KOwcbZrvr45pJDQ9QqOTutWMcBTiO1fLQgTMGIXTI7+KWRgsVY7Xr7KVXEglKoOLyt2ceBTSP1PPUgCwGH3HC7+abSg0PUqvk77JkHAU5j9fyzXosRSl0y+/dijsHG2a76+OaSQ0PUKjk7rRkHAU4jtXy0IEzBiF0yO/ilkYLFWO16+ylVxIJSqDi8rdnHgU0j9Tz1IAsAh9xwu/mm0oND1Kr5O+yZBwFOY/X8s16LIUqdMvv3Yo7Bxtmu+vjmkkND1Co5O61YxwFOI7V8tCBMwYhdMjv4pZGCxVjtevspVcSCUqg4vK3Zx4FNI/U89SALAYfccLv5ptKDQ9Sq+TvsmQcBTmP1/LNeiyFKnTL792KOwcbZrvr45pJDQ9QqOTutWMcBTiO1fLQgTMGIXTI7+KWRgsVY7Xr7KVXEglKoOLyt2ceBTSP1PPUgCwGH3HC7+abSg0PUqvk77JkHAU5j9fyzXosBSh0y+/dijsHG2a76+OaSQ0PUKjk7rVjHAU=";
     audioRef.current.volume = 0.7;
   }, []);
 
+  // Unlock audio on the first user gesture. Browsers block audio.play()
+  // until the user has interacted with the page — without this, an admin who
+  // opens the dashboard and never clicks would get NO sound for new orders.
+  // Playing (muted) inside a real gesture handler permanently unlocks the
+  // element for later programmatic plays.
+  useEffect(() => {
+    const unlock = () => {
+      const audio = audioRef.current;
+      if (!audio) return;
+      audio.muted = true;
+      audio
+        .play()
+        .then(() => {
+          audio.pause();
+          audio.currentTime = 0;
+          audio.muted = false;
+        })
+        .catch(() => {
+          audio.muted = false;
+        });
+      window.removeEventListener("pointerdown", unlock);
+      window.removeEventListener("keydown", unlock);
+    };
+
+    window.addEventListener("pointerdown", unlock);
+    window.addEventListener("keydown", unlock);
+    return () => {
+      window.removeEventListener("pointerdown", unlock);
+      window.removeEventListener("keydown", unlock);
+    };
+  }, []);
+
   const playNotificationSound = useCallback(() => {
     if (audioRef.current) {
       audioRef.current.currentTime = 0;
-      audioRef.current.play().catch(() => {
-        // Silently handle autoplay restrictions
+      audioRef.current.play().catch((e) => {
+        // Autoplay blocked (no user interaction yet) — the browser
+        // notification below still alerts the admin visually/via OS sound
+        console.warn("[notifications] sound blocked by browser:", e?.name);
       });
     }
   }, []);

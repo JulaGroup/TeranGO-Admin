@@ -1,6 +1,6 @@
 import { StrictMode } from "react";
 // Order notifications (admin)
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import ReactDOM from "react-dom/client";
 import { AxiosError } from "axios";
 import {
@@ -21,7 +21,42 @@ import { routeTree } from "./routeTree.gen";
 // Styles
 import "./styles/index.css";
 
+/** True when localStorage holds a logged-in ADMIN's token. */
+function isAdminLoggedIn(): boolean {
+  try {
+    const token = localStorage.getItem("auth_token");
+    const userStr = localStorage.getItem("user");
+    if (!token || !userStr) return false;
+    const role = JSON.parse(userStr)?.role;
+    return role === "ADMIN" || (Array.isArray(role) && role.includes("ADMIN"));
+  } catch {
+    return false;
+  }
+}
+
 function OrderNotifications() {
+  // Only connect the admin socket once an ADMIN is actually logged in — the
+  // server refuses join_admin_room for unauthenticated/non-admin tokens, so
+  // connecting earlier (e.g. on the sign-in page) would silently join
+  // nothing. Re-checks after login/logout so the socket (re)connects with
+  // the fresh token without needing a page refresh.
+  const [adminReady, setAdminReady] = useState(isAdminLoggedIn);
+
+  useEffect(() => {
+    const refresh = () =>
+      setAdminReady((prev) => {
+        const next = isAdminLoggedIn();
+        return prev === next ? prev : next;
+      });
+    // storage events cover other tabs; the interval covers login in THIS tab
+    const interval = setInterval(refresh, 3000);
+    window.addEventListener("storage", refresh);
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener("storage", refresh);
+    };
+  }, []);
+
   // Initialize admin socket notifications and bridge to notifications store
   const addNotification = (payload: any) => {
     // Create a readable title/body depending on payload
@@ -48,13 +83,10 @@ function OrderNotifications() {
 
   useOrderNotifications({
     adminMode: true,
-    enabled: true,
+    enabled: adminReady,
     onNewOrder: addNotification,
   });
 
-  useEffect(() => {
-    // placeholder - could expose connection status for UI later
-  }, []);
   return null;
 }
 
