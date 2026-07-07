@@ -89,6 +89,25 @@ interface SystemSettings {
   // Weight-based pricing configuration
   weightPricingEnabled: boolean;
 
+  // Express delivery pricing
+  expressLightBaseFee: number;
+  expressMediumBaseFee: number;
+  expressHeavyBaseFee: number;
+  expressBikeMultiplier: number;
+  expressKekeCargoMultiplier: number;
+  expressCarMultiplier: number;
+  expressVanMultiplier: number;
+  expressLorryMultiplier: number;
+  expressBikePerKmFee: number;
+  expressKekeCargoPerKmFee: number;
+  expressCarPerKmFee: number;
+  expressVanPerKmFee: number;
+  expressLorryPerKmFee: number;
+  expressPriorityMultiplier: number;
+  urgentPriorityMultiplier: number;
+  expressBookingFee: number;
+  standardBookingFee: number;
+
   // Central hub coordinates for driver dispatch
   hubLatitude: number;
   hubLongitude: number;
@@ -808,6 +827,261 @@ function DeliverySettingsPage() {
                       </p>
                     </div>
                   )}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Express Delivery Pricing */}
+          <Card className="md:col-span-2">
+            <CardHeader>
+              <div className="flex items-center gap-2">
+                <Zap className="h-5 w-5 text-amber-500" />
+                <CardTitle>Express Delivery Pricing</CardTitle>
+              </div>
+              <CardDescription>
+                Pricing for TeranGO Express (custom package deliveries).
+                Formula: (Weight Base Fee + Distance × Per-km Rate) × Vehicle
+                Multiplier × Priority Multiplier + Booking Fee + Service Fee %
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="grid gap-6 md:grid-cols-2">
+                {/* Weight base fees */}
+                <div className="space-y-4">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                    Package Weight Base Fees
+                  </p>
+                  {(
+                    [
+                      {
+                        field: "expressLightBaseFee",
+                        label: "Light (0-25kg)",
+                        icon: "📦",
+                      },
+                      {
+                        field: "expressMediumBaseFee",
+                        label: "Medium (25-100kg)",
+                        icon: "📦📦",
+                      },
+                      {
+                        field: "expressHeavyBaseFee",
+                        label: "Heavy (100kg+)",
+                        icon: "🏋️",
+                      },
+                    ] as const
+                  ).map(({ field, label, icon }) => (
+                    <div
+                      key={field}
+                      className="flex items-center justify-between"
+                    >
+                      <Label>
+                        {icon} {label}
+                      </Label>
+                      <div className="flex items-center gap-2">
+                        <span className="text-muted-foreground">D</span>
+                        <Input
+                          type="number"
+                          value={getNumericValue(field)}
+                          onChange={(e) =>
+                            handleInputChange(field, e.target.value)
+                          }
+                          disabled={!isEditing}
+                          className="w-24"
+                        />
+                      </div>
+                    </div>
+                  ))}
+
+                  <Separator />
+
+                  <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                    Priority Multipliers
+                  </p>
+                  <div className="flex items-center justify-between">
+                    <Label>⚡ Express (e.g. 1.5 = 150%)</Label>
+                    <div className="flex items-center gap-2">
+                      <Input
+                        type="number"
+                        step="0.1"
+                        value={getNumericValue("expressPriorityMultiplier")}
+                        onChange={(e) =>
+                          handleInputChange(
+                            "expressPriorityMultiplier",
+                            e.target.value,
+                          )
+                        }
+                        disabled={!isEditing}
+                        className="w-24"
+                      />
+                      <span className="text-muted-foreground">×</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <Label>🚨 Urgent (e.g. 2 = 200%)</Label>
+                    <div className="flex items-center gap-2">
+                      <Input
+                        type="number"
+                        step="0.1"
+                        value={getNumericValue("urgentPriorityMultiplier")}
+                        onChange={(e) =>
+                          handleInputChange(
+                            "urgentPriorityMultiplier",
+                            e.target.value,
+                          )
+                        }
+                        disabled={!isEditing}
+                        className="w-24"
+                      />
+                      <span className="text-muted-foreground">×</span>
+                    </div>
+                  </div>
+
+                  <Separator />
+
+                  <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                    Booking Fees
+                  </p>
+                  <div className="flex items-center justify-between">
+                    <Label>Standard delivery booking fee</Label>
+                    <div className="flex items-center gap-2">
+                      <span className="text-muted-foreground">D</span>
+                      <Input
+                        type="number"
+                        value={getNumericValue("standardBookingFee")}
+                        onChange={(e) =>
+                          handleInputChange("standardBookingFee", e.target.value)
+                        }
+                        disabled={!isEditing}
+                        className="w-24"
+                      />
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <Label>Express delivery booking fee</Label>
+                    <div className="flex items-center gap-2">
+                      <span className="text-muted-foreground">D</span>
+                      <Input
+                        type="number"
+                        value={getNumericValue("expressBookingFee")}
+                        onChange={(e) =>
+                          handleInputChange("expressBookingFee", e.target.value)
+                        }
+                        disabled={!isEditing}
+                        className="w-24"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Vehicle rates */}
+                <div className="space-y-3">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                    Express Vehicle Rates
+                  </p>
+                  <div className="overflow-x-auto">
+                    <Table className="text-sm">
+                      <TableHeader>
+                        <TableRow className="text-muted-foreground">
+                          <TableHead className="text-left font-medium">
+                            Vehicle
+                          </TableHead>
+                          <TableHead className="text-center font-medium">
+                            Per km (D)
+                          </TableHead>
+                          <TableHead className="text-center font-medium">
+                            Multiplier (×)
+                          </TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {(
+                          [
+                            {
+                              label: "🏍️ Bike",
+                              perKm: "expressBikePerKmFee",
+                              mult: "expressBikeMultiplier",
+                            },
+                            {
+                              label: "🛺 Keke Cargo",
+                              perKm: "expressKekeCargoPerKmFee",
+                              mult: "expressKekeCargoMultiplier",
+                            },
+                            {
+                              label: "🚗 Car",
+                              perKm: "expressCarPerKmFee",
+                              mult: "expressCarMultiplier",
+                            },
+                            {
+                              label: "🚐 Van",
+                              perKm: "expressVanPerKmFee",
+                              mult: "expressVanMultiplier",
+                            },
+                            {
+                              label: "🚚 Lorry",
+                              perKm: "expressLorryPerKmFee",
+                              mult: "expressLorryMultiplier",
+                            },
+                          ] as const
+                        ).map(({ label, perKm, mult }) => (
+                          <TableRow key={perKm}>
+                            <TableCell className="font-medium">
+                              {label}
+                            </TableCell>
+                            <TableCell className="text-center">
+                              <Input
+                                type="number"
+                                value={getNumericValue(perKm)}
+                                onChange={(e) =>
+                                  handleInputChange(perKm, e.target.value)
+                                }
+                                disabled={!isEditing}
+                                className="w-20 mx-auto"
+                              />
+                            </TableCell>
+                            <TableCell className="text-center">
+                              <Input
+                                type="number"
+                                step="0.1"
+                                value={getNumericValue(mult)}
+                                onChange={(e) =>
+                                  handleInputChange(mult, e.target.value)
+                                }
+                                disabled={!isEditing}
+                                className="w-20 mx-auto"
+                              />
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+
+                  <div className="p-3 bg-muted rounded-lg">
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Info className="h-4 w-4 shrink-0" />
+                      <span>
+                        Example: Medium package, Car, 8 km, Express = (D
+                        {getNumericValue("expressMediumBaseFee")} + 8 × D
+                        {getNumericValue("expressCarPerKmFee")}) ×{" "}
+                        {getNumericValue("expressCarMultiplier")} ×{" "}
+                        {getNumericValue("expressPriorityMultiplier")} + D
+                        {getNumericValue("expressBookingFee")} booking + {" "}
+                        {getNumericValue("serviceFeePercent")}% service fee ={" "}
+                        <strong>
+                          D
+                          {Math.ceil(
+                            ((getNumericValue("expressMediumBaseFee") +
+                              8 * getNumericValue("expressCarPerKmFee")) *
+                              getNumericValue("expressCarMultiplier") *
+                              getNumericValue("expressPriorityMultiplier") +
+                              getNumericValue("expressBookingFee")) *
+                              (1 + getNumericValue("serviceFeePercent") / 100),
+                          )}
+                        </strong>
+                      </span>
+                    </div>
+                  </div>
                 </div>
               </div>
             </CardContent>
