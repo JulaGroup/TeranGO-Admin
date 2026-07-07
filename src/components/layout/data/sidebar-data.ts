@@ -100,17 +100,6 @@ export const sidebarData: SidebarData = {
           url: "/admin/teranpro",
           icon: Briefcase,
         },
-
-        {
-          title: "Furniture Marketplace",
-          items: [
-            {
-              title: "Furniture",
-              url: "/admin/furniture",
-              icon: Sofa,
-            },
-          ],
-        },
       ],
     },
     {
