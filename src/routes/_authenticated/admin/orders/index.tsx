@@ -32,6 +32,7 @@ import {
 import { toast } from "sonner";
 import { adminApi } from "@/lib/api";
 import type { Order, Driver } from "@/lib/types";
+import { OrderLocationMap } from "@/components/order-location-map";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -784,6 +785,21 @@ function OrdersPage() {
                       : (selectedOrder.deliveryAddress?.street ??
                         "No address provided")}
                   </div>
+                  {/* Map of where the order is being delivered */}
+                  {selectedOrder.customerLatitude != null &&
+                    selectedOrder.customerLongitude != null && (
+                      <div className="mt-2">
+                        <OrderLocationMap
+                          latitude={selectedOrder.customerLatitude}
+                          longitude={selectedOrder.customerLongitude}
+                          label={`Order #${selectedOrder.id?.slice(-6)?.toUpperCase?.() || ""} delivery location`}
+                        />
+                        <p className="text-muted-foreground mt-1 text-xs">
+                          📍 {Number(selectedOrder.customerLatitude).toFixed(6)},{" "}
+                          {Number(selectedOrder.customerLongitude).toFixed(6)}
+                        </p>
+                      </div>
+                    )}
                 </div>
               )}
 

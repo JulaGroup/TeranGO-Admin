@@ -28,7 +28,7 @@ import {
 import { toast } from "sonner";
 import { api } from "@/lib/api";
 import { useVendorProfile } from "@/hooks/use-vendor-profile";
-import { useOrderNotifications } from "@/hooks/use-order-notifications";
+import { useOrderSocketConnected } from "@/hooks/use-order-notifications";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -239,11 +239,9 @@ export default function VendorOrders() {
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [detailsLoading, setDetailsLoading] = useState(false);
 
-  const { isConnected } = useOrderNotifications({
-    vendorId: vendor?.id,
-    enabled: !!vendor?.id,
-    onNewOrder: () => {},
-  });
+  // Socket is mounted once in VendorLayoutWrapper; we only read its status
+  // here for the Live indicator (avoids a duplicate connection + double toasts)
+  const isConnected = useOrderSocketConnected();
 
   const {
     data: orders = [],

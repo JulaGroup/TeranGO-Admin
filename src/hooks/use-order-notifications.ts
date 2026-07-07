@@ -1,10 +1,38 @@
-import { useEffect, useRef, useCallback, useState } from "react";
+import {
+  useEffect,
+  useRef,
+  useCallback,
+  useState,
+  useSyncExternalStore,
+} from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { io } from "socket.io-client";
 import type { Socket } from "socket.io-client";
 import { toast } from "sonner";
 
 const SOCKET_URL = import.meta.env.VITE_API_URL || "http://localhost:8080";
+
+// ── Shared connection status ─────────────────────────────────────────────
+// Lets any page render a "Live" indicator without mounting its own socket
+// (the socket itself is mounted once, e.g. in the vendor/admin layout).
+let sharedConnected = false;
+const connectionListeners = new Set<() => void>();
+
+function publishConnected(value: boolean) {
+  if (sharedConnected === value) return;
+  sharedConnected = value;
+  connectionListeners.forEach((fn) => fn());
+}
+
+export function useOrderSocketConnected(): boolean {
+  return useSyncExternalStore(
+    (onStoreChange) => {
+      connectionListeners.add(onStoreChange);
+      return () => connectionListeners.delete(onStoreChange);
+    },
+    () => sharedConnected,
+  );
+}
 
 interface OrderNotification {
   id: string;
@@ -78,9 +106,9 @@ export function useOrderNotifications({
 
     const authToken = localStorage.getItem("auth_token") || "";
 
-    // If running as admin, proactively request browser notification permission
+    // Proactively request browser notification permission (admin AND vendor)
     if (
-      adminMode &&
+      (adminMode || vendorId) &&
       typeof window !== "undefined" &&
       "Notification" in window
     ) {
@@ -133,6 +161,7 @@ export function useOrderNotifications({
 
     socket.on("connect", () => {
       setIsConnected(true);
+      publishConnected(true);
 
       if (adminMode) {
         // Join admin room for global notifications
@@ -145,10 +174,12 @@ export function useOrderNotifications({
 
     socket.on("disconnect", () => {
       setIsConnected(false);
+      publishConnected(false);
     });
 
     socket.on("connect_error", () => {
       setIsConnected(false);
+      publishConnected(false);
     });
 
     // Listen for new orders (vendor and admin events)
@@ -159,14 +190,15 @@ export function useOrderNotifications({
       // Show toast notification
       showOrderToast(orderData);
 
-      // Browser notification for admins
-      if (adminMode) {
-        showBrowserNotification(
-          "🔔 New Order Received",
-          `Order from ${orderData.customerName} • ${orderData.itemCount} items • D${orderData.totalAmount.toFixed(2)}`,
-          { orderId: orderData.id, type: "new_order" },
-        );
+      // Browser notification — for admins AND vendors, so a new order is
+      // audible/visible even when the dashboard tab isn't focused
+      showBrowserNotification(
+        "🔔 New Order Received",
+        `Order from ${orderData.customerName} • ${orderData.itemCount} items • D${orderData.totalAmount.toFixed(2)}`,
+        { orderId: orderData.id, type: "new_order" },
+      );
 
+      if (adminMode) {
         // Add notification to store (non-blocking)
         import("@/stores/notification-store").then((m) =>
           m.useNotificationStore.getState().addNotification({
@@ -451,6 +483,115 @@ export function useOrderNotifications({
           m.useNotificationStore.getState().addNotification({
             title: `🚚 Express Delivery ${statusLabel}`,
             body: `Delivery #${data.deliveryId?.slice(-6).toUpperCase() ?? "—"}${data.amount ? ` · D${data.amount}` : ""}`,
+            data: data as unknown as Record<string, unknown>,
+          }),
+        );
+      },
+    );
+
+    // Listen for payment failures (server emits from payment webhooks)
+    socket.on(
+      "paymentFailed",
+      (data: {
+        paymentId?: string;
+        orderId?: string;
+        amount?: number;
+        currency?: string;
+        paymentProvider?: string;
+      }) => {
+        if (!adminMode) return;
+
+        playNotificationSound();
+        const ref = data.orderId?.slice(-6).toUpperCase() ?? "—";
+        toast.error("❌ Payment Failed", {
+          description: `Order #${ref}${data.amount ? ` · D${data.amount}` : ""}${data.paymentProvider ? ` · ${data.paymentProvider}` : ""}`,
+          duration: 10000,
+        });
+        showBrowserNotification("❌ Payment Failed", `Order #${ref}`, {
+          orderId: data.orderId,
+          type: "payment_failed",
+        });
+        import("@/stores/notification-store").then((m) =>
+          m.useNotificationStore.getState().addNotification({
+            title: "❌ Payment Failed",
+            body: `Order #${ref}${data.amount ? ` · D${data.amount}` : ""}`,
+            data: data as unknown as Record<string, unknown>,
+          }),
+        );
+      },
+    );
+
+    // Listen for order cancellations (customer/vendor/admin initiated)
+    socket.on(
+      "order_cancelled",
+      (data: {
+        orderId?: string;
+        orderRef?: string;
+        customerName?: string;
+        vendorName?: string;
+        totalAmount?: number;
+        wasPaid?: boolean;
+        reason?: string | null;
+      }) => {
+        if (!adminMode) return;
+
+        queryClient.invalidateQueries({ queryKey: ["admin-orders"] });
+
+        playNotificationSound();
+        const ref = data.orderRef || data.orderId?.slice(-6).toUpperCase() || "—";
+        const refundNote = data.wasPaid ? " · PAID — refund needed" : "";
+        toast.error("🚫 Order Cancelled", {
+          description: `#${ref}${data.vendorName ? ` · ${data.vendorName}` : ""}${refundNote}`,
+          duration: 10000,
+        });
+        showBrowserNotification(
+          "🚫 Order Cancelled",
+          `#${ref}${data.customerName ? ` — ${data.customerName}` : ""}${refundNote}`,
+          { orderId: data.orderId, type: "order_cancelled" },
+        );
+        import("@/stores/notification-store").then((m) =>
+          m.useNotificationStore.getState().addNotification({
+            title: "🚫 Order Cancelled",
+            body: `#${ref}${data.vendorName ? ` · ${data.vendorName}` : ""}${refundNote}${data.reason ? ` · ${data.reason}` : ""}`,
+            data: data as unknown as Record<string, unknown>,
+          }),
+        );
+      },
+    );
+
+    // Listen for settlement approve/reject decisions (driver or vendor)
+    socket.on(
+      "settlement_decision",
+      (data: {
+        kind?: "driver" | "vendor";
+        settlementId?: string;
+        driverName?: string;
+        vendorName?: string;
+        amount?: number;
+        decision?: "APPROVED" | "REJECTED";
+        notes?: string | null;
+      }) => {
+        if (!adminMode) return;
+
+        const approved = data.decision === "APPROVED";
+        const name = data.driverName || data.vendorName || "—";
+        const label = data.kind === "driver" ? "Driver" : "Vendor";
+        const title = `${approved ? "💰" : "🚫"} ${label} Settlement ${approved ? "Approved" : "Rejected"}`;
+        const body = `${name} · D${data.amount?.toFixed?.(2) ?? data.amount ?? "—"}`;
+
+        playNotificationSound();
+        (approved ? toast.success : toast.warning)(title, {
+          description: body,
+          duration: 8000,
+        });
+        showBrowserNotification(title, body, {
+          settlementId: data.settlementId,
+          type: "settlement_decision",
+        });
+        import("@/stores/notification-store").then((m) =>
+          m.useNotificationStore.getState().addNotification({
+            title,
+            body,
             data: data as unknown as Record<string, unknown>,
           }),
         );

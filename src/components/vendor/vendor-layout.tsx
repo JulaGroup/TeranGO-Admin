@@ -4,12 +4,23 @@ import { Button } from '@/components/ui/button'
 import NotificationBell from '@/components/ui/notification-bell'
 import { ThemeSwitch } from '@/components/theme-switch'
 import { VendorSidebar, VendorMobileSidebar } from './vendor-sidebar'
+import { useOrderNotifications } from '@/hooks/use-order-notifications'
+import { useVendorProfile } from '@/hooks/use-vendor-profile'
 
 interface VendorLayoutProps {
   children: React.ReactNode
 }
 
 export function VendorLayoutWrapper({ children }: VendorLayoutProps) {
+  // Live order notifications (socket + sound + toast + browser notification)
+  // mounted at the layout level so vendors hear new orders on EVERY portal
+  // page, not just while the Orders page is open.
+  const { vendor } = useVendorProfile()
+  useOrderNotifications({
+    vendorId: vendor?.id,
+    enabled: !!vendor?.id,
+  })
+
   return (
     <div className='flex min-h-screen'>
       {/* Desktop Sidebar */}

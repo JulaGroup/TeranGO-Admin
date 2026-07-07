@@ -1,7 +1,7 @@
 // @ts-nocheck
 import { useState, useEffect, useMemo, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import {
   Search,
   MoreHorizontal,
@@ -732,8 +732,16 @@ function VendorsPage() {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
+              <DropdownMenuItem asChild>
+                <Link
+                  to="/admin/vendors/$vendorId"
+                  params={{ vendorId: vendor.id }}
+                >
+                  <Eye className="mr-2 h-4 w-4" /> View Details
+                </Link>
+              </DropdownMenuItem>
               <DropdownMenuItem onClick={() => handleViewDetails(vendor)}>
-                <Eye className="mr-2 h-4 w-4" /> View Details
+                <Eye className="mr-2 h-4 w-4" /> Quick View
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => handleEditVendor(vendor)}>
                 <Edit className="mr-2 h-4 w-4" /> Edit
@@ -1070,10 +1078,18 @@ function VendorsPage() {
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
+                              <DropdownMenuItem asChild>
+                                <Link
+                                  to="/admin/vendors/$vendorId"
+                                  params={{ vendorId: vendor.id }}
+                                >
+                                  <Eye className="mr-2 h-4 w-4" /> View Details
+                                </Link>
+                              </DropdownMenuItem>
                               <DropdownMenuItem
                                 onClick={() => handleViewDetails(vendor)}
                               >
-                                <Eye className="mr-2 h-4 w-4" /> View Details
+                                <Eye className="mr-2 h-4 w-4" /> Quick View
                               </DropdownMenuItem>
                               <DropdownMenuItem
                                 onClick={() => handleEditVendor(vendor)}

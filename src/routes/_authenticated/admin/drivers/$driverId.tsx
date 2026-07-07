@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { adminApi, api } from "@/lib/api";
+import { OrderLocationMap } from "@/components/order-location-map";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -351,6 +352,18 @@ function DriverDetailPage() {
                     </p>
                   </div>
                 </div>
+                {/* Mini-map of the driver's last known position */}
+                {driver?.currentLatitude != null &&
+                  driver?.currentLongitude != null && (
+                    <div className="mt-4">
+                      <OrderLocationMap
+                        latitude={driver.currentLatitude}
+                        longitude={driver.currentLongitude}
+                        label="Driver's last known location"
+                        height={200}
+                      />
+                    </div>
+                  )}
                 <div className="mt-4 grid gap-2 md:grid-cols-2">
                   <div>
                     <p className="text-xs text-muted-foreground">Joined</p>

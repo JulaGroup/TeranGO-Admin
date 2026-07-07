@@ -69,6 +69,7 @@ import { Route as AuthenticatedAdminCategoriesIndexRouteImport } from './routes/
 import { Route as AuthenticatedAdminBroadcastsIndexRouteImport } from './routes/_authenticated/admin/broadcasts/index'
 import { Route as AuthenticatedAdminAnalyticsIndexRouteImport } from './routes/_authenticated/admin/analytics/index'
 import { Route as AuthenticatedAdminAdvertisementsIndexRouteImport } from './routes/_authenticated/admin/advertisements/index'
+import { Route as AuthenticatedAdminVendorsVendorIdRouteImport } from './routes/_authenticated/admin/vendors/$vendorId'
 import { Route as AuthenticatedAdminTerangoStoreSettingsRouteImport } from './routes/_authenticated/admin/terango-store/settings'
 import { Route as AuthenticatedAdminTerangoStoreOrdersRouteImport } from './routes/_authenticated/admin/terango-store/orders'
 import { Route as AuthenticatedAdminDriversDriverIdRouteImport } from './routes/_authenticated/admin/drivers/$driverId'
@@ -413,6 +414,12 @@ const AuthenticatedAdminAdvertisementsIndexRoute =
     path: '/admin/advertisements/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedAdminVendorsVendorIdRoute =
+  AuthenticatedAdminVendorsVendorIdRouteImport.update({
+    id: '/admin/vendors/$vendorId',
+    path: '/admin/vendors/$vendorId',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedAdminTerangoStoreSettingsRoute =
   AuthenticatedAdminTerangoStoreSettingsRouteImport.update({
     id: '/admin/terango-store/settings',
@@ -476,6 +483,7 @@ export interface FileRoutesByFullPath {
   '/admin/drivers/$driverId': typeof AuthenticatedAdminDriversDriverIdRoute
   '/admin/terango-store/orders': typeof AuthenticatedAdminTerangoStoreOrdersRoute
   '/admin/terango-store/settings': typeof AuthenticatedAdminTerangoStoreSettingsRoute
+  '/admin/vendors/$vendorId': typeof AuthenticatedAdminVendorsVendorIdRoute
   '/admin/advertisements/': typeof AuthenticatedAdminAdvertisementsIndexRoute
   '/admin/analytics/': typeof AuthenticatedAdminAnalyticsIndexRoute
   '/admin/broadcasts/': typeof AuthenticatedAdminBroadcastsIndexRoute
@@ -541,6 +549,7 @@ export interface FileRoutesByTo {
   '/admin/drivers/$driverId': typeof AuthenticatedAdminDriversDriverIdRoute
   '/admin/terango-store/orders': typeof AuthenticatedAdminTerangoStoreOrdersRoute
   '/admin/terango-store/settings': typeof AuthenticatedAdminTerangoStoreSettingsRoute
+  '/admin/vendors/$vendorId': typeof AuthenticatedAdminVendorsVendorIdRoute
   '/admin/advertisements': typeof AuthenticatedAdminAdvertisementsIndexRoute
   '/admin/analytics': typeof AuthenticatedAdminAnalyticsIndexRoute
   '/admin/broadcasts': typeof AuthenticatedAdminBroadcastsIndexRoute
@@ -609,6 +618,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/drivers/$driverId': typeof AuthenticatedAdminDriversDriverIdRoute
   '/_authenticated/admin/terango-store/orders': typeof AuthenticatedAdminTerangoStoreOrdersRoute
   '/_authenticated/admin/terango-store/settings': typeof AuthenticatedAdminTerangoStoreSettingsRoute
+  '/_authenticated/admin/vendors/$vendorId': typeof AuthenticatedAdminVendorsVendorIdRoute
   '/_authenticated/admin/advertisements/': typeof AuthenticatedAdminAdvertisementsIndexRoute
   '/_authenticated/admin/analytics/': typeof AuthenticatedAdminAnalyticsIndexRoute
   '/_authenticated/admin/broadcasts/': typeof AuthenticatedAdminBroadcastsIndexRoute
@@ -676,6 +686,7 @@ export interface FileRouteTypes {
     | '/admin/drivers/$driverId'
     | '/admin/terango-store/orders'
     | '/admin/terango-store/settings'
+    | '/admin/vendors/$vendorId'
     | '/admin/advertisements/'
     | '/admin/analytics/'
     | '/admin/broadcasts/'
@@ -741,6 +752,7 @@ export interface FileRouteTypes {
     | '/admin/drivers/$driverId'
     | '/admin/terango-store/orders'
     | '/admin/terango-store/settings'
+    | '/admin/vendors/$vendorId'
     | '/admin/advertisements'
     | '/admin/analytics'
     | '/admin/broadcasts'
@@ -808,6 +820,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/drivers/$driverId'
     | '/_authenticated/admin/terango-store/orders'
     | '/_authenticated/admin/terango-store/settings'
+    | '/_authenticated/admin/vendors/$vendorId'
     | '/_authenticated/admin/advertisements/'
     | '/_authenticated/admin/analytics/'
     | '/_authenticated/admin/broadcasts/'
@@ -1276,6 +1289,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminAdvertisementsIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/admin/vendors/$vendorId': {
+      id: '/_authenticated/admin/vendors/$vendorId'
+      path: '/admin/vendors/$vendorId'
+      fullPath: '/admin/vendors/$vendorId'
+      preLoaderRoute: typeof AuthenticatedAdminVendorsVendorIdRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/admin/terango-store/settings': {
       id: '/_authenticated/admin/terango-store/settings'
       path: '/admin/terango-store/settings'
@@ -1331,6 +1351,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdminDriversDriverIdRoute: typeof AuthenticatedAdminDriversDriverIdRoute
   AuthenticatedAdminTerangoStoreOrdersRoute: typeof AuthenticatedAdminTerangoStoreOrdersRoute
   AuthenticatedAdminTerangoStoreSettingsRoute: typeof AuthenticatedAdminTerangoStoreSettingsRoute
+  AuthenticatedAdminVendorsVendorIdRoute: typeof AuthenticatedAdminVendorsVendorIdRoute
   AuthenticatedAdminAdvertisementsIndexRoute: typeof AuthenticatedAdminAdvertisementsIndexRoute
   AuthenticatedAdminAnalyticsIndexRoute: typeof AuthenticatedAdminAnalyticsIndexRoute
   AuthenticatedAdminBroadcastsIndexRoute: typeof AuthenticatedAdminBroadcastsIndexRoute
@@ -1386,6 +1407,8 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
     AuthenticatedAdminTerangoStoreOrdersRoute,
   AuthenticatedAdminTerangoStoreSettingsRoute:
     AuthenticatedAdminTerangoStoreSettingsRoute,
+  AuthenticatedAdminVendorsVendorIdRoute:
+    AuthenticatedAdminVendorsVendorIdRoute,
   AuthenticatedAdminAdvertisementsIndexRoute:
     AuthenticatedAdminAdvertisementsIndexRoute,
   AuthenticatedAdminAnalyticsIndexRoute: AuthenticatedAdminAnalyticsIndexRoute,
