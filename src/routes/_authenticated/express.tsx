@@ -515,6 +515,23 @@ interface DriverListItem {
   lastLocationUpdate: string | null;
 }
 
+const VEHICLE_FILTER_OPTIONS = [
+  { value: "ALL", label: "All", emoji: "🚚" },
+  { value: "BIKE", label: "Bike", emoji: "🏍️" },
+  { value: "KEKE_CARGO", label: "Keke Cargo", emoji: "🛺" },
+  { value: "CAR", label: "Car", emoji: "🚗" },
+  { value: "VAN", label: "Van", emoji: "🚙" },
+  { value: "LORRY", label: "Lorry", emoji: "🚛" },
+] as const;
+
+const VEHICLE_EMOJI: Record<string, string> = {
+  BIKE: "🏍️",
+  KEKE_CARGO: "🛺",
+  CAR: "🚗",
+  VAN: "🚙",
+  LORRY: "🚛",
+};
+
 function AssignDriverDialog({
   delivery,
   onClose,
@@ -529,6 +546,14 @@ function AssignDriverDialog({
   const [selectedDriverId, setSelectedDriverId] = useState<string | null>(
     null,
   );
+  // Defaults to the vehicle the customer booked; admin can widen to any type
+  const [vehicleFilter, setVehicleFilter] = useState<string>("MATCH");
+
+  // Fresh state each time the dialog opens for a (different) delivery
+  React.useEffect(() => {
+    setSelectedDriverId(null);
+    setVehicleFilter("MATCH");
+  }, [delivery?.id]);
 
   const { data: drivers, isLoading } = useQuery<DriverListItem[]>({
     queryKey: ["assign-drivers"],
@@ -543,12 +568,14 @@ function AssignDriverDialog({
 
   if (!delivery) return null;
 
-  const matching = (drivers ?? []).filter(
-    (d) => d.isAvailable && d.vehicleType === delivery.vehicleType,
+  const activeVehicle =
+    vehicleFilter === "MATCH" ? (delivery.vehicleType ?? "ALL") : vehicleFilter;
+
+  const filtered = (drivers ?? []).filter(
+    (d) => activeVehicle === "ALL" || d.vehicleType === activeVehicle,
   );
-  const others = (drivers ?? []).filter(
-    (d) => !(d.isAvailable && d.vehicleType === delivery.vehicleType),
-  );
+  const matching = filtered.filter((d) => d.isAvailable);
+  const others = filtered.filter((d) => !d.isAvailable);
 
   const getTimeSinceUpdate = (lastUpdate: string | null) => {
     if (!lastUpdate) return "No location yet";
@@ -590,13 +617,17 @@ function AssignDriverDialog({
             {d.isAvailable ? "Available" : "Busy"}
           </Badge>
           {!compatible && (
-            <Badge variant="outline" className="text-[10px]">
+            <Badge
+              variant="outline"
+              className="text-[10px] bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
+            >
               Vehicle mismatch
             </Badge>
           )}
         </div>
         <p className="text-xs text-muted-foreground mt-0.5">
-          {d.vehicleType} · {d.vehicleNumber || "No plate"} · {d.phone}
+          {VEHICLE_EMOJI[d.vehicleType] ?? "🚚"} {d.vehicleType} ·{" "}
+          {d.vehicleNumber || "No plate"} · {d.phone}
         </p>
       </div>
       <div className="text-right shrink-0">
@@ -626,6 +657,30 @@ function AssignDriverDialog({
           <DriverMap showControls={false} height="240px" />
         </div>
 
+        {/* Vehicle type filter — defaults to the booked vehicle */}
+        <div className="flex flex-wrap gap-1.5 shrink-0">
+          {VEHICLE_FILTER_OPTIONS.map((opt) => {
+            const isBooked = opt.value === delivery.vehicleType;
+            const isActive = activeVehicle === opt.value;
+            return (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => setVehicleFilter(opt.value)}
+                className={cn(
+                  "rounded-full border px-3 py-1 text-xs font-medium transition-colors",
+                  isActive
+                    ? "border-primary bg-primary text-primary-foreground"
+                    : "hover:bg-muted",
+                )}
+              >
+                {opt.emoji} {opt.label}
+                {isBooked && " ★"}
+              </button>
+            );
+          })}
+        </div>
+
         <div className="flex-1 overflow-y-auto space-y-4 pr-1">
           {isLoading ? (
             <div className="flex items-center justify-center py-8">
@@ -635,25 +690,32 @@ function AssignDriverDialog({
             <>
               <div>
                 <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide mb-2">
-                  Matching &amp; Available ({matching.length})
+                  Available ({matching.length})
                 </p>
                 {matching.length === 0 ? (
                   <p className="text-sm text-muted-foreground">
-                    No available driver has a matching vehicle right now.
+                    No available{" "}
+                    {activeVehicle === "ALL" ? "" : `${activeVehicle} `}
+                    driver right now — try another vehicle type or check the
+                    Busy list below.
                   </p>
                 ) : (
                   <div className="space-y-2">
-                    {matching.map((d) => renderRow(d, true))}
+                    {matching.map((d) =>
+                      renderRow(d, d.vehicleType === delivery.vehicleType),
+                    )}
                   </div>
                 )}
               </div>
               {others.length > 0 && (
                 <div>
                   <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide mb-2">
-                    Other Drivers
+                    Busy / Offline ({others.length})
                   </p>
                   <div className="space-y-2">
-                    {others.map((d) => renderRow(d, false))}
+                    {others.map((d) =>
+                      renderRow(d, d.vehicleType === delivery.vehicleType),
+                    )}
                   </div>
                 </div>
               )}
