@@ -519,6 +519,54 @@ export function useOrderNotifications({
       },
     );
 
+    // Listen for deliveries/orders that need a driver manually assigned
+    socket.on(
+      "driverAssignmentNeeded",
+      (data: {
+        kind: "order" | "express";
+        orderId?: string;
+        deliveryId?: string;
+        customerName?: string;
+        vendorName?: string;
+        amount?: number;
+      }) => {
+        if (!adminMode) return;
+
+        const isExpress = data.kind === "express";
+        const ref = (data.deliveryId ?? data.orderId ?? "").slice(-6).toUpperCase();
+        const title = isExpress
+          ? "🚚 Express Delivery Needs a Driver"
+          : "📦 Order Needs a Driver";
+        const body = isExpress
+          ? `Delivery #${ref} is paid but has no driver assigned yet.`
+          : `Order #${ref}${data.vendorName ? ` — ${data.vendorName}` : ""} is ready and needs a driver.`;
+
+        playNotificationSound();
+        toast.warning(title, {
+          description: body,
+          duration: 10000,
+          action: {
+            label: "Assign",
+            onClick: () => {
+              window.location.href = isExpress ? "/express" : "/admin/orders";
+            },
+          },
+        });
+        showBrowserNotification(title, body, {
+          orderId: data.orderId,
+          deliveryId: data.deliveryId,
+          type: "driver_assignment_needed",
+        });
+        import("@/stores/notification-store").then((m) =>
+          m.useNotificationStore.getState().addNotification({
+            title,
+            body,
+            data: data as unknown as Record<string, unknown>,
+          }),
+        );
+      },
+    );
+
     // Listen for express delivery payment updates
     socket.on(
       "express-payment-update",
