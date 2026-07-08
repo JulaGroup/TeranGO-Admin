@@ -377,13 +377,28 @@ function DeliveryDetailDialog({
             </div>
           </div>
 
-          {/* Package */}
-          {delivery.packageDescription && (
-            <div className="rounded-lg border p-3">
-              <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide mb-1">
-                Package
-              </p>
-              <p className="text-sm">{delivery.packageDescription}</p>
+          {/* Package & notes */}
+          {(delivery.packageDescription || delivery.customerNote) && (
+            <div className="rounded-lg border p-3 space-y-2">
+              {delivery.packageDescription && (
+                <div>
+                  <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide mb-1">
+                    Package
+                  </p>
+                  <p className="text-sm">{delivery.packageDescription}</p>
+                </div>
+              )}
+              {delivery.packageDescription && delivery.customerNote && (
+                <div className="border-t" />
+              )}
+              {delivery.customerNote && (
+                <div>
+                  <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide mb-1">
+                    Driver Notes
+                  </p>
+                  <p className="text-sm">{delivery.customerNote}</p>
+                </div>
+              )}
             </div>
           )}
 
