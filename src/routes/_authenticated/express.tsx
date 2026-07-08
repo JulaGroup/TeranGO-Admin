@@ -263,6 +263,7 @@ function DeliveryDetailDialog({
   onConfirm,
   onCancel,
   onApprove,
+  onAssignDriver,
   confirmPending,
   cancelPending,
   approvePending,
@@ -273,6 +274,7 @@ function DeliveryDetailDialog({
   onConfirm: (reason: string) => void;
   onCancel: () => void;
   onApprove: () => void;
+  onAssignDriver: () => void;
   confirmPending: boolean;
   cancelPending: boolean;
   approvePending: boolean;
@@ -484,6 +486,19 @@ function DeliveryDetailDialog({
             delivery.status !== "CANCELLED" && (
               <Button
                 size="sm"
+                onClick={onAssignDriver}
+                className="w-full"
+              >
+                <UserCheck className="h-3.5 w-3.5 mr-1.5" />
+                {delivery.driverName
+                  ? `Change Driver (${delivery.driverName})`
+                  : "Assign Driver"}
+              </Button>
+            )}
+          {delivery.status !== "DELIVERED" &&
+            delivery.status !== "CANCELLED" && (
+              <Button
+                size="sm"
                 variant="outline"
                 onClick={onCancel}
                 disabled={cancelPending}
@@ -645,7 +660,8 @@ function AssignDriverDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <UserCheck className="h-4 w-4 text-primary" />
-            Assign Driver — {formatExpressDeliveryId(delivery.id)}
+            {delivery.driverName ? "Change Driver" : "Assign Driver"} —{" "}
+            {formatExpressDeliveryId(delivery.id)}
           </DialogTitle>
           <DialogDescription>
             Needs a {delivery.vehicleType ?? "matching"} vehicle. Pickup:{" "}
@@ -811,14 +827,29 @@ const ExpressDeliveryManagement: React.FC = () => {
   });
 
   const assignDeliveryMutation = useMutation({
-    mutationFn: ({ id, driverId }: { id: string; driverId?: string }) =>
-      adminApi.assignExpressDelivery(id, driverId),
+    mutationFn: ({
+      id,
+      driverId,
+      isReassign,
+    }: {
+      id: string;
+      driverId: string;
+      isReassign: boolean;
+    }) =>
+      isReassign
+        ? adminApi.reassignExpressDelivery(id, driverId)
+        : adminApi.assignExpressDelivery(id, driverId),
     onSuccess: () => {
       toast.success("Driver assigned");
       queryClient.invalidateQueries({ queryKey: ["express-deliveries"] });
+      queryClient.invalidateQueries({ queryKey: ["urgent-express-deliveries"] });
       setAssignDialogDelivery(null);
+      setDetailOpen(false);
     },
-    onError: (e: any) => toast.error(`Failed: ${e.message}`),
+    onError: (e: any) =>
+      toast.error(
+        `Failed: ${e?.response?.data?.message || e.message || "Could not assign driver"}`,
+      ),
   });
 
   const [assignDialogDelivery, setAssignDialogDelivery] =
@@ -1187,13 +1218,39 @@ const ExpressDeliveryManagement: React.FC = () => {
                           </TableCell>
                           <TableCell className="py-3">
                             {delivery.driverName ? (
-                              <span className="text-sm">
-                                {delivery.driverName}
-                              </span>
+                              <div className="flex items-center gap-1">
+                                <span className="text-sm">
+                                  {delivery.driverName}
+                                </span>
+                                {delivery.status !== "DELIVERED" &&
+                                  delivery.status !== "CANCELLED" && (
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="h-6 px-1 text-xs text-blue-600 hover:text-blue-800"
+                                      onClick={() =>
+                                        setAssignDialogDelivery(delivery)
+                                      }
+                                      title="Change driver"
+                                    >
+                                      <RefreshCw className="h-3 w-3" />
+                                    </Button>
+                                  )}
+                              </div>
                             ) : (
-                              <span className="text-xs text-muted-foreground">
-                                Unassigned
-                              </span>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-7 px-2 text-xs text-primary hover:text-primary hover:bg-primary/10"
+                                onClick={() => setAssignDialogDelivery(delivery)}
+                                disabled={
+                                  delivery.status === "DELIVERED" ||
+                                  delivery.status === "CANCELLED"
+                                }
+                              >
+                                <UserCheck className="h-3 w-3 mr-1" />
+                                Assign
+                              </Button>
                             )}
                           </TableCell>
                           <TableCell className="py-3">
@@ -1246,21 +1303,6 @@ const ExpressDeliveryManagement: React.FC = () => {
                                     }
                                   >
                                     Approve
-                                  </Button>
-                                )}
-                              {delivery.status === "PENDING" &&
-                                !delivery.driverName &&
-                                delivery.paymentStatus === "PAID" && (
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    className="h-7 px-2 text-xs text-primary hover:text-primary hover:bg-primary/10"
-                                    onClick={() =>
-                                      setAssignDialogDelivery(delivery)
-                                    }
-                                  >
-                                    <UserCheck className="h-3 w-3 mr-1" />
-                                    Assign
                                   </Button>
                                 )}
                               {delivery.status !== "DELIVERED" &&
@@ -1396,7 +1438,7 @@ const ExpressDeliveryManagement: React.FC = () => {
                                 Approve
                               </Button>
                             )}
-                            {delivery.paymentStatus === "PAID" && (
+                            {!delivery.driverName && (
                               <Button
                                 size="sm"
                                 className="h-8 text-xs bg-red-600 hover:bg-red-700"
@@ -1439,6 +1481,9 @@ const ExpressDeliveryManagement: React.FC = () => {
             onSuccess: () => setDetailOpen(false),
           })
         }
+        onAssignDriver={() =>
+          selectedDelivery && setAssignDialogDelivery(selectedDelivery)
+        }
         confirmPending={confirmDeliveryMutation.isPending}
         cancelPending={cancelDeliveryMutation.isPending}
         approvePending={approveForPaymentMutation.isPending}
@@ -1453,6 +1498,7 @@ const ExpressDeliveryManagement: React.FC = () => {
           assignDeliveryMutation.mutate({
             id: assignDialogDelivery.id,
             driverId,
+            isReassign: !!assignDialogDelivery.driverName,
           })
         }
         assignPending={assignDeliveryMutation.isPending}
