@@ -9,6 +9,7 @@ import {
   Package,
   RefreshCw,
   Activity,
+  Zap,
 } from "lucide-react";
 import {
   AreaChart,
@@ -113,14 +114,18 @@ function RevenueBreakdownCard({
   serviceFee,
   driverPlatformShare,
   vendorPlatformShare,
+  expressTotalRevenue,
   loading,
 }: {
   serviceFee: number;
   driverPlatformShare: number;
   vendorPlatformShare: number;
+  expressTotalRevenue: number;
   loading?: boolean;
 }) {
-  const total = serviceFee + driverPlatformShare + vendorPlatformShare || 1;
+  const total =
+    serviceFee + driverPlatformShare + vendorPlatformShare + expressTotalRevenue ||
+    1;
   const streams = [
     {
       label: "Service Fees",
@@ -142,6 +147,13 @@ function RevenueBreakdownCard({
       pct: (vendorPlatformShare / total) * 100,
       color: "bg-emerald-500",
       desc: "Platform cut on vendor sales",
+    },
+    {
+      label: "Express & Custom Delivery",
+      value: expressTotalRevenue,
+      pct: (expressTotalRevenue / total) * 100,
+      color: "bg-amber-500",
+      desc: "Booking + service fees, plus 25% of transport fee",
     },
   ];
 
@@ -209,6 +221,13 @@ function FinancePage() {
           vendorPaid: number;
           deliveredOrderCount: number;
           totalOrderCount: number;
+          expressGMV: number;
+          expressBookingServiceFee: number;
+          expressDriverPlatformShare: number;
+          expressDriverPaid: number;
+          expressTotalRevenue: number;
+          expressDeliveredCount: number;
+          expressTotalCount: number;
         };
         chart: Array<{
           month: string;
@@ -216,6 +235,7 @@ function FinancePage() {
           deliveryFee: number;
           orders: number;
           driverPlatformShare: number;
+          expressRevenue: number;
         }>;
       };
     },
@@ -312,14 +332,14 @@ function FinancePage() {
 
             {/* Mini breakdown row */}
             {!isLoading && ov && (
-              <div className="mt-6 grid grid-cols-3 divide-x divide-violet-500 border-t border-violet-500 pt-4">
-                <div className="px-3 first:pl-0">
+              <div className="mt-6 grid grid-cols-2 sm:grid-cols-4 divide-x divide-y sm:divide-y-0 divide-violet-500 border-t border-violet-500 pt-4">
+                <div className="px-3 first:pl-0 pb-3 sm:pb-0">
                   <p className="text-xs text-violet-300">Service Fees</p>
                   <p className="text-lg font-semibold">
                     {formatGMD(ov.serviceFee)}
                   </p>
                 </div>
-                <div className="px-3">
+                <div className="px-3 pb-3 sm:pb-0">
                   <p className="text-xs text-violet-300">Delivery Commission</p>
                   <p className="text-lg font-semibold">
                     {formatGMD(ov.driverPlatformShare)}
@@ -329,6 +349,12 @@ function FinancePage() {
                   <p className="text-xs text-violet-300">Vendor Commission</p>
                   <p className="text-lg font-semibold">
                     {formatGMD(ov.vendorPlatformShare)}
+                  </p>
+                </div>
+                <div className="px-3">
+                  <p className="text-xs text-violet-300">Express &amp; Custom</p>
+                  <p className="text-lg font-semibold">
+                    {formatGMD(ov.expressTotalRevenue)}
                   </p>
                 </div>
               </div>
@@ -363,6 +389,14 @@ function FinancePage() {
             loading={isLoading}
           />
           <StatCard
+            title="Express & Custom Delivery"
+            value={formatGMD(ov?.expressGMV ?? 0)}
+            subtitle={`${ov?.expressDeliveredCount ?? 0} delivered • Drivers kept ${formatGMD(ov?.expressDriverPaid ?? 0)}`}
+            icon={Zap}
+            color="bg-amber-600"
+            loading={isLoading}
+          />
+          <StatCard
             title="Total Orders"
             value={String(ov?.totalOrderCount ?? 0)}
             subtitle={`${ov?.deliveredOrderCount ?? 0} successfully delivered`}
@@ -381,7 +415,8 @@ function FinancePage() {
                 Revenue Trend (Last 6 Months)
               </CardTitle>
               <CardDescription>
-                Service fees and delivery commission over time
+                Service fees, delivery commission, and Express revenue over
+                time
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -437,6 +472,24 @@ function FinancePage() {
                           stopOpacity={0}
                         />
                       </linearGradient>
+                      <linearGradient
+                        id="colorExpress"
+                        x1="0"
+                        y1="0"
+                        x2="0"
+                        y2="1"
+                      >
+                        <stop
+                          offset="5%"
+                          stopColor="#d97706"
+                          stopOpacity={0.3}
+                        />
+                        <stop
+                          offset="95%"
+                          stopColor="#d97706"
+                          stopOpacity={0}
+                        />
+                      </linearGradient>
                     </defs>
                     <CartesianGrid
                       strokeDasharray="3 3"
@@ -461,14 +514,18 @@ function FinancePage() {
                         formatGMD(Number(value)),
                         name === "serviceFee"
                           ? "Service Fee"
-                          : "Delivery Commission",
+                          : name === "driverPlatformShare"
+                            ? "Delivery Commission"
+                            : "Express Revenue",
                       ]}
                     />
                     <Legend
                       formatter={(v: string) =>
                         v === "serviceFee"
                           ? "Service Fee"
-                          : "Delivery Commission"
+                          : v === "driverPlatformShare"
+                            ? "Delivery Commission"
+                            : "Express Revenue"
                       }
                     />
                     <Area
@@ -485,6 +542,13 @@ function FinancePage() {
                       strokeWidth={2}
                       fill="url(#colorDriver)"
                     />
+                    <Area
+                      type="monotone"
+                      dataKey="expressRevenue"
+                      stroke="#d97706"
+                      strokeWidth={2}
+                      fill="url(#colorExpress)"
+                    />
                   </AreaChart>
                 </ResponsiveContainer>
               )}
@@ -496,6 +560,7 @@ function FinancePage() {
             serviceFee={ov?.serviceFee ?? 0}
             driverPlatformShare={ov?.driverPlatformShare ?? 0}
             vendorPlatformShare={ov?.vendorPlatformShare ?? 0}
+            expressTotalRevenue={ov?.expressTotalRevenue ?? 0}
             loading={isLoading}
           />
         </div>
@@ -548,7 +613,7 @@ function FinancePage() {
 
         {/* Platform split summary */}
         {!isLoading && ov && (
-          <div className="mt-6 grid gap-4 sm:grid-cols-2">
+          <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             <Card>
               <CardHeader className="pb-3">
                 <div className="flex items-center gap-2">
@@ -623,6 +688,49 @@ function FinancePage() {
                         (100% vendor rate active)
                       </span>
                     )}
+                  </span>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="pb-3">
+                <div className="flex items-center gap-2">
+                  <div className="rounded-lg bg-amber-100 p-2 dark:bg-amber-900">
+                    <Zap className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                  </div>
+                  <CardTitle className="text-sm font-semibold">
+                    Express Split Summary
+                  </CardTitle>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-2 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">
+                    Total Express/custom delivery sales
+                  </span>
+                  <span className="font-medium">{formatGMD(ov.expressGMV)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">
+                    Paid to drivers (75% of transport)
+                  </span>
+                  <span className="font-medium text-amber-600">
+                    {formatGMD(ov.expressDriverPaid)}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">
+                    Booking + service fees
+                  </span>
+                  <span className="font-medium">
+                    {formatGMD(ov.expressBookingServiceFee)}
+                  </span>
+                </div>
+                <div className="flex justify-between border-t pt-2">
+                  <span className="font-medium">TeranGO keeps</span>
+                  <span className="font-bold text-violet-600">
+                    {formatGMD(ov.expressTotalRevenue)}
                   </span>
                 </div>
               </CardContent>
