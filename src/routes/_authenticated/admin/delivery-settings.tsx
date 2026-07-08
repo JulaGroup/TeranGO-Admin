@@ -52,6 +52,7 @@ import {
   Users,
   Weight,
   Zap,
+  Moon,
 } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/admin/delivery-settings")(
@@ -116,6 +117,11 @@ interface SystemSettings {
 
   // Third-party driver split rate
   thirdPartyDriverRate: number;
+
+  // No-Drivers Hours (e.g. overnight)
+  noDriversModeEnabled: boolean;
+  noDriversStartHour: number;
+  noDriversEndHour: number;
 }
 
 function DeliverySettingsPage() {
@@ -182,7 +188,11 @@ function DeliverySettingsPage() {
       return formData[field] as number | boolean;
     }
     // Handle boolean fields
-    if (field === "weightPricingEnabled" || field === "useHubBasedDistance") {
+    if (
+      field === "weightPricingEnabled" ||
+      field === "useHubBasedDistance" ||
+      field === "noDriversModeEnabled"
+    ) {
       return Boolean(settings?.[field]) || false;
     }
     return (settings?.[field] as number) || 0;
@@ -1293,6 +1303,90 @@ function DeliverySettingsPage() {
                   </div>
                 )}
               </div>
+            </CardContent>
+          </Card>
+
+          {/* No-Drivers Hours */}
+          <Card>
+            <CardHeader>
+              <div className="flex items-center gap-2 justify-between">
+                <div className="flex items-center gap-2">
+                  <Moon className="h-5 w-5 text-indigo-500" />
+                  <CardTitle>Driver Availability Hours</CardTitle>
+                </div>
+                <Switch
+                  checked={Boolean(getValue("noDriversModeEnabled"))}
+                  onCheckedChange={(checked) =>
+                    handleInputChange("noDriversModeEnabled", checked)
+                  }
+                  disabled={!isEditing}
+                />
+              </div>
+              <CardDescription>
+                When enabled, delivery and express booking will show "No
+                drivers available" during the hours below (e.g. overnight).
+                Useful while running with a limited driver pool.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <Label>Unavailable from</Label>
+                  <select
+                    className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm disabled:cursor-not-allowed disabled:opacity-50"
+                    value={getNumericValue("noDriversStartHour")}
+                    onChange={(e) =>
+                      handleInputChange("noDriversStartHour", e.target.value)
+                    }
+                    disabled={!isEditing}
+                  >
+                    {Array.from({ length: 24 }, (_, hour) => (
+                      <option key={hour} value={hour}>
+                        {hour === 0
+                          ? "12:00 AM"
+                          : hour < 12
+                            ? `${hour}:00 AM`
+                            : hour === 12
+                              ? "12:00 PM"
+                              : `${hour - 12}:00 PM`}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Until</Label>
+                  <select
+                    className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm disabled:cursor-not-allowed disabled:opacity-50"
+                    value={getNumericValue("noDriversEndHour")}
+                    onChange={(e) =>
+                      handleInputChange("noDriversEndHour", e.target.value)
+                    }
+                    disabled={!isEditing}
+                  >
+                    {Array.from({ length: 24 }, (_, hour) => (
+                      <option key={hour} value={hour}>
+                        {hour === 0
+                          ? "12:00 AM"
+                          : hour < 12
+                            ? `${hour}:00 AM`
+                            : hour === 12
+                              ? "12:00 PM"
+                              : `${hour - 12}:00 PM`}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+              {getValue("noDriversModeEnabled") ? (
+                <div className="rounded-md border border-indigo-200 bg-indigo-50 p-3 text-sm text-indigo-800">
+                  Drivers will show as unavailable every day between the
+                  selected hours.
+                </div>
+              ) : (
+                <p className="text-xs text-muted-foreground">
+                  Currently off — drivers are shown as available at all hours.
+                </p>
+              )}
             </CardContent>
           </Card>
         </div>

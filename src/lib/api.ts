@@ -272,8 +272,8 @@ export const adminApi = {
   getUrgentExpressDeliveries: () => api.get("/api/express-delivery/urgent"),
   approveExpressDeliveryForPayment: (id: string, note?: string) =>
     api.post(`/api/express-delivery/${id}/admin-approve-payment`, { note }),
-  assignExpressDelivery: (id: string) =>
-    api.post(`/api/express-delivery/${id}/assign`),
+  assignExpressDelivery: (id: string, driverId?: string) =>
+    api.post(`/api/express-delivery/${id}/assign`, driverId ? { driverId } : {}),
   updateExpressDeliveryStatus: (
     id: string,
     status: string,

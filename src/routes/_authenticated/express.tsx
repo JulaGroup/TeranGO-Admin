@@ -51,6 +51,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { adminApi } from "@/lib/api";
 import { formatExpressDeliveryId } from "@/lib/formatExpressDeliveryId";
+import { DriverMap } from "@/components/driver-map";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -79,6 +80,9 @@ interface ExpressDelivery {
   guaranteedDeliveryTime?: string;
   estimatedFee: number;
   driverTransportFee?: number;
+  vehicleType?: "BIKE" | "KEKE_CARGO" | "CAR" | "VAN" | "LORRY";
+  pickupLatitude?: number | null;
+  pickupLongitude?: number | null;
   expressMultiplier: number;
   createdAt: string;
   verificationStatus: string;
@@ -258,16 +262,20 @@ function DeliveryDetailDialog({
   onClose,
   onConfirm,
   onCancel,
+  onApprove,
   confirmPending,
   cancelPending,
+  approvePending,
 }: {
   delivery: ExpressDelivery | null;
   open: boolean;
   onClose: () => void;
   onConfirm: (reason: string) => void;
   onCancel: () => void;
+  onApprove: () => void;
   confirmPending: boolean;
   cancelPending: boolean;
+  approvePending: boolean;
 }) {
   if (!delivery) return null;
 
@@ -425,8 +433,27 @@ function DeliveryDetailDialog({
             </div>
           )}
 
-          {/* Confirm actions */}
-          {delivery.verificationStatus === "PENDING" && (
+          {/* Approve for payment */}
+          {delivery.status === "PENDING" &&
+            !delivery.adminApprovedForPayment && (
+              <Button
+                size="sm"
+                onClick={onApprove}
+                disabled={approvePending}
+                className="w-full bg-amber-600 hover:bg-amber-700 text-white"
+              >
+                <CheckCircle2 className="h-3.5 w-3.5 mr-1.5" />
+                Approve for Payment
+              </Button>
+            )}
+
+          {/* Confirm actions — only relevant once the driver has arrived and
+              hasn't completed the handoff yet. verificationStatus defaults to
+              PENDING in the DB and is never advanced by the driver app's
+              simple "Complete Delivery" flow, so gating on status too avoids
+              showing these on deliveries that are already DELIVERED. */}
+          {delivery.verificationStatus === "PENDING" &&
+            delivery.status === "ARRIVED" && (
             <div className="flex gap-2 pt-1 border-t">
               <Button
                 size="sm"
@@ -466,6 +493,185 @@ function DeliveryDetailDialog({
                 Cancel Delivery
               </Button>
             )}
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// ─── Assign Driver Dialog ──────────────────────────────────────────────────────
+// Lets the admin see available drivers (and their live location on the map)
+// and manually pick who gets a delivery, instead of only auto-assigning.
+
+interface DriverListItem {
+  id: string;
+  name: string;
+  phone: string;
+  vehicleType: string;
+  vehicleNumber: string | null;
+  isAvailable: boolean;
+  currentLatitude: number | null;
+  currentLongitude: number | null;
+  lastLocationUpdate: string | null;
+}
+
+function AssignDriverDialog({
+  delivery,
+  onClose,
+  onAssign,
+  assignPending,
+}: {
+  delivery: ExpressDelivery | null;
+  onClose: () => void;
+  onAssign: (driverId: string) => void;
+  assignPending: boolean;
+}) {
+  const [selectedDriverId, setSelectedDriverId] = useState<string | null>(
+    null,
+  );
+
+  const { data: drivers, isLoading } = useQuery<DriverListItem[]>({
+    queryKey: ["assign-drivers"],
+    queryFn: () =>
+      adminApi.getDrivers().then((res) => {
+        const d = res.data;
+        return Array.isArray(d) ? d : [];
+      }),
+    enabled: !!delivery,
+    refetchInterval: 15_000,
+  });
+
+  if (!delivery) return null;
+
+  const matching = (drivers ?? []).filter(
+    (d) => d.isAvailable && d.vehicleType === delivery.vehicleType,
+  );
+  const others = (drivers ?? []).filter(
+    (d) => !(d.isAvailable && d.vehicleType === delivery.vehicleType),
+  );
+
+  const getTimeSinceUpdate = (lastUpdate: string | null) => {
+    if (!lastUpdate) return "No location yet";
+    const seconds = Math.floor(
+      (Date.now() - new Date(lastUpdate).getTime()) / 1000,
+    );
+    if (seconds < 60) return `${seconds}s ago`;
+    const minutes = Math.floor(seconds / 60);
+    if (minutes < 60) return `${minutes}m ago`;
+    const hours = Math.floor(minutes / 60);
+    return `${hours}h ago`;
+  };
+
+  const renderRow = (d: DriverListItem, compatible: boolean) => (
+    <button
+      key={d.id}
+      type="button"
+      onClick={() => setSelectedDriverId(d.id)}
+      className={cn(
+        "w-full text-left rounded-lg border p-3 flex items-center justify-between gap-3 transition-colors",
+        selectedDriverId === d.id
+          ? "border-primary bg-primary/5"
+          : "hover:bg-muted/50",
+        !compatible && "opacity-60",
+      )}
+    >
+      <div>
+        <div className="flex items-center gap-2">
+          <span className="font-medium text-sm">{d.name}</span>
+          <Badge
+            variant="outline"
+            className={cn(
+              "text-[10px]",
+              d.isAvailable
+                ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"
+                : "bg-muted text-muted-foreground",
+            )}
+          >
+            {d.isAvailable ? "Available" : "Busy"}
+          </Badge>
+          {!compatible && (
+            <Badge variant="outline" className="text-[10px]">
+              Vehicle mismatch
+            </Badge>
+          )}
+        </div>
+        <p className="text-xs text-muted-foreground mt-0.5">
+          {d.vehicleType} · {d.vehicleNumber || "No plate"} · {d.phone}
+        </p>
+      </div>
+      <div className="text-right shrink-0">
+        <p className="text-[11px] text-muted-foreground flex items-center gap-1 justify-end">
+          <Clock className="h-3 w-3" />
+          {getTimeSinceUpdate(d.lastLocationUpdate)}
+        </p>
+      </div>
+    </button>
+  );
+
+  return (
+    <Dialog open={!!delivery} onOpenChange={(v) => !v && onClose()}>
+      <DialogContent className="max-w-2xl max-h-[85vh] overflow-hidden flex flex-col">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <UserCheck className="h-4 w-4 text-primary" />
+            Assign Driver — {formatExpressDeliveryId(delivery.id)}
+          </DialogTitle>
+          <DialogDescription>
+            Needs a {delivery.vehicleType ?? "matching"} vehicle. Pickup:{" "}
+            {delivery.pickupAddress}
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="rounded-lg overflow-hidden border shrink-0">
+          <DriverMap showControls={false} height="240px" />
+        </div>
+
+        <div className="flex-1 overflow-y-auto space-y-4 pr-1">
+          {isLoading ? (
+            <div className="flex items-center justify-center py-8">
+              <RefreshCw className="h-5 w-5 animate-spin text-muted-foreground" />
+            </div>
+          ) : (
+            <>
+              <div>
+                <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide mb-2">
+                  Matching &amp; Available ({matching.length})
+                </p>
+                {matching.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">
+                    No available driver has a matching vehicle right now.
+                  </p>
+                ) : (
+                  <div className="space-y-2">
+                    {matching.map((d) => renderRow(d, true))}
+                  </div>
+                )}
+              </div>
+              {others.length > 0 && (
+                <div>
+                  <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide mb-2">
+                    Other Drivers
+                  </p>
+                  <div className="space-y-2">
+                    {others.map((d) => renderRow(d, false))}
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+
+        <div className="flex gap-2 pt-2 border-t shrink-0">
+          <Button variant="outline" onClick={onClose} className="flex-1">
+            Cancel
+          </Button>
+          <Button
+            onClick={() => selectedDriverId && onAssign(selectedDriverId)}
+            disabled={!selectedDriverId || assignPending}
+            className="flex-1"
+          >
+            {assignPending ? "Assigning..." : "Assign Driver"}
+          </Button>
         </div>
       </DialogContent>
     </Dialog>
@@ -543,13 +749,18 @@ const ExpressDeliveryManagement: React.FC = () => {
   });
 
   const assignDeliveryMutation = useMutation({
-    mutationFn: (id: string) => adminApi.assignExpressDelivery(id),
+    mutationFn: ({ id, driverId }: { id: string; driverId?: string }) =>
+      adminApi.assignExpressDelivery(id, driverId),
     onSuccess: () => {
       toast.success("Driver assigned");
       queryClient.invalidateQueries({ queryKey: ["express-deliveries"] });
+      setAssignDialogDelivery(null);
     },
     onError: (e: any) => toast.error(`Failed: ${e.message}`),
   });
+
+  const [assignDialogDelivery, setAssignDialogDelivery] =
+    useState<ExpressDelivery | null>(null);
 
   const confirmDeliveryMutation = useMutation({
     mutationFn: ({ id, reason }: { id: string; reason: string }) =>
@@ -983,9 +1194,8 @@ const ExpressDeliveryManagement: React.FC = () => {
                                     size="sm"
                                     className="h-7 px-2 text-xs text-primary hover:text-primary hover:bg-primary/10"
                                     onClick={() =>
-                                      assignDeliveryMutation.mutate(delivery.id)
+                                      setAssignDialogDelivery(delivery)
                                     }
-                                    disabled={assignDeliveryMutation.isPending}
                                   >
                                     <UserCheck className="h-3 w-3 mr-1" />
                                     Assign
@@ -1128,10 +1338,7 @@ const ExpressDeliveryManagement: React.FC = () => {
                               <Button
                                 size="sm"
                                 className="h-8 text-xs bg-red-600 hover:bg-red-700"
-                                onClick={() =>
-                                  assignDeliveryMutation.mutate(delivery.id)
-                                }
-                                disabled={assignDeliveryMutation.isPending}
+                                onClick={() => setAssignDialogDelivery(delivery)}
                               >
                                 <UserCheck className="h-3.5 w-3.5 mr-1.5" />
                                 Assign Now
@@ -1164,8 +1371,29 @@ const ExpressDeliveryManagement: React.FC = () => {
         onCancel={() =>
           selectedDelivery && handleCancelFromRow(selectedDelivery.id)
         }
+        onApprove={() =>
+          selectedDelivery &&
+          approveForPaymentMutation.mutate(selectedDelivery.id, {
+            onSuccess: () => setDetailOpen(false),
+          })
+        }
         confirmPending={confirmDeliveryMutation.isPending}
         cancelPending={cancelDeliveryMutation.isPending}
+        approvePending={approveForPaymentMutation.isPending}
+      />
+
+      {/* Assign driver dialog */}
+      <AssignDriverDialog
+        delivery={assignDialogDelivery}
+        onClose={() => setAssignDialogDelivery(null)}
+        onAssign={(driverId) =>
+          assignDialogDelivery &&
+          assignDeliveryMutation.mutate({
+            id: assignDialogDelivery.id,
+            driverId,
+          })
+        }
+        assignPending={assignDeliveryMutation.isPending}
       />
     </div>
   );

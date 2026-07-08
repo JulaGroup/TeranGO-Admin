@@ -7,6 +7,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { GoogleMap, Marker, InfoWindow } from "@react-google-maps/api";
 import { useGoogleMaps, GAMBIA_CENTER } from "@/lib/googleMaps";
+import { api } from "@/lib/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -63,26 +64,8 @@ export function DriverMap({
 
   const fetchDriverLocations = async () => {
     try {
-      const token = localStorage.getItem("auth_token");
-      const response = await fetch("/api/admin/drivers", {
-        credentials: "include",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      if (!response.ok) {
-        if (response.status === 401) {
-          console.warn(
-            "Unauthorized access to driver locations. Please log in.",
-          );
-          setIsLoading(false);
-          return;
-        }
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
-
-      const data = await response.json();
+      const response = await api.get("/api/admin/drivers");
+      const data = response.data;
 
       if (!Array.isArray(data)) {
         console.warn("Driver data is not an array:", data);

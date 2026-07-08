@@ -1226,6 +1226,54 @@ function OrdersPage() {
                   </div>
                 );
               })()}
+
+              {/* Admin override: mark a delivery order as delivered directly,
+                  bypassing the normal driver QR-scan flow (e.g. driver
+                  couldn't scan, phone confirmed with customer, etc). */}
+              {(() => {
+                const isDelivery = !!selectedOrder.deliveryAddress;
+                const canOverride =
+                  isDelivery &&
+                  !selectedOrder.isGiftOrder &&
+                  !["DELIVERED", "CANCELLED"].includes(selectedOrder.status) &&
+                  ["READY", "DISPATCHED", "PREPARING", "PROCESSING"].includes(
+                    selectedOrder.status,
+                  );
+                if (!canOverride) return null;
+                return (
+                  <div className="rounded-xl border border-amber-200 bg-amber-50 overflow-hidden mt-3">
+                    <div className="px-4 py-2.5 border-b border-amber-200">
+                      <p className="text-xs font-semibold text-amber-800 uppercase tracking-wide">
+                        Manual Override
+                      </p>
+                    </div>
+                    <div className="px-4 py-3">
+                      <p className="text-xs text-amber-800 mb-2">
+                        Confirmed the customer received their order some other
+                        way (phone call, driver report, etc)? Mark it
+                        delivered directly — this notifies both the customer
+                        and driver.
+                      </p>
+                      <button
+                        onClick={() => {
+                          if (
+                            window.confirm(
+                              "Mark this order as delivered? This sends a push notification to the customer and driver.",
+                            )
+                          ) {
+                            handleStatusUpdate("DELIVERED");
+                          }
+                        }}
+                        disabled={updateStatusMutation.isPending}
+                        className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold border border-amber-400 bg-amber-500 text-white hover:bg-amber-600 transition-all disabled:opacity-50"
+                      >
+                        <CheckCircle className="w-3.5 h-3.5" />
+                        Mark as Delivered
+                      </button>
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
           )}
         </DialogContent>
