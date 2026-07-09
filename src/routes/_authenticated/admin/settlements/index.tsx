@@ -157,192 +157,203 @@ function SettlementsPage() {
         <div className="space-y-6">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-bold">Settlement Requests</h1>
-              <p className="text-muted-foreground">
-                Review and approve driver payout requests. Settle manually via
-                Wave.
+              <h1 className="text-2xl font-bold tracking-tight">Settlement Requests</h1>
+              <p className="text-muted-foreground text-sm mt-1">
+                Review and approve driver payout requests. Settle manually via Wave.
               </p>
             </div>
-            <Select
-              value={statusFilter}
-              onValueChange={(v) => {
-                setStatusFilter(v);
-                setPage(1);
-              }}
-            >
-              <SelectTrigger className="w-[180px]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Requests</SelectItem>
-                <SelectItem value="PENDING">Pending</SelectItem>
-                <SelectItem value="APPROVED">Approved</SelectItem>
-                <SelectItem value="REJECTED">Rejected</SelectItem>
-              </SelectContent>
-            </Select>
+            <div className="flex gap-2">
+              <Select
+                value={statusFilter}
+                onValueChange={(v) => {
+                  setStatusFilter(v);
+                  setPage(1);
+                }}
+              >
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Requests</SelectItem>
+                  <SelectItem value="PENDING">Pending</SelectItem>
+                  <SelectItem value="APPROVED">Approved</SelectItem>
+                  <SelectItem value="REJECTED">Rejected</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <DollarSign className="h-5 w-5" />
-                {statusFilter === "all" ? "All" : statusFilter} Settlements
-                {data?.total !== undefined && (
-                  <span className="text-muted-foreground text-sm font-normal">
-                    ({data.total} total)
-                  </span>
-                )}
-              </CardTitle>
-              <CardDescription>
-                Drivers are paid manually upon request approval
-              </CardDescription>
+          <Card className="shadow-sm overflow-hidden">
+            <CardHeader className="border-b pb-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="flex items-center gap-2 text-base">
+                    <DollarSign className="h-4 w-4 text-primary" />
+                    {statusFilter === "all" ? "All" : statusFilter} Settlements
+                    {data?.total !== undefined && (
+                      <span className="text-muted-foreground text-sm font-normal">
+                        ({data.total} total)
+                      </span>
+                    )}
+                  </CardTitle>
+                  <CardDescription className="mt-1">
+                    Drivers are paid manually upon request approval
+                  </CardDescription>
+                </div>
+              </div>
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-0">
               {isLoading ? (
-                <div className="text-muted-foreground py-12 text-center">
-                  Loading...
+                <div className="flex flex-col items-center justify-center py-20 text-center">
+                  <DollarSign className="h-12 w-12 text-muted-foreground mb-4 opacity-50" />
+                  <p className="text-lg font-medium">Loading settlements...</p>
+                  <p className="text-sm text-muted-foreground mt-1">Please wait</p>
                 </div>
               ) : settlements.length > 0 ? (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Driver</TableHead>
-                      <TableHead>Phone</TableHead>
-                      <TableHead>Amount</TableHead>
-                      <TableHead>Earnings Covered</TableHead>
-                      <TableHead>Requested At</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Reviewed At</TableHead>
-                      <TableHead className="text-right">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {settlements.map((s: any) => (
-                      <TableRow key={s.id}>
-                        <TableCell>
-                          <div>
-                            <p className="font-medium">
-                              {s.driver?.user?.fullName || "Unknown"}
-                            </p>
-                            <Link
-                              to={"/admin/drivers/$driverId" as any}
-                              params={{ driverId: s.driverId } as any}
-                              className="text-muted-foreground flex items-center gap-1 text-xs hover:underline"
-                            >
-                              View Driver
-                              <ExternalLink className="h-3 w-3" />
-                            </Link>
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-sm">
-                          {s.driver?.user?.phone || "N/A"}
-                        </TableCell>
-                        <TableCell className="text-lg font-bold text-green-700">
-                          {formatGMD(s.totalAmount)}
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant="secondary">
-                            {s.earnings?.length || 0} deliveries
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-sm">
-                          {formatDate(s.requestedAt)}
-                        </TableCell>
-                        <TableCell>
-                          <Badge
-                            variant={
-                              s.status === "APPROVED"
-                                ? "default"
-                                : s.status === "REJECTED"
-                                  ? "destructive"
-                                  : "outline"
-                            }
-                            className={
-                              s.status === "APPROVED" ? "bg-green-600" : ""
-                            }
-                          >
-                            {s.status === "PENDING" && (
-                              <Clock className="mr-1 h-3 w-3" />
-                            )}
-                            {s.status === "APPROVED" && (
-                              <CheckCircle className="mr-1 h-3 w-3" />
-                            )}
-                            {s.status === "REJECTED" && (
-                              <XCircle className="mr-1 h-3 w-3" />
-                            )}
-                            {s.status}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-muted-foreground text-sm">
-                          {s.reviewedAt ? formatDate(s.reviewedAt) : "—"}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          {s.status === "PENDING" && (
-                            <div className="flex justify-end gap-2">
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="border-green-500 text-green-600 hover:bg-green-50"
-                                onClick={() => handleApprove(s)}
-                                disabled={approveMutation.isPending}
-                              >
-                                <CheckCircle className="mr-1 h-3 w-3" />
-                                Approve
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="border-red-400 text-red-600 hover:bg-red-50"
-                                onClick={() =>
-                                  setRejectDialog({
-                                    id: s.id,
-                                    driverName:
-                                      s.driver?.user?.fullName || "Driver",
-                                    amount: s.totalAmount,
-                                  })
-                                }
-                              >
-                                <XCircle className="mr-1 h-3 w-3" />
-                                Reject
-                              </Button>
-                            </div>
-                          )}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              ) : (
-                <div className="text-muted-foreground py-12 text-center">
-                  No {statusFilter !== "all" ? statusFilter.toLowerCase() : ""}{" "}
-                  settlement requests found.
-                </div>
-              )}
-
-              {/* Pagination */}
-              {data?.totalPages > 1 && (
-                <div className="mt-4 flex items-center justify-between">
-                  <p className="text-muted-foreground text-sm">
-                    Page {page} of {data.totalPages}
-                  </p>
-                  <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      disabled={page <= 1}
-                      onClick={() => setPage((p) => p - 1)}
-                    >
-                      <ChevronLeft className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      disabled={page >= data.totalPages}
-                      onClick={() => setPage((p) => p + 1)}
-                    >
-                      <ChevronRight className="h-4 w-4" />
-                    </Button>
+                <>
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="bg-muted/50 hover:bg-muted/50">
+                          <TableHead>Driver</TableHead>
+                          <TableHead>Phone</TableHead>
+                          <TableHead>Amount</TableHead>
+                          <TableHead>Earnings Covered</TableHead>
+                          <TableHead>Requested At</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead>Reviewed At</TableHead>
+                          <TableHead className="text-right">Actions</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {settlements.map((s: any) => (
+                          <TableRow key={s.id} className="hover:bg-muted/30 transition-colors">
+                            <TableCell>
+                              <div>
+                                <p className="font-medium">
+                                  {s.driver?.user?.fullName || "Unknown"}
+                                </p>
+                                <Link
+                                  to={"/admin/drivers/$driverId" as any}
+                                  params={{ driverId: s.driverId } as any}
+                                  className="text-muted-foreground flex items-center gap-1 text-xs hover:underline"
+                                >
+                                  View Driver
+                                  <ExternalLink className="h-3 w-3" />
+                                </Link>
+                              </div>
+                            </TableCell>
+                            <TableCell className="text-sm">
+                              {s.driver?.user?.phone || "N/A"}
+                            </TableCell>
+                            <TableCell className="text-lg font-bold text-primary">
+                              {formatGMD(s.totalAmount)}
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant="secondary">
+                                {s.earnings?.length || 0} deliveries
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="text-sm">
+                              {formatDate(s.requestedAt)}
+                            </TableCell>
+                            <TableCell>
+                              {s.status === "APPROVED" && (
+                                <Badge className="bg-emerald-500 hover:bg-emerald-600 text-white shadow-sm">
+                                  <CheckCircle className="mr-1 h-3 w-3" />
+                                  {s.status}
+                                </Badge>
+                              )}
+                              {s.status === "PENDING" && (
+                                <Badge className="border-amber-400 text-amber-600 bg-amber-50 dark:bg-amber-950/20">
+                                  <Clock className="mr-1 h-3 w-3" />
+                                  {s.status}
+                                </Badge>
+                              )}
+                              {s.status === "REJECTED" && (
+                                <Badge variant="destructive">
+                                  <XCircle className="mr-1 h-3 w-3" />
+                                  {s.status}
+                                </Badge>
+                              )}
+                            </TableCell>
+                            <TableCell className="text-muted-foreground text-sm">
+                              {s.reviewedAt ? formatDate(s.reviewedAt) : "—"}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              {s.status === "PENDING" && (
+                                <div className="flex justify-end gap-2">
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="border-emerald-500 text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/20"
+                                    onClick={() => handleApprove(s)}
+                                    disabled={approveMutation.isPending}
+                                  >
+                                    <CheckCircle className="mr-1 h-3 w-3" />
+                                    Approve
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="border-red-400 text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20"
+                                    onClick={() =>
+                                      setRejectDialog({
+                                        id: s.id,
+                                        driverName:
+                                          s.driver?.user?.fullName || "Driver",
+                                        amount: s.totalAmount,
+                                      })
+                                    }
+                                  >
+                                    <XCircle className="mr-1 h-3 w-3" />
+                                    Reject
+                                  </Button>
+                                </div>
+                              )}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
                   </div>
+
+                  {/* Pagination */}
+                  {data?.totalPages > 1 && (
+                    <div className="flex items-center justify-between px-4 py-3 border-t">
+                      <p className="text-muted-foreground text-sm">
+                        Page {page} of {data.totalPages}
+                      </p>
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          disabled={page <= 1}
+                          onClick={() => setPage((p) => p - 1)}
+                        >
+                          <ChevronLeft className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          disabled={page >= data.totalPages}
+                          onClick={() => setPage((p) => p + 1)}
+                        >
+                          <ChevronRight className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <div className="flex flex-col items-center justify-center py-20 text-center">
+                  <DollarSign className="h-12 w-12 text-muted-foreground mb-4 opacity-50" />
+                  <p className="text-lg font-medium">No settlement requests found</p>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    {statusFilter !== "all"
+                      ? `There are no ${statusFilter.toLowerCase()} settlement requests at this time.`
+                      : "No settlement requests have been submitted yet."}
+                  </p>
                 </div>
               )}
             </CardContent>
@@ -355,21 +366,21 @@ function SettlementsPage() {
         open={!!approveDialog}
         onOpenChange={() => setApproveDialog(null)}
       >
-        <DialogContent>
-          <DialogHeader>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader className="border-b pb-4 mb-2">
             <DialogTitle>Approve Settlement</DialogTitle>
             <DialogDescription>
               Approve settlement of <strong>D{approveDialog?.amount?.toFixed(2)}</strong> for{" "}
               <strong>{approveDialog?.driverName}</strong>.
             </DialogDescription>
           </DialogHeader>
-          <div className="bg-yellow-50 border border-yellow-200 rounded-md p-4">
-            <p className="text-sm text-yellow-800">
-              <strong>⚠️ Important:</strong> You will need to manually pay this driver{" "}
+          <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-md p-4">
+            <p className="text-sm text-amber-800 dark:text-amber-300">
+              <strong>Important:</strong> You will need to manually pay this driver{" "}
               <strong>via Wave</strong> after approving.
             </p>
           </div>
-          <div className="flex justify-end gap-2">
+          <div className="flex justify-end gap-2 pt-2">
             <Button
               variant="outline"
               onClick={() => setApproveDialog(null)}
@@ -377,13 +388,14 @@ function SettlementsPage() {
               Cancel
             </Button>
             <Button
-              className="bg-green-600 hover:bg-green-700"
+              className="bg-emerald-600 hover:bg-emerald-700 text-white"
               onClick={() => {
                 approveMutation.mutate(approveDialog!.id);
                 setApproveDialog(null);
               }}
               disabled={approveMutation.isPending}
             >
+              <CheckCircle className="mr-2 h-4 w-4" />
               Approve Settlement
             </Button>
           </div>
@@ -398,8 +410,8 @@ function SettlementsPage() {
           setRejectNotes("");
         }}
       >
-        <DialogContent>
-          <DialogHeader>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader className="border-b pb-4 mb-2">
             <DialogTitle>Reject Settlement</DialogTitle>
             <DialogDescription>
               Reject {rejectDialog?.driverName}'s settlement request of{" "}
@@ -408,7 +420,7 @@ function SettlementsPage() {
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
-            <div>
+            <div className="space-y-1.5">
               <Label>Reason (optional)</Label>
               <Textarea
                 placeholder="e.g. Incorrect bank details, dispute under review..."
@@ -417,7 +429,7 @@ function SettlementsPage() {
                 rows={3}
               />
             </div>
-            <div className="flex justify-end gap-2">
+            <div className="flex justify-end gap-2 pt-1">
               <Button
                 variant="outline"
                 onClick={() => {
@@ -437,6 +449,7 @@ function SettlementsPage() {
                 }
                 disabled={rejectMutation.isPending}
               >
+                <XCircle className="mr-2 h-4 w-4" />
                 Reject Settlement
               </Button>
             </div>

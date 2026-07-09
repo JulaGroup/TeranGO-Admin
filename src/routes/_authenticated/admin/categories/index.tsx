@@ -20,7 +20,6 @@ import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
@@ -270,206 +269,218 @@ function CategoriesPage() {
       <Main>
         <div className="space-y-6">
           {/* Header */}
-          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-bold tracking-tight">Categories</h1>
-              <p className="text-muted-foreground">
+              <h1 className="text-2xl font-bold tracking-tight">Categories</h1>
+              <p className="text-muted-foreground text-sm mt-1">
                 Manage product categories and subcategories
               </p>
             </div>
-            <Button onClick={handleAddCategory} className="gap-2">
-              <Plus className="h-4 w-4" />
-              Add Category
-            </Button>
+            <div className="flex gap-2">
+              <Button onClick={handleAddCategory} className="gap-2">
+                <Plus className="h-4 w-4" />
+                Add Category
+              </Button>
+            </div>
           </div>
 
           {/* Stats Cards */}
           <div className="grid gap-4 md:grid-cols-3">
-            <Card>
-              <CardContent className="pt-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-muted-foreground text-sm">
-                      Total Categories
-                    </p>
-                    <p className="text-3xl font-bold">{categories.length}</p>
-                  </div>
-                  <Folder className="h-12 w-12 text-blue-500 opacity-20" />
-                </div>
+            <Card className="border-l-4 border-l-primary shadow-sm">
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  Total Categories
+                </CardTitle>
+                <Folder className="h-4 w-4 text-primary" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{categories.length}</div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  All product categories
+                </p>
               </CardContent>
             </Card>
 
-            <Card>
-              <CardContent className="pt-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-muted-foreground text-sm">
-                      Total Subcategories
-                    </p>
-                    <p className="text-3xl font-bold">
-                      {categories.reduce(
-                        (sum, cat) => sum + (cat._count?.subCategories || 0),
-                        0,
-                      )}
-                    </p>
-                  </div>
-                  <Package className="h-12 w-12 text-purple-500 opacity-20" />
+            <Card className="border-l-4 border-l-blue-500 shadow-sm">
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  Total Subcategories
+                </CardTitle>
+                <Package className="h-4 w-4 text-blue-500" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {categories.reduce(
+                    (sum, cat) => sum + (cat._count?.subCategories || 0),
+                    0,
+                  )}
                 </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Across all categories
+                </p>
               </CardContent>
             </Card>
 
-            <Card>
-              <CardContent className="pt-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-muted-foreground text-sm">
-                      Created Today
-                    </p>
-                    <p className="text-3xl font-bold">
-                      {
-                        categories.filter((cat) => {
-                          const today = new Date();
-                          const catDate = cat.createdAt
-                            ? new Date(cat.createdAt)
-                            : null;
-                          return (
-                            catDate &&
-                            catDate.toDateString() === today.toDateString()
-                          );
-                        }).length
-                      }
-                    </p>
-                  </div>
-                  <RefreshCw className="h-12 w-12 text-green-500 opacity-20" />
+            <Card className="border-l-4 border-l-emerald-500 shadow-sm">
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  Created Today
+                </CardTitle>
+                <RefreshCw className="h-4 w-4 text-emerald-500" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {
+                    categories.filter((cat) => {
+                      const today = new Date();
+                      const catDate = cat.createdAt
+                        ? new Date(cat.createdAt)
+                        : null;
+                      return (
+                        catDate &&
+                        catDate.toDateString() === today.toDateString()
+                      );
+                    }).length
+                  }
                 </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  New additions today
+                </p>
               </CardContent>
             </Card>
           </div>
 
-          {/* Search */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Search Categories</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="relative">
-                <Search className="text-muted-foreground absolute top-3 left-3 h-4 w-4" />
-                <Input
-                  placeholder="Search by name..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
-            </CardContent>
-          </Card>
-
           {/* Categories Table */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Folder className="h-5 w-5" />
-                  All Categories
+          <Card className="shadow-sm overflow-hidden">
+            <CardHeader className="border-b pb-4">
+              <div className="flex flex-wrap items-center gap-3">
+                <div className="flex items-center gap-2 flex-1 min-w-0">
+                  <Folder className="h-5 w-5 text-muted-foreground shrink-0" />
+                  <CardTitle className="text-base">All Categories</CardTitle>
+                  <Badge variant="outline">
+                    {filteredCategories.length} total
+                  </Badge>
                 </div>
-                <Badge variant="outline">
-                  {filteredCategories.length} total
-                </Badge>
-              </CardTitle>
-              <CardDescription>
-                View and manage all product categories
-              </CardDescription>
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                  <Input
+                    className="pl-9 h-9 w-[260px]"
+                    placeholder="Search categories..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                  />
+                </div>
+              </div>
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-0">
               {isLoading ? (
-                <div className="flex items-center justify-center py-8">
+                <div className="flex items-center justify-center py-16">
                   <p className="text-muted-foreground">Loading categories...</p>
                 </div>
               ) : filteredCategories.length > 0 ? (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Name</TableHead>
-                      <TableHead>Image</TableHead>
-                      <TableHead>Subcategories</TableHead>
-                      <TableHead className="text-right">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredCategories.map((category) => (
-                      <TableRow key={category.id}>
-                        <TableCell>
-                          <div className="font-medium">{category.name}</div>
-                        </TableCell>
-                        <TableCell>
-                          {category.imageUrl ? (
-                            <Avatar>
-                              <AvatarImage
-                                src={category.imageUrl}
-                                alt={category.name}
-                              />
-                              <AvatarFallback>
-                                {category.name.substring(0, 2).toUpperCase()}
-                              </AvatarFallback>
-                            </Avatar>
-                          ) : (
-                            <span className="text-muted-foreground text-xs">
-                              No image
-                            </span>
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant="secondary">
-                            {category._count?.subCategories || 0}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon">
-                                <MoreHorizontal className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem
-                                onClick={() => handleViewDetails(category)}
-                              >
-                                <Eye className="mr-2 h-4 w-4" />
-                                View Details
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                onClick={() => handleEditCategory(category)}
-                              >
-                                <Edit className="mr-2 h-4 w-4" />
-                                Edit
-                              </DropdownMenuItem>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem
-                                onClick={() =>
-                                  deleteMutation.mutate(category.id)
-                                }
-                                className="text-red-600"
-                              >
-                                <Trash2 className="mr-2 h-4 w-4" />
-                                Delete
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </TableCell>
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="bg-muted/50 hover:bg-muted/50">
+                        <TableHead>Name</TableHead>
+                        <TableHead>Image</TableHead>
+                        <TableHead>Subcategories</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredCategories.map((category) => (
+                        <TableRow
+                          key={category.id}
+                          className="hover:bg-muted/30 transition-colors"
+                        >
+                          <TableCell>
+                            <div className="font-medium">{category.name}</div>
+                          </TableCell>
+                          <TableCell>
+                            {category.imageUrl ? (
+                              <Avatar>
+                                <AvatarImage
+                                  src={category.imageUrl}
+                                  alt={category.name}
+                                />
+                                <AvatarFallback>
+                                  {category.name.substring(0, 2).toUpperCase()}
+                                </AvatarFallback>
+                              </Avatar>
+                            ) : (
+                              <span className="text-muted-foreground text-xs">
+                                No image
+                              </span>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant="secondary">
+                              {category._count?.subCategories || 0}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon">
+                                  <MoreHorizontal className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                                  onClick={() => handleViewDetails(category)}
+                                >
+                                  <Eye className="mr-2 h-4 w-4" />
+                                  View Details
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  onClick={() => handleEditCategory(category)}
+                                >
+                                  <Edit className="mr-2 h-4 w-4" />
+                                  Edit
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                                  onClick={() =>
+                                    deleteMutation.mutate(category.id)
+                                  }
+                                  className="text-red-600"
+                                >
+                                  <Trash2 className="mr-2 h-4 w-4" />
+                                  Delete
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
               ) : (
-                <div className="flex flex-col items-center justify-center py-12">
-                  <Folder className="text-muted-foreground mb-4 h-12 w-12" />
-                  <p className="text-muted-foreground">
+                <div className="flex flex-col items-center justify-center py-20 text-center">
+                  <Folder className="h-12 w-12 text-muted-foreground mb-4 opacity-50" />
+                  <p className="text-lg font-medium">
                     {searchQuery
                       ? "No categories match your search"
                       : "No categories yet"}
                   </p>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    {searchQuery
+                      ? "Try a different search term"
+                      : "Get started by creating your first category"}
+                  </p>
+                  {!searchQuery && (
+                    <Button
+                      className="mt-4"
+                      size="sm"
+                      onClick={handleAddCategory}
+                    >
+                      Add Category
+                    </Button>
+                  )}
                 </div>
               )}
             </CardContent>
@@ -477,8 +488,8 @@ function CategoriesPage() {
 
           {/* Category Details Dialog */}
           <Dialog open={isDetailsOpen} onOpenChange={setIsDetailsOpen}>
-            <DialogContent className="max-w-2xl">
-              <DialogHeader>
+            <DialogContent className="sm:max-w-lg">
+              <DialogHeader className="border-b pb-4 mb-2">
                 <DialogTitle>Category Details</DialogTitle>
                 <DialogDescription>
                   View category information and subcategories
@@ -527,8 +538,8 @@ function CategoriesPage() {
 
           {/* Add/Edit Category Dialog */}
           <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
-            <DialogContent>
-              <DialogHeader>
+            <DialogContent className="sm:max-w-md">
+              <DialogHeader className="border-b pb-4 mb-2">
                 <DialogTitle>
                   {editingCategory ? "Edit Category" : "Add New Category"}
                 </DialogTitle>

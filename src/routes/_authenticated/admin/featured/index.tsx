@@ -155,77 +155,83 @@ function AdminFeaturedPage() {
   return (
     <div className="container mx-auto p-6 space-y-6">
       {/* Header */}
-      <div className="space-y-2">
-        <h1 className="text-3xl font-bold tracking-tight">Featured Vendors Management</h1>
-        <p className="text-muted-foreground">
-          Manage featured placements and priority listings for vendors
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Featured Vendors</h1>
+          <p className="text-muted-foreground text-sm mt-1">
+            Manage featured placements and priority listings for vendors
+          </p>
+        </div>
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card>
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <Card className="border-l-4 border-l-primary shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
               Total Featured
             </CardTitle>
-            <Star className="h-4 w-4 text-yellow-600" />
+            <Star className="h-4 w-4 text-primary" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.totalFeatured}</div>
+            <p className="text-xs text-muted-foreground mt-1">All featured vendors</p>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="border-l-4 border-l-emerald-500 shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
               Active Now
             </CardTitle>
-            <TrendingUp className="h-4 w-4 text-green-600" />
+            <TrendingUp className="h-4 w-4 text-emerald-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">{stats.active}</div>
+            <div className="text-2xl font-bold">{stats.active}</div>
+            <p className="text-xs text-muted-foreground mt-1">Currently featured</p>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="border-l-4 border-l-blue-500 shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
               Total Views
             </CardTitle>
-            <Eye className="h-4 w-4 text-blue-600" />
+            <Eye className="h-4 w-4 text-blue-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-blue-600">{stats.totalViews.toLocaleString()}</div>
+            <div className="text-2xl font-bold">{stats.totalViews.toLocaleString()}</div>
+            <p className="text-xs text-muted-foreground mt-1">Impressions across all</p>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="border-l-4 border-l-violet-500 shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
               Click Rate
             </CardTitle>
-            <Calendar className="h-4 w-4 text-purple-600" />
+            <Calendar className="h-4 w-4 text-violet-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-purple-600">
+            <div className="text-2xl font-bold">
               {stats.totalViews > 0
                 ? ((stats.totalClicks / stats.totalViews) * 100).toFixed(1)
                 : 0}%
             </div>
+            <p className="text-xs text-muted-foreground mt-1">Average CTR</p>
           </CardContent>
         </Card>
       </div>
 
       {/* Add Featured Form */}
-      <Card>
-        <CardHeader>
+      <Card className="shadow-sm">
+        <CardHeader className="border-b pb-4">
           <CardTitle>Feature a Vendor</CardTitle>
           <CardDescription>
             Select a vendor and configure their featured placement
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="pt-4">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
             <div className="space-y-2">
               <Label>Vendor</Label>
@@ -293,78 +299,93 @@ function AdminFeaturedPage() {
       </Card>
 
       {/* Featured Vendors Table */}
-      <Card>
-        <CardHeader>
+      <Card className="shadow-sm overflow-hidden">
+        <CardHeader className="border-b pb-4">
           <CardTitle>Featured Vendors List</CardTitle>
+          <CardDescription>
+            All vendors with active and past featured placements
+          </CardDescription>
         </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Vendor</TableHead>
-                <TableHead>Type</TableHead>
-                <TableHead>Feature Type</TableHead>
-                <TableHead>Priority</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Start Date</TableHead>
-                <TableHead>End Date</TableHead>
-                <TableHead className="text-right">Views</TableHead>
-                <TableHead className="text-right">Clicks</TableHead>
-                <TableHead className="text-right">CTR</TableHead>
-                <TableHead>Action</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {featuredVendors?.map((featured) => {
-                const ctr = featured.viewCount > 0
-                  ? ((featured.clickCount / featured.viewCount) * 100).toFixed(1)
-                  : "0.0";
-
-                return (
-                  <TableRow key={featured.id}>
-                    <TableCell className="font-medium">
-                      {featured.vendor.businessName}
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="outline">{featured.vendor.storeType}</Badge>
-                    </TableCell>
-                    <TableCell>{featured.featureType}</TableCell>
-                    <TableCell>
-                      <Badge variant="secondary">{featured.priority}</Badge>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={featured.isActive ? "default" : "secondary"}>
-                        {featured.isActive ? "Active" : "Inactive"}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      {new Date(featured.startDate).toLocaleDateString()}
-                    </TableCell>
-                    <TableCell>
-                      {new Date(featured.endDate).toLocaleDateString()}
-                    </TableCell>
-                    <TableCell className="text-right">{featured.viewCount}</TableCell>
-                    <TableCell className="text-right">{featured.clickCount}</TableCell>
-                    <TableCell className="text-right">{ctr}%</TableCell>
-                    <TableCell>
-                      <Button
-                        variant="destructive"
-                        size="sm"
-                        onClick={() => removeFeaturedMutation.mutate(featured.id)}
-                        disabled={removeFeaturedMutation.isPending}
-                      >
-                        Remove
-                      </Button>
-                    </TableCell>
+        <CardContent className="p-0">
+          {featuredVendors?.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-20 text-center">
+              <Star className="h-12 w-12 text-muted-foreground mb-4 opacity-50" />
+              <p className="text-lg font-medium">No featured vendors yet</p>
+              <p className="text-sm text-muted-foreground mt-1">
+                Feature a vendor using the form above
+              </p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-muted/50 hover:bg-muted/50">
+                    <TableHead>Vendor</TableHead>
+                    <TableHead>Type</TableHead>
+                    <TableHead>Feature Type</TableHead>
+                    <TableHead>Priority</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Start Date</TableHead>
+                    <TableHead>End Date</TableHead>
+                    <TableHead className="text-right">Views</TableHead>
+                    <TableHead className="text-right">Clicks</TableHead>
+                    <TableHead className="text-right">CTR</TableHead>
+                    <TableHead>Action</TableHead>
                   </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
+                </TableHeader>
+                <TableBody>
+                  {featuredVendors?.map((featured) => {
+                    const ctr = featured.viewCount > 0
+                      ? ((featured.clickCount / featured.viewCount) * 100).toFixed(1)
+                      : "0.0";
 
-          {featuredVendors?.length === 0 && (
-            <div className="text-center py-12">
-              <p className="text-muted-foreground">No featured vendors yet</p>
+                    return (
+                      <TableRow key={featured.id} className="hover:bg-muted/30 transition-colors">
+                        <TableCell className="font-medium">
+                          {featured.vendor.businessName}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline">{featured.vendor.storeType}</Badge>
+                        </TableCell>
+                        <TableCell className="text-sm text-muted-foreground">
+                          {featured.featureType}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="secondary">{featured.priority}</Badge>
+                        </TableCell>
+                        <TableCell>
+                          {featured.isActive ? (
+                            <Badge className="bg-emerald-500 hover:bg-emerald-600 text-white shadow-sm">
+                              Active
+                            </Badge>
+                          ) : (
+                            <Badge variant="destructive">Inactive</Badge>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-sm text-muted-foreground">
+                          {new Date(featured.startDate).toLocaleDateString()}
+                        </TableCell>
+                        <TableCell className="text-sm text-muted-foreground">
+                          {new Date(featured.endDate).toLocaleDateString()}
+                        </TableCell>
+                        <TableCell className="text-right">{featured.viewCount}</TableCell>
+                        <TableCell className="text-right">{featured.clickCount}</TableCell>
+                        <TableCell className="text-right">{ctr}%</TableCell>
+                        <TableCell>
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            onClick={() => removeFeaturedMutation.mutate(featured.id)}
+                            disabled={removeFeaturedMutation.isPending}
+                          >
+                            Remove
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
             </div>
           )}
         </CardContent>

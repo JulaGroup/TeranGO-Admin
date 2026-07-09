@@ -355,192 +355,205 @@ function BroadcastsPage() {
       </Header>
 
       <Main>
-        <div className="mb-6 flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight">
-              Broadcast Notifications
-            </h1>
-            <p className="text-muted-foreground">
-              Send marketing campaigns and announcements to your users
-            </p>
+        <div className="space-y-6">
+          {/* Page Header */}
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-bold tracking-tight">
+                Broadcast Notifications
+              </h1>
+              <p className="text-muted-foreground text-sm mt-1">
+                Send marketing campaigns and announcements to your users
+              </p>
+            </div>
+            <Button onClick={() => setCreateOpen(true)}>
+              <Plus className="mr-2 h-4 w-4" />
+              New Broadcast
+            </Button>
           </div>
-          <Button onClick={() => setCreateOpen(true)} size="lg">
-            <Plus className="mr-2 h-4 w-4" />
-            New Broadcast
-          </Button>
-        </div>
 
-        {/* Analytics Cards */}
-        <div className="mb-6 grid gap-4 md:grid-cols-4">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                Total Broadcasts
-              </CardTitle>
-              <Megaphone className="text-muted-foreground h-4 w-4" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {analytics.totalBroadcasts}
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Sent</CardTitle>
-              <Send className="text-muted-foreground h-4 w-4" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {analytics.totalSent?.toLocaleString()}
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                Avg Delivery Rate
-              </CardTitle>
-              <CheckCircle className="text-muted-foreground h-4 w-4" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {analytics.avgDeliveryRate}%
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                Avg Open Rate
-              </CardTitle>
-              <Eye className="text-muted-foreground h-4 w-4" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{analytics.avgOpenRate}%</div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Broadcasts Table */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Broadcast History</CardTitle>
-            <CardDescription>
-              View and manage your notification campaigns
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {isLoading ? (
-              <div className="flex h-40 items-center justify-center">
-                <div className="text-muted-foreground">
-                  Loading broadcasts...
+          {/* Analytics Cards */}
+          <div className="grid gap-4 md:grid-cols-4">
+            <Card className="border-l-4 border-l-primary shadow-sm">
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  Total Broadcasts
+                </CardTitle>
+                <Megaphone className="h-4 w-4 text-primary" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {analytics.totalBroadcasts}
                 </div>
-              </div>
-            ) : broadcasts.length === 0 ? (
-              <div className="flex h-40 flex-col items-center justify-center">
-                <Megaphone className="text-muted-foreground mb-2 h-12 w-12" />
-                <p className="text-muted-foreground">No broadcasts sent yet</p>
-                <Button variant="link" onClick={() => setCreateOpen(true)}>
-                  Send your first broadcast
-                </Button>
-              </div>
-            ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Type</TableHead>
-                    <TableHead>Title</TableHead>
-                    <TableHead>Audience</TableHead>
-                    <TableHead>Sent</TableHead>
-                    <TableHead>Failed</TableHead>
-                    <TableHead>Date</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {broadcasts.map((broadcast) => {
-                    const typeInfo = getBroadcastTypeInfo(broadcast.type);
-                    const audienceInfo = getAudienceInfo(
-                      broadcast.targetAudience,
-                    );
-                    return (
-                      <TableRow key={broadcast.id}>
-                        <TableCell>
-                          <Badge className={typeInfo.color}>
-                            {typeInfo.label}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <div>
-                            <div className="font-medium">{broadcast.title}</div>
-                            <div className="text-muted-foreground line-clamp-1 text-sm">
-                              {broadcast.body}
-                            </div>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant="outline">{audienceInfo.label}</Badge>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center">
-                            <CheckCircle className="mr-1 h-4 w-4 text-green-500" />
-                            {broadcast.sentCount.toLocaleString()}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          {broadcast.failureCount > 0 ? (
-                            <div className="flex items-center">
-                              <XCircle className="mr-1 h-4 w-4 text-red-500" />
-                              {broadcast.failureCount}
-                            </div>
-                          ) : (
-                            <span className="text-muted-foreground">-</span>
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center text-sm">
-                            <Clock className="mr-1 h-3 w-3" />
-                            {format(
-                              new Date(broadcast.sentAt || broadcast.createdAt),
-                              "MMM dd, HH:mm",
-                            )}
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex justify-end gap-2">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => {
-                                setSelectedBroadcast(broadcast);
-                                setDetailsOpen(true);
-                              }}
-                            >
-                              <Eye className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() =>
-                                deleteMutation.mutate(broadcast.id)
-                              }
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </TableCell>
+                <p className="text-xs text-muted-foreground mt-1">All time campaigns</p>
+              </CardContent>
+            </Card>
+
+            <Card className="border-l-4 border-l-blue-500 shadow-sm">
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">Total Sent</CardTitle>
+                <Send className="h-4 w-4 text-blue-500" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {analytics.totalSent?.toLocaleString()}
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">Push notifications delivered</p>
+              </CardContent>
+            </Card>
+
+            <Card className="border-l-4 border-l-emerald-500 shadow-sm">
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  Avg Delivery Rate
+                </CardTitle>
+                <CheckCircle className="h-4 w-4 text-emerald-500" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {analytics.avgDeliveryRate}%
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">Successfully delivered</p>
+              </CardContent>
+            </Card>
+
+            <Card className="border-l-4 border-l-orange-500 shadow-sm">
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  Avg Open Rate
+                </CardTitle>
+                <Eye className="h-4 w-4 text-orange-500" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{analytics.avgOpenRate}%</div>
+                <p className="text-xs text-muted-foreground mt-1">User engagement rate</p>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Broadcasts Table */}
+          <Card className="shadow-sm overflow-hidden">
+            <CardHeader className="border-b pb-4">
+              <CardTitle className="text-base font-semibold">Broadcast History</CardTitle>
+              <CardDescription>
+                View and manage your notification campaigns
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="p-0">
+              {isLoading ? (
+                <div className="flex h-40 items-center justify-center">
+                  <div className="text-muted-foreground">
+                    Loading broadcasts...
+                  </div>
+                </div>
+              ) : broadcasts.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-20 text-center">
+                  <Megaphone className="h-12 w-12 text-muted-foreground mb-4 opacity-50" />
+                  <p className="text-lg font-medium">No broadcasts sent yet</p>
+                  <p className="text-sm text-muted-foreground mt-1">Send your first campaign to get started</p>
+                  <Button variant="outline" className="mt-4" onClick={() => setCreateOpen(true)}>
+                    <Plus className="mr-2 h-4 w-4" />
+                    New Broadcast
+                  </Button>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="bg-muted/50 hover:bg-muted/50">
+                        <TableHead>Type</TableHead>
+                        <TableHead>Title</TableHead>
+                        <TableHead>Audience</TableHead>
+                        <TableHead>Sent</TableHead>
+                        <TableHead>Failed</TableHead>
+                        <TableHead>Date</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
                       </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-            )}
-          </CardContent>
-        </Card>
+                    </TableHeader>
+                    <TableBody>
+                      {broadcasts.map((broadcast) => {
+                        const typeInfo = getBroadcastTypeInfo(broadcast.type);
+                        const audienceInfo = getAudienceInfo(
+                          broadcast.targetAudience,
+                        );
+                        return (
+                          <TableRow key={broadcast.id} className="hover:bg-muted/30 transition-colors">
+                            <TableCell>
+                              <Badge className={typeInfo.color}>
+                                {typeInfo.label}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              <div>
+                                <div className="font-medium">{broadcast.title}</div>
+                                <div className="text-muted-foreground line-clamp-1 text-sm">
+                                  {broadcast.body}
+                                </div>
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant="outline" className="border-blue-400 text-blue-600 bg-blue-50 dark:bg-blue-950/20">
+                                {audienceInfo.label}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex items-center gap-1">
+                                <CheckCircle className="h-4 w-4 text-emerald-500" />
+                                <span className="font-medium">{broadcast.sentCount.toLocaleString()}</span>
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              {broadcast.failureCount > 0 ? (
+                                <div className="flex items-center gap-1">
+                                  <XCircle className="h-4 w-4 text-red-500" />
+                                  <span className="text-red-600 font-medium">{broadcast.failureCount}</span>
+                                </div>
+                              ) : (
+                                <span className="text-muted-foreground">—</span>
+                              )}
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                                <Clock className="h-3 w-3" />
+                                {format(
+                                  new Date(broadcast.sentAt || broadcast.createdAt),
+                                  "MMM dd, HH:mm",
+                                )}
+                              </div>
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <div className="flex justify-end gap-1">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => {
+                                    setSelectedBroadcast(broadcast);
+                                    setDetailsOpen(true);
+                                  }}
+                                >
+                                  <Eye className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() =>
+                                    deleteMutation.mutate(broadcast.id)
+                                  }
+                                >
+                                  <Trash2 className="h-4 w-4 text-destructive" />
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
 
         {/* Create Broadcast Dialog */}
         <Dialog open={createOpen} onOpenChange={setCreateOpen}>
@@ -808,7 +821,7 @@ function BroadcastsPage() {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <Label>Sent</Label>
-                    <p className="text-2xl font-bold text-green-600">
+                    <p className="text-2xl font-bold text-emerald-600">
                       {selectedBroadcast.sentCount.toLocaleString()}
                     </p>
                   </div>

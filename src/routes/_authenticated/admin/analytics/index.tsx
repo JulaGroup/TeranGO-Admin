@@ -94,27 +94,27 @@ function AnalyticsPage() {
   }
 
   return (
-    <div className='container mx-auto p-6 space-y-6'>
+    <div className='space-y-6'>
       {/* Header */}
       <div className='flex items-center justify-between'>
         <div>
-          <h1 className='text-3xl font-bold tracking-tight'>Analytics Dashboard</h1>
-          <p className='text-muted-foreground'>
+          <h1 className='text-2xl font-bold tracking-tight'>Analytics Dashboard</h1>
+          <p className='text-muted-foreground text-sm mt-1'>
             Real-time insights into your platform's performance
           </p>
         </div>
-        <div className='flex items-center gap-2 text-sm text-muted-foreground'>
+        <div className='flex items-center gap-2 text-sm text-muted-foreground bg-muted/50 px-3 py-1.5 rounded-md border'>
           <Calendar className='h-4 w-4' />
-          <span>Last updated: {new Date().toLocaleTimeString()}</span>
+          <span>Updated: {new Date().toLocaleTimeString()}</span>
         </div>
       </div>
 
       {/* Overview Stats */}
       <div className='grid gap-4 md:grid-cols-2 lg:grid-cols-4'>
-        <Card>
-          <CardHeader className='flex flex-row items-center justify-between pb-2 space-y-0'>
-            <CardTitle className='text-sm font-medium'>Total Revenue</CardTitle>
-            <DollarSign className='h-4 w-4 text-muted-foreground' />
+        <Card className='border-l-4 border-l-primary shadow-sm'>
+          <CardHeader className='flex flex-row items-center justify-between pb-2'>
+            <CardTitle className='text-sm font-medium text-muted-foreground'>Total Revenue</CardTitle>
+            <DollarSign className='h-4 w-4 text-primary' />
           </CardHeader>
           <CardContent>
             <div className='text-2xl font-bold'>
@@ -130,10 +130,10 @@ function AnalyticsPage() {
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader className='flex flex-row items-center justify-between pb-2 space-y-0'>
-            <CardTitle className='text-sm font-medium'>Total Orders</CardTitle>
-            <ShoppingBag className='h-4 w-4 text-muted-foreground' />
+        <Card className='border-l-4 border-l-blue-500 shadow-sm'>
+          <CardHeader className='flex flex-row items-center justify-between pb-2'>
+            <CardTitle className='text-sm font-medium text-muted-foreground'>Total Orders</CardTitle>
+            <ShoppingBag className='h-4 w-4 text-blue-500' />
           </CardHeader>
           <CardContent>
             <div className='text-2xl font-bold'>{analytics.overview.totalOrders.toLocaleString()}</div>
@@ -147,10 +147,10 @@ function AnalyticsPage() {
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader className='flex flex-row items-center justify-between pb-2 space-y-0'>
-            <CardTitle className='text-sm font-medium'>Active Vendors</CardTitle>
-            <Package className='h-4 w-4 text-muted-foreground' />
+        <Card className='border-l-4 border-l-emerald-500 shadow-sm'>
+          <CardHeader className='flex flex-row items-center justify-between pb-2'>
+            <CardTitle className='text-sm font-medium text-muted-foreground'>Active Vendors</CardTitle>
+            <Package className='h-4 w-4 text-emerald-500' />
           </CardHeader>
           <CardContent>
             <div className='text-2xl font-bold'>{analytics.overview.totalVendors.toLocaleString()}</div>
@@ -160,10 +160,10 @@ function AnalyticsPage() {
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader className='flex flex-row items-center justify-between pb-2 space-y-0'>
-            <CardTitle className='text-sm font-medium'>Total Customers</CardTitle>
-            <Users className='h-4 w-4 text-muted-foreground' />
+        <Card className='border-l-4 border-l-orange-500 shadow-sm'>
+          <CardHeader className='flex flex-row items-center justify-between pb-2'>
+            <CardTitle className='text-sm font-medium text-muted-foreground'>Total Customers</CardTitle>
+            <Users className='h-4 w-4 text-orange-500' />
           </CardHeader>
           <CardContent>
             <div className='text-2xl font-bold'>{analytics.overview.totalCustomers.toLocaleString()}</div>
@@ -176,7 +176,7 @@ function AnalyticsPage() {
 
       {/* Main Analytics Tabs */}
       <Tabs defaultValue='subscriptions' className='space-y-4'>
-        <TabsList>
+        <TabsList className='bg-muted/50'>
           <TabsTrigger value='subscriptions'>Subscriptions</TabsTrigger>
           <TabsTrigger value='orders'>Orders</TabsTrigger>
           <TabsTrigger value='featured'>Featured Vendors</TabsTrigger>
@@ -185,12 +185,12 @@ function AnalyticsPage() {
         {/* Subscriptions Tab */}
         <TabsContent value='subscriptions' className='space-y-4'>
           <div className='grid gap-4 md:grid-cols-3'>
-            <Card>
-              <CardHeader>
-                <CardTitle className='text-sm'>Active Subscriptions</CardTitle>
+            <Card className='border-l-4 border-l-emerald-500 shadow-sm'>
+              <CardHeader className='flex flex-row items-center justify-between pb-2'>
+                <CardTitle className='text-sm font-medium text-muted-foreground'>Active Subscriptions</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className='text-3xl font-bold text-green-600'>
+                <div className='text-2xl font-bold text-emerald-600'>
                   {analytics.subscriptions.totalActive}
                 </div>
                 <p className='text-xs text-muted-foreground mt-1'>
@@ -199,24 +199,24 @@ function AnalyticsPage() {
               </CardContent>
             </Card>
 
-            <Card>
-              <CardHeader>
-                <CardTitle className='text-sm'>Subscription Revenue</CardTitle>
+            <Card className='border-l-4 border-l-primary shadow-sm'>
+              <CardHeader className='flex flex-row items-center justify-between pb-2'>
+                <CardTitle className='text-sm font-medium text-muted-foreground'>Subscription Revenue</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className='text-3xl font-bold'>
+                <div className='text-2xl font-bold'>
                   GMD {analytics.subscriptions.totalRevenue.toLocaleString()}
                 </div>
                 <p className='text-xs text-muted-foreground mt-1'>Monthly recurring revenue</p>
               </CardContent>
             </Card>
 
-            <Card>
-              <CardHeader>
-                <CardTitle className='text-sm'>Conversion Rate</CardTitle>
+            <Card className='border-l-4 border-l-blue-500 shadow-sm'>
+              <CardHeader className='flex flex-row items-center justify-between pb-2'>
+                <CardTitle className='text-sm font-medium text-muted-foreground'>Conversion Rate</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className='text-3xl font-bold text-purple-600'>
+                <div className='text-2xl font-bold text-purple-600'>
                   {analytics.subscriptions.totalTrial > 0
                     ? Math.round((analytics.subscriptions.totalActive / (analytics.subscriptions.totalActive + analytics.subscriptions.totalTrial)) * 100)
                     : 0}%
@@ -228,12 +228,12 @@ function AnalyticsPage() {
 
           <div className='grid gap-4 md:grid-cols-2'>
             {/* Package Distribution */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Subscriptions by Package</CardTitle>
+            <Card className='shadow-sm'>
+              <CardHeader className='border-b pb-4'>
+                <CardTitle className='text-base font-semibold'>Subscriptions by Package</CardTitle>
                 <CardDescription>Distribution across different tiers</CardDescription>
               </CardHeader>
-              <CardContent>
+              <CardContent className='pt-6'>
                 <ResponsiveContainer width='100%' height={300}>
                   <PieChart>
                     <Pie
@@ -258,12 +258,12 @@ function AnalyticsPage() {
             </Card>
 
             {/* Monthly Revenue */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Monthly Subscription Revenue</CardTitle>
+            <Card className='shadow-sm'>
+              <CardHeader className='border-b pb-4'>
+                <CardTitle className='text-base font-semibold'>Monthly Subscription Revenue</CardTitle>
                 <CardDescription>Revenue trend over time</CardDescription>
               </CardHeader>
-              <CardContent>
+              <CardContent className='pt-6'>
                 <ResponsiveContainer width='100%' height={300}>
                   <LineChart data={analytics.subscriptions.monthlyRevenue}>
                     <CartesianGrid strokeDasharray='3 3' />
@@ -285,25 +285,25 @@ function AnalyticsPage() {
           </div>
 
           {/* Package Revenue Table */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Package Performance</CardTitle>
+          <Card className='shadow-sm overflow-hidden'>
+            <CardHeader className='border-b pb-4'>
+              <CardTitle className='text-base font-semibold'>Package Performance</CardTitle>
               <CardDescription>Detailed breakdown by subscription tier</CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className='p-0'>
               <div className='overflow-x-auto'>
                 <table className='w-full'>
                   <thead>
-                    <tr className='border-b'>
-                      <th className='text-left py-3 px-4'>Package</th>
-                      <th className='text-right py-3 px-4'>Subscribers</th>
-                      <th className='text-right py-3 px-4'>Revenue</th>
-                      <th className='text-right py-3 px-4'>Avg. Value</th>
+                    <tr className='bg-muted/50'>
+                      <th className='text-left py-3 px-4 text-sm font-medium text-muted-foreground'>Package</th>
+                      <th className='text-right py-3 px-4 text-sm font-medium text-muted-foreground'>Subscribers</th>
+                      <th className='text-right py-3 px-4 text-sm font-medium text-muted-foreground'>Revenue</th>
+                      <th className='text-right py-3 px-4 text-sm font-medium text-muted-foreground'>Avg. Value</th>
                     </tr>
                   </thead>
                   <tbody>
                     {analytics.subscriptions.byPackage.map((pkg, idx) => (
-                      <tr key={idx} className='border-b hover:bg-muted/50'>
+                      <tr key={idx} className='border-b hover:bg-muted/30 transition-colors'>
                         <td className='py-3 px-4 font-medium'>{pkg.name}</td>
                         <td className='py-3 px-4 text-right'>{pkg.count}</td>
                         <td className='py-3 px-4 text-right'>
@@ -325,12 +325,12 @@ function AnalyticsPage() {
         <TabsContent value='orders' className='space-y-4'>
           <div className='grid gap-4 md:grid-cols-2'>
             {/* Orders by Status */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Orders by Status</CardTitle>
+            <Card className='shadow-sm'>
+              <CardHeader className='border-b pb-4'>
+                <CardTitle className='text-base font-semibold'>Orders by Status</CardTitle>
                 <CardDescription>Current order distribution</CardDescription>
               </CardHeader>
-              <CardContent>
+              <CardContent className='pt-6'>
                 <ResponsiveContainer width='100%' height={300}>
                   <BarChart data={analytics.orders.byStatus}>
                     <CartesianGrid strokeDasharray='3 3' />
@@ -345,12 +345,12 @@ function AnalyticsPage() {
             </Card>
 
             {/* Revenue by Day */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Daily Revenue & Orders</CardTitle>
+            <Card className='shadow-sm'>
+              <CardHeader className='border-b pb-4'>
+                <CardTitle className='text-base font-semibold'>Daily Revenue & Orders</CardTitle>
                 <CardDescription>Last 7 days performance</CardDescription>
               </CardHeader>
-              <CardContent>
+              <CardContent className='pt-6'>
                 <ResponsiveContainer width='100%' height={300}>
                   <LineChart data={analytics.orders.revenueByDay}>
                     <CartesianGrid strokeDasharray='3 3' />
@@ -382,17 +382,17 @@ function AnalyticsPage() {
           </div>
 
           {/* Top Vendors */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Top Performing Vendors</CardTitle>
+          <Card className='shadow-sm'>
+            <CardHeader className='border-b pb-4'>
+              <CardTitle className='text-base font-semibold'>Top Performing Vendors</CardTitle>
               <CardDescription>Vendors with highest revenue this month</CardDescription>
             </CardHeader>
-            <CardContent>
-              <div className='space-y-4'>
+            <CardContent className='pt-6'>
+              <div className='space-y-3'>
                 {analytics.orders.topVendors.map((vendor, idx) => (
-                  <div key={idx} className='flex items-center justify-between p-4 border rounded-lg'>
+                  <div key={idx} className='flex items-center justify-between p-4 border rounded-lg hover:bg-muted/30 transition-colors'>
                     <div className='flex items-center gap-3'>
-                      <div className='flex items-center justify-center w-10 h-10 rounded-full bg-primary/10 text-primary font-bold'>
+                      <div className='flex items-center justify-center w-10 h-10 rounded-full bg-primary/10 text-primary font-bold text-sm shrink-0'>
                         #{idx + 1}
                       </div>
                       <div>
@@ -401,7 +401,7 @@ function AnalyticsPage() {
                       </div>
                     </div>
                     <div className='text-right'>
-                      <p className='font-bold text-lg'>GMD {vendor.revenue.toLocaleString()}</p>
+                      <p className='font-bold text-lg font-semibold text-primary'>GMD {vendor.revenue.toLocaleString()}</p>
                       <p className='text-sm text-muted-foreground'>
                         Avg: GMD {Math.round(vendor.revenue / vendor.orders).toLocaleString()}
                       </p>
@@ -415,59 +415,61 @@ function AnalyticsPage() {
 
         {/* Featured Vendors Tab */}
         <TabsContent value='featured' className='space-y-4'>
-          <Card>
-            <CardHeader>
-              <CardTitle className='flex items-center gap-2'>
+          <Card className='shadow-sm overflow-hidden'>
+            <CardHeader className='border-b pb-4'>
+              <CardTitle className='text-base font-semibold flex items-center gap-2'>
                 <Star className='h-5 w-5 text-yellow-500' />
                 Featured Vendor Analytics
               </CardTitle>
               <CardDescription>Performance metrics for featured placements</CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className='pt-6'>
               <div className='mb-6'>
-                <div className='flex items-center justify-between p-4 bg-muted rounded-lg'>
+                <div className='flex items-center justify-between p-4 bg-muted/50 rounded-lg border'>
                   <div>
                     <p className='text-sm text-muted-foreground'>Active Featured Vendors</p>
-                    <p className='text-3xl font-bold'>{analytics.featured.totalActive}</p>
+                    <p className='text-2xl font-bold mt-1'>{analytics.featured.totalActive}</p>
                   </div>
-                  <Activity className='h-12 w-12 text-muted-foreground' />
+                  <div className='rounded-full bg-primary/10 p-3'>
+                    <Activity className='h-6 w-6 text-primary' />
+                  </div>
                 </div>
               </div>
 
               <div className='overflow-x-auto'>
                 <table className='w-full'>
                   <thead>
-                    <tr className='border-b'>
-                      <th className='text-left py-3 px-4'>Vendor</th>
-                      <th className='text-right py-3 px-4'>Views</th>
-                      <th className='text-right py-3 px-4'>Clicks</th>
-                      <th className='text-right py-3 px-4'>CTR</th>
-                      <th className='text-right py-3 px-4'>Performance</th>
+                    <tr className='bg-muted/50'>
+                      <th className='text-left py-3 px-4 text-sm font-medium text-muted-foreground'>Vendor</th>
+                      <th className='text-right py-3 px-4 text-sm font-medium text-muted-foreground'>Views</th>
+                      <th className='text-right py-3 px-4 text-sm font-medium text-muted-foreground'>Clicks</th>
+                      <th className='text-right py-3 px-4 text-sm font-medium text-muted-foreground'>CTR</th>
+                      <th className='text-right py-3 px-4 text-sm font-medium text-muted-foreground'>Performance</th>
                     </tr>
                   </thead>
                   <tbody>
                     {analytics.featured.analytics.map((vendor, idx) => (
-                      <tr key={idx} className='border-b hover:bg-muted/50'>
+                      <tr key={idx} className='border-b hover:bg-muted/30 transition-colors'>
                         <td className='py-3 px-4 font-medium'>{vendor.vendorName}</td>
                         <td className='py-3 px-4 text-right'>{vendor.views.toLocaleString()}</td>
                         <td className='py-3 px-4 text-right'>{vendor.clicks.toLocaleString()}</td>
                         <td className='py-3 px-4 text-right'>
-                          <span className={`font-semibold ${vendor.ctr > 5 ? 'text-green-600' : vendor.ctr > 2 ? 'text-yellow-600' : 'text-red-600'}`}>
+                          <span className={`font-semibold ${vendor.ctr > 5 ? 'text-emerald-600' : vendor.ctr > 2 ? 'text-amber-600' : 'text-red-600'}`}>
                             {vendor.ctr.toFixed(2)}%
                           </span>
                         </td>
                         <td className='py-3 px-4 text-right'>
                           <div className='flex items-center justify-end gap-2'>
                             {vendor.ctr > 5 ? (
-                              <span className='text-xs bg-green-100 text-green-800 px-2 py-1 rounded'>
+                              <span className='text-xs bg-emerald-100 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-400 px-2 py-0.5 rounded-full font-medium'>
                                 Excellent
                               </span>
                             ) : vendor.ctr > 2 ? (
-                              <span className='text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded'>
+                              <span className='text-xs bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-400 px-2 py-0.5 rounded-full font-medium'>
                                 Good
                               </span>
                             ) : (
-                              <span className='text-xs bg-red-100 text-red-800 px-2 py-1 rounded'>
+                              <span className='text-xs bg-red-100 text-red-800 dark:bg-red-950/40 dark:text-red-400 px-2 py-0.5 rounded-full font-medium'>
                                 Needs Improvement
                               </span>
                             )}

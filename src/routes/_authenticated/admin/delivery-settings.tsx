@@ -232,12 +232,12 @@ function DeliverySettingsPage() {
       </Header>
 
       <Main>
-        <div className="mb-6 flex items-center justify-between">
+        <div className="flex items-center justify-between mb-6">
           <div>
             <h1 className="text-2xl font-bold tracking-tight">
               Delivery Settings
             </h1>
-            <p className="text-muted-foreground">
+            <p className="text-muted-foreground text-sm mt-1">
               Configure delivery fees, service charges, and driver commissions
             </p>
           </div>
@@ -267,7 +267,7 @@ function DeliverySettingsPage() {
 
         <div className="grid gap-6 md:grid-cols-2">
           {/* Gift Order Zone Fees */}
-          <Card>
+          <Card className="shadow-sm">
             <CardHeader>
               <div className="flex items-center gap-2">
                 <Gift className="h-5 w-5 text-pink-500" />
@@ -478,7 +478,7 @@ function DeliverySettingsPage() {
           </Card>
 
           {/* Vehicle-Specific Pricing */}
-          <Card>
+          <Card className="shadow-sm">
             <CardHeader>
               <div className="flex items-center gap-2 justify-between">
                 <div className="flex items-center gap-2">
@@ -508,7 +508,7 @@ function DeliverySettingsPage() {
             </CardHeader>
             <CardContent className="space-y-4">
               {/* Bike Pricing */}
-              <div className="p-4 bg-green-50 rounded-lg">
+              <div className="p-4 border rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors">
                 <div className="flex items-center gap-3 mb-3">
                   <div className="text-2xl">🏍️</div>
                   <div>
@@ -549,7 +549,7 @@ function DeliverySettingsPage() {
               </div>
 
               {/* Keke Cargo Pricing */}
-              <div className="p-4 bg-blue-50 rounded-lg">
+              <div className="p-4 border rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors">
                 <div className="flex items-center gap-3 mb-3">
                   <div className="text-2xl">🛺</div>
                   <div>
@@ -593,7 +593,7 @@ function DeliverySettingsPage() {
               </div>
 
               {/* Car Pricing */}
-              <div className="p-4 bg-orange-50 rounded-lg">
+              <div className="p-4 border rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors">
                 <div className="flex items-center gap-3 mb-3">
                   <div className="text-2xl">🚗</div>
                   <div>
@@ -634,7 +634,7 @@ function DeliverySettingsPage() {
               </div>
 
               {/* Van Pricing */}
-              <div className="p-4 bg-red-50 rounded-lg">
+              <div className="p-4 border rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors">
                 <div className="flex items-center gap-3 mb-3">
                   <div className="text-2xl">🚐</div>
                   <div>
@@ -675,7 +675,7 @@ function DeliverySettingsPage() {
               </div>
 
               {/* Lorry Pricing */}
-              <div className="p-4 bg-gray-50 rounded-lg">
+              <div className="p-4 border rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors">
                 <div className="flex items-center gap-3 mb-3">
                   <div className="text-2xl">🚚</div>
                   <div>
@@ -730,7 +730,7 @@ function DeliverySettingsPage() {
           </Card>
 
           {/* Hub-Based Distance Calculation */}
-          <Card className="md:col-span-2">
+          <Card className="md:col-span-2 shadow-sm">
             <CardHeader>
               <div className="flex items-center gap-2">
                 <MapPin className="h-5 w-5 text-purple-500" />
@@ -788,16 +788,16 @@ function DeliverySettingsPage() {
                 </div>
 
                 <div className="space-y-4">
-                  <div className="rounded-lg border bg-purple-50 p-4">
+                  <div className="rounded-lg border bg-muted/40 p-4">
                     <div className="flex items-start gap-3">
                       <Info className="h-5 w-5 text-purple-600 mt-0.5" />
                       <div className="space-y-2 text-sm">
-                        <p className="font-semibold text-purple-900">How Hub-Based Distance Works:</p>
-                        <ul className="space-y-1 text-purple-800 list-disc list-inside">
+                        <p className="font-semibold text-foreground">How Hub-Based Distance Works:</p>
+                        <ul className="space-y-1 text-muted-foreground list-disc list-inside">
                           <li><strong>Enabled:</strong> Distance = (Hub → Vendor) + (Vendor → Customer)</li>
                           <li><strong>Disabled:</strong> Distance = Vendor → Customer only</li>
                         </ul>
-                        <p className="text-purple-700 mt-2">
+                        <p className="text-muted-foreground mt-2">
                           Enable this because drivers start from the hub, pick up orders at vendors, then deliver to customers.
                         </p>
                       </div>
@@ -843,7 +843,7 @@ function DeliverySettingsPage() {
           </Card>
 
           {/* Express Delivery Pricing */}
-          <Card className="md:col-span-2">
+          <Card className="md:col-span-2 shadow-sm">
             <CardHeader>
               <div className="flex items-center gap-2">
                 <Zap className="h-5 w-5 text-amber-500" />
@@ -1098,7 +1098,7 @@ function DeliverySettingsPage() {
           </Card>
 
           {/* Fallback Delivery Fees */}
-          <Card>
+          <Card className="shadow-sm">
             <CardHeader>
               <div className="flex items-center gap-2">
                 <Truck className="h-5 w-5 text-blue-500" />
@@ -1221,7 +1221,7 @@ function DeliverySettingsPage() {
           </Card>
 
           {/* Service Fee & Driver Split */}
-          <Card>
+          <Card className="shadow-sm">
             <CardHeader>
               <div className="flex items-center gap-2">
                 <DollarSign className="h-5 w-5 text-yellow-500" />
@@ -1307,7 +1307,7 @@ function DeliverySettingsPage() {
           </Card>
 
           {/* No-Drivers Hours */}
-          <Card>
+          <Card className="shadow-sm">
             <CardHeader>
               <div className="flex items-center gap-2 justify-between">
                 <div className="flex items-center gap-2">
@@ -1392,13 +1392,13 @@ function DeliverySettingsPage() {
         </div>
 
         {/* Summary Card */}
-        <Card className="mt-6">
+        <Card className="mt-6 shadow-sm">
           <CardHeader>
             <CardTitle>Current Configuration Summary</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              <div className="p-4 bg-muted rounded-lg">
+              <div className="p-4 border rounded-lg hover:bg-muted/30 transition-colors">
                 <p className="text-sm text-muted-foreground">
                   Gift Order Pricing
                 </p>
@@ -1426,7 +1426,7 @@ function DeliverySettingsPage() {
                   </>
                 )}
               </div>
-              <div className="p-4 bg-muted rounded-lg">
+              <div className="p-4 border rounded-lg hover:bg-muted/30 transition-colors">
                 <p className="text-sm text-muted-foreground">
                   Express Service Fee
                 </p>
@@ -1437,7 +1437,7 @@ function DeliverySettingsPage() {
                   Express/custom delivery orders only
                 </p>
               </div>
-              <div className="p-4 bg-muted rounded-lg">
+              <div className="p-4 border rounded-lg hover:bg-muted/30 transition-colors">
                 <p className="text-sm text-muted-foreground">
                   Third-Party Driver Split
                 </p>

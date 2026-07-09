@@ -279,40 +279,36 @@ function DeliveryTownsPage() {
       <Main>
         <div className="space-y-6">
           {/* Header */}
-          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
-                <MapPin className="h-8 w-8" />
-                Delivery Towns Management
+              <h1 className="text-2xl font-bold tracking-tight">
+                Delivery Towns
               </h1>
-              <p className="text-muted-foreground mt-1">
+              <p className="text-muted-foreground text-sm mt-1">
                 Manage delivery locations for "Order for someone else" feature
               </p>
             </div>
-            <Button onClick={() => { resetForm(); setIsCreateOpen(true); }} className="gap-2">
-              <Plus className="h-4 w-4" />
+            <Button onClick={() => { resetForm(); setIsCreateOpen(true); }}>
+              <Plus className="mr-2 h-4 w-4" />
               Add New Town
             </Button>
           </div>
 
           {/* Filters */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Filters</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex flex-col gap-4 md:flex-row">
-                <div className="relative flex-1">
-                  <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+          <Card className="shadow-sm">
+            <CardContent className="pt-4 pb-4">
+              <div className="flex flex-wrap items-center gap-3">
+                <div className="relative flex-1 min-w-[200px]">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
                   <Input
                     placeholder="Search towns..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-10"
+                    className="pl-9 h-9"
                   />
                 </div>
                 <Select value={zoneFilter} onValueChange={setZoneFilter}>
-                  <SelectTrigger className="w-full md:w-[250px]">
+                  <SelectTrigger className="w-[180px] h-9">
                     <SelectValue placeholder="Filter by zone" />
                   </SelectTrigger>
                   <SelectContent>
@@ -328,34 +324,34 @@ function DeliveryTownsPage() {
 
           {/* Map View */}
           {!error && towns.length > 0 && (
-            <Card>
-              <CardHeader>
+            <Card className="shadow-sm overflow-hidden">
+              <CardHeader className="border-b pb-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <CardTitle className="flex items-center gap-2">
-                      <Map className="h-5 w-5" />
+                    <CardTitle className="text-base font-semibold flex items-center gap-2">
+                      <Map className="h-5 w-5 text-primary" />
                       Delivery Zones Map
                     </CardTitle>
                     <CardDescription>Visual overview of all delivery towns by zone</CardDescription>
                   </div>
-                  <div className="flex gap-3">
-                    <div className="flex items-center gap-2">
-                      <div className="w-4 h-4 rounded-full bg-green-500"></div>
-                      <span className="text-sm">Zone 1</span>
+                  <div className="flex gap-4">
+                    <div className="flex items-center gap-1.5">
+                      <div className="w-3 h-3 rounded-full bg-green-500 shrink-0"></div>
+                      <span className="text-xs text-muted-foreground">Zone 1</span>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <div className="w-4 h-4 rounded-full bg-blue-500"></div>
-                      <span className="text-sm">Zone 2</span>
+                    <div className="flex items-center gap-1.5">
+                      <div className="w-3 h-3 rounded-full bg-blue-500 shrink-0"></div>
+                      <span className="text-xs text-muted-foreground">Zone 2</span>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <div className="w-4 h-4 rounded-full bg-amber-500"></div>
-                      <span className="text-sm">Zone 3</span>
+                    <div className="flex items-center gap-1.5">
+                      <div className="w-3 h-3 rounded-full bg-amber-500 shrink-0"></div>
+                      <span className="text-xs text-muted-foreground">Zone 3</span>
                     </div>
                   </div>
                 </div>
               </CardHeader>
-              <CardContent>
-                <div className="h-[500px] w-full rounded-lg overflow-hidden border">
+              <CardContent className="p-0">
+                <div className="h-[500px] w-full overflow-hidden">
                   <DeliveryTownsMap towns={towns} />
                 </div>
               </CardContent>
@@ -363,89 +359,102 @@ function DeliveryTownsPage() {
           )}
 
           {/* Towns Table */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Delivery Towns ({towns.length})</CardTitle>
-              <CardDescription>All configured delivery locations</CardDescription>
+          <Card className="shadow-sm overflow-hidden">
+            <CardHeader className="border-b pb-4">
+              <div className="flex flex-wrap items-center gap-3">
+                <div>
+                  <CardTitle className="text-base font-semibold">Delivery Towns ({towns.length})</CardTitle>
+                  <CardDescription>All configured delivery locations</CardDescription>
+                </div>
+              </div>
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-0">
               {error && (
-                <div className="text-center py-8 text-red-600">
-                  <p className="font-semibold">Error loading delivery towns</p>
-                  <p className="text-sm mt-2">{error instanceof Error ? error.message : 'Unknown error'}</p>
-                  <Button onClick={() => queryClient.invalidateQueries({ queryKey: ["delivery-towns"] })} className="mt-4">
+                <div className="flex flex-col items-center justify-center py-20 text-center">
+                  <MapPin className="h-12 w-12 text-destructive mb-4 opacity-50" />
+                  <p className="font-semibold text-destructive">Error loading delivery towns</p>
+                  <p className="text-sm text-muted-foreground mt-1">{error instanceof Error ? error.message : 'Unknown error'}</p>
+                  <Button onClick={() => queryClient.invalidateQueries({ queryKey: ["delivery-towns"] })} className="mt-4" variant="outline">
                     Retry
                   </Button>
                 </div>
               )}
               {!error && isLoading ? (
-                <div className="text-center py-8 text-muted-foreground">Loading...</div>
+                <div className="flex flex-col items-center justify-center py-20">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mb-3" />
+                  <p className="text-sm text-muted-foreground">Loading towns...</p>
+                </div>
               ) : !error && towns.length === 0 ? (
-                <div className="text-center py-12">
-                  <MapPin className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                  <p className="text-muted-foreground">No delivery towns found</p>
+                <div className="flex flex-col items-center justify-center py-20 text-center">
+                  <MapPin className="h-12 w-12 text-muted-foreground mb-4 opacity-50" />
+                  <p className="text-lg font-medium">No delivery towns found</p>
+                  <p className="text-sm text-muted-foreground mt-1">Add a town to get started</p>
                 </div>
               ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Town Name</TableHead>
-                      <TableHead>Area</TableHead>
-                      <TableHead>Zone</TableHead>
-                      <TableHead>Coordinates</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead className="text-right">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {towns.map((town: DeliveryTown) => (
-                      <TableRow key={town.id}>
-                        <TableCell className="font-medium">{town.name}</TableCell>
-                        <TableCell>{town.area}</TableCell>
-                        <TableCell>
-                          <Badge variant={getZoneBadgeColor(town.deliveryZone)}>
-                            {getZoneLabel(town.deliveryZone)}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="font-mono text-xs">
-                          {town.latitude.toFixed(6)}, {town.longitude.toFixed(6)}
-                        </TableCell>
-                        <TableCell>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => toggleMutation.mutate(town.id)}
-                            className="gap-1"
-                          >
-                            {town.isActive ? (
-                              <>
-                                <ToggleRight className="h-4 w-4 text-green-600" />
-                                <span className="text-green-600">Active</span>
-                              </>
-                            ) : (
-                              <>
-                                <ToggleLeft className="h-4 w-4 text-gray-400" />
-                                <span className="text-gray-400">Inactive</span>
-                              </>
-                            )}
-                          </Button>
-                        </TableCell>
-                        <TableCell className="text-right space-x-2">
-                          <Button variant="ghost" size="sm" onClick={() => handleEdit(town)}>
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleDelete(town.id, town.name)}
-                          >
-                            <Trash2 className="h-4 w-4 text-red-600" />
-                          </Button>
-                        </TableCell>
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="bg-muted/50 hover:bg-muted/50">
+                        <TableHead>Town Name</TableHead>
+                        <TableHead>Area</TableHead>
+                        <TableHead>Zone</TableHead>
+                        <TableHead>Coordinates</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                    </TableHeader>
+                    <TableBody>
+                      {towns.map((town: DeliveryTown) => (
+                        <TableRow key={town.id} className="hover:bg-muted/30 transition-colors">
+                          <TableCell className="font-medium">{town.name}</TableCell>
+                          <TableCell className="text-muted-foreground">{town.area}</TableCell>
+                          <TableCell>
+                            <Badge variant={getZoneBadgeColor(town.deliveryZone)}>
+                              {getZoneLabel(town.deliveryZone)}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="font-mono text-xs text-muted-foreground">
+                            {town.latitude.toFixed(6)}, {town.longitude.toFixed(6)}
+                          </TableCell>
+                          <TableCell>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => toggleMutation.mutate(town.id)}
+                              className="gap-1 h-7 px-2"
+                            >
+                              {town.isActive ? (
+                                <>
+                                  <ToggleRight className="h-4 w-4 text-emerald-600" />
+                                  <span className="text-emerald-600 text-xs font-medium">Active</span>
+                                </>
+                              ) : (
+                                <>
+                                  <ToggleLeft className="h-4 w-4 text-muted-foreground" />
+                                  <span className="text-muted-foreground text-xs">Inactive</span>
+                                </>
+                              )}
+                            </Button>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex justify-end gap-1">
+                              <Button variant="ghost" size="sm" onClick={() => handleEdit(town)}>
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleDelete(town.id, town.name)}
+                              >
+                                <Trash2 className="h-4 w-4 text-destructive" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
               )}
             </CardContent>
           </Card>

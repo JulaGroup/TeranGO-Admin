@@ -553,57 +553,46 @@ function TeranProPage() {
       </Header>
 
       <Main>
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <Briefcase className="h-6 w-6" /> TeranPro Professional Services
-          </h1>
-          <p className="text-muted-foreground text-sm mt-1">
-            Manage professional service listings with GPS locations
-          </p>
+        <div className="space-y-6">
+        {/* Page Header */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight">TeranPro Professional Services</h1>
+            <p className="text-muted-foreground text-sm mt-1">
+              Manage professional service listings with GPS locations
+            </p>
+          </div>
         </div>
 
         {/* Stats cards */}
-        <div className="grid grid-cols-2 sm:grid-cols-5 gap-4 mb-6">
-          {[
-            {
-              label: "Total Services",
-              value: stats?.total ?? "—",
-              icon: Briefcase,
-            },
-            {
-              label: "Active",
-              value: stats?.active ?? "—",
-              icon: CheckCircle2,
-            },
-            { label: "Featured", value: stats?.featured ?? "—", icon: Star },
-            {
-              label: "Verified",
-              value: stats?.verified ?? "—",
-              icon: BadgeCheck,
-            },
-            {
-              label: "Categories",
-              value: stats?.categories ?? "—",
-              icon: Layers,
-            },
-          ].map(({ label, value, icon: Icon }) => (
-            <Card key={label}>
-              <CardContent className="pt-4 pb-3">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-xs text-muted-foreground">{label}</p>
+        {(() => {
+          const statDefs = [
+            { label: "Total Services", value: stats?.total ?? "—", icon: Briefcase, border: "border-l-primary", iconColor: "text-primary" },
+            { label: "Active", value: stats?.active ?? "—", icon: CheckCircle2, border: "border-l-emerald-500", iconColor: "text-emerald-500" },
+            { label: "Featured", value: stats?.featured ?? "—", icon: Star, border: "border-l-violet-500", iconColor: "text-violet-500" },
+            { label: "Verified", value: stats?.verified ?? "—", icon: BadgeCheck, border: "border-l-blue-500", iconColor: "text-blue-500" },
+            { label: "Categories", value: stats?.categories ?? "—", icon: Layers, border: "border-l-orange-500", iconColor: "text-orange-500" },
+          ];
+          return (
+            <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
+              {statDefs.map(({ label, value, icon: Icon, border, iconColor }) => (
+                <Card key={label} className={`border-l-4 ${border} shadow-sm`}>
+                  <CardHeader className="flex flex-row items-center justify-between pb-2">
+                    <CardTitle className="text-sm font-medium text-muted-foreground">{label}</CardTitle>
+                    <Icon className={`h-4 w-4 ${iconColor}`} />
+                  </CardHeader>
+                  <CardContent>
                     <p className="text-2xl font-bold">{value}</p>
-                  </div>
-                  <Icon className="h-5 w-5 text-muted-foreground" />
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          );
+        })()}
 
         {/* Tabs */}
         <Tabs defaultValue="services">
-          <TabsList className="mb-4">
+          <TabsList>
             <TabsTrigger value="services">
               <Briefcase className="h-4 w-4 mr-2" /> Services
             </TabsTrigger>
@@ -614,8 +603,8 @@ function TeranProPage() {
 
           {/* ── SERVICES TAB ─────────────────────────────────────────────────── */}
           <TabsContent value="services">
-            <Card>
-              <CardHeader>
+            <Card className="shadow-sm overflow-hidden">
+              <CardHeader className="border-b pb-4">
                 <div className="flex flex-col sm:flex-row gap-3 sm:items-center justify-between">
                   <CardTitle>Pro Services</CardTitle>
                   <Button size="sm" onClick={openCreateSvc}>
@@ -624,10 +613,10 @@ function TeranProPage() {
                 </div>
                 <div className="flex flex-wrap gap-2 mt-3">
                   <div className="relative flex-1 min-w-48">
-                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <Search className="absolute left-2.5 top-2 h-4 w-4 text-muted-foreground pointer-events-none" />
                     <Input
                       placeholder="Search services..."
-                      className="pl-9"
+                      className="pl-9 h-9"
                       value={svcSearch}
                       onChange={(e) => setSvcSearch(e.target.value)}
                     />
@@ -669,32 +658,34 @@ function TeranProPage() {
                   </Button>
                 </div>
               </CardHeader>
-              <CardContent>
+              <CardContent className="p-0">
                 {svcsLoading ? (
                   <div className="flex justify-center py-10">
                     <Loader2 className="h-6 w-6 animate-spin" />
                   </div>
                 ) : services.length === 0 ? (
-                  <div className="text-center py-10 text-muted-foreground">
-                    No services found
+                  <div className="py-20 text-center">
+                    <Briefcase className="h-10 w-10 mx-auto mb-3 opacity-50 text-muted-foreground" />
+                    <p className="text-muted-foreground font-medium">No services found</p>
+                    <p className="text-sm text-muted-foreground mt-1">Try adjusting your search or filters</p>
                   </div>
                 ) : (
                   <div className="overflow-x-auto">
                     <table className="w-full text-sm">
                       <thead>
-                        <tr className="border-b text-left">
-                          <th className="pb-2 font-medium">Service</th>
-                          <th className="pb-2 font-medium hidden md:table-cell">
+                        <tr className="border-b text-left bg-muted/50 hover:bg-muted/50">
+                          <th className="pb-2 pt-2 px-4 font-medium">Service</th>
+                          <th className="pb-2 pt-2 font-medium hidden md:table-cell">
                             Category
                           </th>
-                          <th className="pb-2 font-medium hidden md:table-cell">
+                          <th className="pb-2 pt-2 font-medium hidden md:table-cell">
                             Location
                           </th>
-                          <th className="pb-2 font-medium hidden lg:table-cell">
+                          <th className="pb-2 pt-2 font-medium hidden lg:table-cell">
                             Price
                           </th>
-                          <th className="pb-2 font-medium">Status</th>
-                          <th className="pb-2 font-medium text-right">
+                          <th className="pb-2 pt-2 font-medium">Status</th>
+                          <th className="pb-2 pt-2 font-medium text-right pr-4">
                             Actions
                           </th>
                         </tr>
@@ -703,9 +694,9 @@ function TeranProPage() {
                         {services.map((svc) => (
                           <tr
                             key={svc.id}
-                            className="border-b last:border-0 hover:bg-muted/30"
+                            className="border-b last:border-0 hover:bg-muted/30 transition-colors"
                           >
-                            <td className="py-3 pr-3">
+                            <td className="py-3 pl-4 pr-3">
                               <div className="flex items-center gap-3">
                                 {svc.imageUrls?.[0] ? (
                                   <img
@@ -747,23 +738,22 @@ function TeranProPage() {
                             </td>
                             <td className="py-3 pr-3">
                               <div className="flex flex-wrap gap-1">
-                                <Badge
-                                  className={cn(
-                                    "text-xs",
-                                    svc.isActive
-                                      ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
-                                      : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
-                                  )}
-                                >
-                                  {svc.isActive ? "Active" : "Inactive"}
-                                </Badge>
+                                {svc.isActive ? (
+                                  <Badge className="text-xs bg-emerald-500 hover:bg-emerald-600 text-white shadow-sm">
+                                    Active
+                                  </Badge>
+                                ) : (
+                                  <Badge variant="destructive" className="text-xs">
+                                    Inactive
+                                  </Badge>
+                                )}
                                 {svc.isFeatured && (
-                                  <Badge className="text-xs bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400">
+                                  <Badge className="text-xs border border-amber-400 text-amber-600 bg-amber-50 dark:bg-amber-950/20">
                                     Featured
                                   </Badge>
                                 )}
                                 {svc.isVerified && (
-                                  <Badge className="text-xs bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
+                                  <Badge className="text-xs border border-blue-400 text-blue-600 bg-blue-50 dark:bg-blue-950/20">
                                     Verified
                                   </Badge>
                                 )}
@@ -860,8 +850,8 @@ function TeranProPage() {
 
           {/* ── CATEGORIES TAB ───────────────────────────────────────────────── */}
           <TabsContent value="categories">
-            <Card>
-              <CardHeader>
+            <Card className="shadow-sm overflow-hidden">
+              <CardHeader className="border-b pb-4">
                 <div className="flex flex-col sm:flex-row gap-3 sm:items-center justify-between">
                   <CardTitle>Service Categories</CardTitle>
                   <Button size="sm" onClick={openCreateCat}>
@@ -870,31 +860,33 @@ function TeranProPage() {
                 </div>
                 <div className="flex gap-2 mt-3">
                   <div className="relative flex-1">
-                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <Search className="absolute left-2.5 top-2 h-4 w-4 text-muted-foreground pointer-events-none" />
                     <Input
                       placeholder="Search categories..."
-                      className="pl-9"
+                      className="pl-9 h-9"
                       value={catSearch}
                       onChange={(e) => setCatSearch(e.target.value)}
                     />
                   </div>
                 </div>
               </CardHeader>
-              <CardContent>
+              <CardContent className="pt-6">
                 {catsLoading ? (
                   <div className="flex justify-center py-10">
                     <Loader2 className="h-6 w-6 animate-spin" />
                   </div>
                 ) : filteredCategories.length === 0 ? (
-                  <div className="text-center py-10 text-muted-foreground">
-                    No categories found
+                  <div className="py-20 text-center">
+                    <Layers className="h-10 w-10 mx-auto mb-3 opacity-50 text-muted-foreground" />
+                    <p className="text-muted-foreground font-medium">No categories found</p>
+                    <p className="text-sm text-muted-foreground mt-1">Try adjusting your search</p>
                   </div>
                 ) : (
                   <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                     {filteredCategories.map((cat) => (
                       <div
                         key={cat.id}
-                        className="border rounded-lg p-4 flex flex-col gap-2 hover:bg-muted/30 transition-colors"
+                        className="border rounded-lg p-4 flex flex-col gap-2 hover:bg-muted/30 transition-colors shadow-sm hover:shadow-md"
                       >
                         <div className="flex items-start justify-between gap-2">
                           <div className="flex items-center gap-3">
@@ -951,16 +943,15 @@ function TeranProPage() {
                           </p>
                         )}
                         <div className="flex items-center gap-2">
-                          <Badge
-                            className={cn(
-                              "text-xs",
-                              cat.isActive
-                                ? "bg-green-100 text-green-700"
-                                : "bg-red-100 text-red-700",
-                            )}
-                          >
-                            {cat.isActive ? "Active" : "Inactive"}
-                          </Badge>
+                          {cat.isActive ? (
+                            <Badge className="text-xs bg-emerald-500 hover:bg-emerald-600 text-white shadow-sm">
+                              Active
+                            </Badge>
+                          ) : (
+                            <Badge variant="destructive" className="text-xs">
+                              Inactive
+                            </Badge>
+                          )}
                           <span className="text-xs text-muted-foreground">
                             Order: {cat.sortOrder}
                           </span>
@@ -973,6 +964,7 @@ function TeranProPage() {
             </Card>
           </TabsContent>
         </Tabs>
+        </div>
       </Main>
 
       {/* ── Category Form Dialog ─────────────────────────────────────────────── */}

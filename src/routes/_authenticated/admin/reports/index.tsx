@@ -12,6 +12,7 @@ import {
   BarChart3,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ConfigDrawer } from "@/components/config-drawer";
 import { Header } from "@/components/layout/header";
@@ -48,238 +49,152 @@ function ReportsPage() {
       <Main>
         <div className="space-y-6">
           {/* Header */}
-          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-bold tracking-tight">Reports</h1>
-              <p className="text-muted-foreground">
+              <h1 className="text-2xl font-bold tracking-tight">Reports</h1>
+              <p className="text-muted-foreground text-sm mt-1">
                 Generate and download comprehensive business reports
               </p>
             </div>
-            <Badge variant="secondary" className="w-fit">
-              <Clock className="mr-1 h-3 w-3" />
+            <Badge variant="secondary" className="gap-1">
+              <Clock className="h-3 w-3" />
               Coming Soon
             </Badge>
           </div>
 
           {/* Report Types Grid */}
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            <Card className="relative overflow-hidden">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">
-                  Sales Reports
-                </CardTitle>
-                <DollarSign className="text-muted-foreground h-4 w-4" />
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center justify-center py-8">
-                  <div className="text-center">
-                    <TrendingUp className="text-muted-foreground mx-auto h-12 w-12 opacity-50" />
-                    <p className="text-muted-foreground mt-2 text-sm">
-                      Revenue and sales analytics
-                    </p>
-                  </div>
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            <Card className="hover:shadow-md transition-shadow cursor-pointer group relative overflow-hidden">
+              <CardContent className="pt-5 flex items-center gap-4">
+                <div className="rounded-lg bg-green-500/10 p-3 group-hover:bg-green-500/20 transition-colors shrink-0">
+                  <DollarSign className="h-5 w-5 text-green-600" />
                 </div>
-                <div className="absolute inset-0 bg-gradient-to-br from-transparent via-transparent to-green-500/5" />
+                <div className="flex-1">
+                  <p className="font-semibold">Sales Reports</p>
+                  <p className="text-sm text-muted-foreground">Revenue and sales analytics</p>
+                </div>
+                <Button variant="outline" size="sm" disabled>Export</Button>
               </CardContent>
+              <div className="absolute inset-0 bg-gradient-to-br from-transparent via-transparent to-green-500/5 pointer-events-none" />
             </Card>
 
-            <Card className="relative overflow-hidden">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">
-                  Order Reports
-                </CardTitle>
-                <ShoppingCart className="text-muted-foreground h-4 w-4" />
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center justify-center py-8">
-                  <div className="text-center">
-                    <BarChart3 className="text-muted-foreground mx-auto h-12 w-12 opacity-50" />
-                    <p className="text-muted-foreground mt-2 text-sm">
-                      Order trends and fulfillment
-                    </p>
-                  </div>
+            <Card className="hover:shadow-md transition-shadow cursor-pointer group relative overflow-hidden">
+              <CardContent className="pt-5 flex items-center gap-4">
+                <div className="rounded-lg bg-blue-500/10 p-3 group-hover:bg-blue-500/20 transition-colors shrink-0">
+                  <ShoppingCart className="h-5 w-5 text-blue-600" />
                 </div>
-                <div className="absolute inset-0 bg-gradient-to-br from-transparent via-transparent to-blue-500/5" />
+                <div className="flex-1">
+                  <p className="font-semibold">Order Reports</p>
+                  <p className="text-sm text-muted-foreground">Order trends and fulfillment</p>
+                </div>
+                <Button variant="outline" size="sm" disabled>Export</Button>
               </CardContent>
+              <div className="absolute inset-0 bg-gradient-to-br from-transparent via-transparent to-blue-500/5 pointer-events-none" />
             </Card>
 
-            <Card className="relative overflow-hidden">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">
-                  Customer Reports
-                </CardTitle>
-                <Users className="text-muted-foreground h-4 w-4" />
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center justify-center py-8">
-                  <div className="text-center">
-                    <PieChart className="text-muted-foreground mx-auto h-12 w-12 opacity-50" />
-                    <p className="text-muted-foreground mt-2 text-sm">
-                      Customer insights and behavior
-                    </p>
-                  </div>
+            <Card className="hover:shadow-md transition-shadow cursor-pointer group relative overflow-hidden">
+              <CardContent className="pt-5 flex items-center gap-4">
+                <div className="rounded-lg bg-purple-500/10 p-3 group-hover:bg-purple-500/20 transition-colors shrink-0">
+                  <Users className="h-5 w-5 text-purple-600" />
                 </div>
-                <div className="absolute inset-0 bg-gradient-to-br from-transparent via-transparent to-purple-500/5" />
+                <div className="flex-1">
+                  <p className="font-semibold">Customer Reports</p>
+                  <p className="text-sm text-muted-foreground">Customer insights and behavior</p>
+                </div>
+                <Button variant="outline" size="sm" disabled>Export</Button>
               </CardContent>
+              <div className="absolute inset-0 bg-gradient-to-br from-transparent via-transparent to-purple-500/5 pointer-events-none" />
             </Card>
           </div>
 
           {/* Report Templates */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
+          <Card className="shadow-sm">
+            <CardHeader className="border-b pb-4">
+              <CardTitle className="text-base font-semibold flex items-center gap-2">
                 <FileText className="h-5 w-5" />
                 Available Report Templates
               </CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className="grid gap-6 md:grid-cols-2">
-                <div className="space-y-4">
-                  <div className="bg-muted/30 flex items-center justify-between rounded-lg border p-4">
-                    <div className="space-y-1">
-                      <h4 className="text-sm font-medium">
-                        Monthly Sales Summary
-                      </h4>
-                      <p className="text-muted-foreground text-xs">
-                        Comprehensive monthly revenue and order analysis
-                      </p>
+            <CardContent className="pt-6">
+              <div className="grid gap-3 md:grid-cols-2">
+                {[
+                  { title: "Monthly Sales Summary", desc: "Comprehensive monthly revenue and order analysis" },
+                  { title: "Financial Overview", desc: "Complete financial statements and P&L" },
+                  { title: "Vendor Performance", desc: "Detailed vendor metrics and KPI analysis" },
+                  { title: "Delivery Analytics", desc: "Driver performance and delivery times" },
+                  { title: "Customer Analytics", desc: "Customer segmentation and lifetime value" },
+                  { title: "Inventory Reports", desc: "Stock levels and product performance" },
+                ].map((report) => (
+                  <div
+                    key={report.title}
+                    className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/30 transition-colors group"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="rounded-md bg-primary/10 p-2 group-hover:bg-primary/20 transition-colors">
+                        <BarChart3 className="h-4 w-4 text-primary" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium">{report.title}</p>
+                        <p className="text-xs text-muted-foreground mt-0.5">{report.desc}</p>
+                      </div>
                     </div>
-                    <Download className="text-muted-foreground h-4 w-4 opacity-50" />
+                    <Button variant="outline" size="sm" disabled className="shrink-0 ml-3">
+                      <Download className="h-3.5 w-3.5 mr-1" />
+                      Export
+                    </Button>
                   </div>
-
-                  <div className="bg-muted/30 flex items-center justify-between rounded-lg border p-4">
-                    <div className="space-y-1">
-                      <h4 className="text-sm font-medium">
-                        Vendor Performance
-                      </h4>
-                      <p className="text-muted-foreground text-xs">
-                        Detailed vendor metrics and KPI analysis
-                      </p>
-                    </div>
-                    <Download className="text-muted-foreground h-4 w-4 opacity-50" />
-                  </div>
-
-                  <div className="bg-muted/30 flex items-center justify-between rounded-lg border p-4">
-                    <div className="space-y-1">
-                      <h4 className="text-sm font-medium">
-                        Customer Analytics
-                      </h4>
-                      <p className="text-muted-foreground text-xs">
-                        Customer segmentation and lifetime value
-                      </p>
-                    </div>
-                    <Download className="text-muted-foreground h-4 w-4 opacity-50" />
-                  </div>
-                </div>
-
-                <div className="space-y-4">
-                  <div className="bg-muted/30 flex items-center justify-between rounded-lg border p-4">
-                    <div className="space-y-1">
-                      <h4 className="text-sm font-medium">
-                        Financial Overview
-                      </h4>
-                      <p className="text-muted-foreground text-xs">
-                        Complete financial statements and P&L
-                      </p>
-                    </div>
-                    <Download className="text-muted-foreground h-4 w-4 opacity-50" />
-                  </div>
-
-                  <div className="bg-muted/30 flex items-center justify-between rounded-lg border p-4">
-                    <div className="space-y-1">
-                      <h4 className="text-sm font-medium">
-                        Delivery Analytics
-                      </h4>
-                      <p className="text-muted-foreground text-xs">
-                        Driver performance and delivery times
-                      </p>
-                    </div>
-                    <Download className="text-muted-foreground h-4 w-4 opacity-50" />
-                  </div>
-
-                  <div className="bg-muted/30 flex items-center justify-between rounded-lg border p-4">
-                    <div className="space-y-1">
-                      <h4 className="text-sm font-medium">Inventory Reports</h4>
-                      <p className="text-muted-foreground text-xs">
-                        Stock levels and product performance
-                      </p>
-                    </div>
-                    <Download className="text-muted-foreground h-4 w-4 opacity-50" />
-                  </div>
-                </div>
+                ))}
               </div>
             </CardContent>
           </Card>
 
           {/* Features Coming Soon */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
+          <Card className="shadow-sm">
+            <CardHeader className="border-b pb-4">
+              <CardTitle className="text-base font-semibold flex items-center gap-2">
                 <Calendar className="h-5 w-5" />
                 Upcoming Report Features
               </CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="pt-6">
               <div className="grid gap-4 md:grid-cols-2">
-                <div className="space-y-2">
-                  <h4 className="text-sm font-medium">Automated Scheduling</h4>
-                  <p className="text-muted-foreground text-sm">
-                    Schedule reports to be generated and sent automatically
-                  </p>
-                </div>
-                <div className="space-y-2">
-                  <h4 className="text-sm font-medium">Custom Templates</h4>
-                  <p className="text-muted-foreground text-sm">
-                    Create your own report templates with custom metrics
-                  </p>
-                </div>
-                <div className="space-y-2">
-                  <h4 className="text-sm font-medium">Export Formats</h4>
-                  <p className="text-muted-foreground text-sm">
-                    Download reports in PDF, Excel, CSV, and PowerPoint formats
-                  </p>
-                </div>
-                <div className="space-y-2">
-                  <h4 className="text-sm font-medium">Data Filters</h4>
-                  <p className="text-muted-foreground text-sm">
-                    Advanced filtering options by date, region, vendor, and more
-                  </p>
-                </div>
-                <div className="space-y-2">
-                  <h4 className="text-sm font-medium">Email Distribution</h4>
-                  <p className="text-muted-foreground text-sm">
-                    Automatically email reports to stakeholders
-                  </p>
-                </div>
-                <div className="space-y-2">
-                  <h4 className="text-sm font-medium">Interactive Charts</h4>
-                  <p className="text-muted-foreground text-sm">
-                    Dynamic visualizations and drill-down capabilities
-                  </p>
-                </div>
+                {[
+                  { title: "Automated Scheduling", desc: "Schedule reports to be generated and sent automatically" },
+                  { title: "Custom Templates", desc: "Create your own report templates with custom metrics" },
+                  { title: "Export Formats", desc: "Download reports in PDF, Excel, CSV, and PowerPoint formats" },
+                  { title: "Data Filters", desc: "Advanced filtering options by date, region, vendor, and more" },
+                  { title: "Email Distribution", desc: "Automatically email reports to stakeholders" },
+                  { title: "Interactive Charts", desc: "Dynamic visualizations and drill-down capabilities" },
+                ].map((feature) => (
+                  <div key={feature.title} className="flex items-start gap-3">
+                    <div className="rounded-full bg-primary/10 p-1.5 mt-0.5 shrink-0">
+                      <div className="h-1.5 w-1.5 rounded-full bg-primary" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium">{feature.title}</p>
+                      <p className="text-sm text-muted-foreground mt-0.5">{feature.desc}</p>
+                    </div>
+                  </div>
+                ))}
               </div>
             </CardContent>
           </Card>
 
-          {/* Call to Action */}
-          <Card className="border-orange-200 bg-gradient-to-r from-orange-50 to-red-50 dark:border-orange-800 dark:from-orange-950/50 dark:to-red-950/50">
-            <CardContent className="p-6 text-center">
-              <FileText className="mx-auto mb-4 h-16 w-16 text-orange-500" />
-              <h3 className="mb-2 text-lg font-semibold">
-                Comprehensive Reports Coming Soon
-              </h3>
-              <p className="text-muted-foreground mx-auto mb-4 max-w-2xl">
-                We're building powerful reporting tools to help you generate
-                insights from your data. Export detailed reports, schedule
-                automated delivery, and get the analytics you need to make
-                informed decisions.
-              </p>
-              <Badge variant="outline" className="bg-white dark:bg-gray-900">
-                <Clock className="mr-1 h-3 w-3" />
-                In Development
-              </Badge>
-            </CardContent>
-          </Card>
+          {/* Coming Soon Placeholder */}
+          <div className="flex flex-col items-center justify-center py-20 text-center border rounded-xl bg-muted/20">
+            <div className="rounded-full bg-primary/10 p-6 mb-6">
+              <TrendingUp className="h-12 w-12 text-primary" />
+            </div>
+            <h2 className="text-xl font-semibold mb-2">Comprehensive Reports Coming Soon</h2>
+            <p className="text-sm text-muted-foreground max-w-md">
+              We're building powerful reporting tools to help you generate insights from your data.
+              Export detailed reports, schedule automated delivery, and get the analytics you need.
+            </p>
+            <Badge variant="outline" className="mt-6 bg-background">
+              <Clock className="mr-1 h-3 w-3" />
+              In Development
+            </Badge>
+          </div>
         </div>
       </Main>
     </>

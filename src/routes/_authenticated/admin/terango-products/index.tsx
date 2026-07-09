@@ -475,66 +475,71 @@ function TerangoProductsPage() {
 
       {/* Stats Cards */}
       <div className="grid gap-4 md:grid-cols-5">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
+        <Card className="border-l-4 border-l-primary shadow-sm">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
               Total Products
             </CardTitle>
-            <Package className="text-muted-foreground h-4 w-4" />
+            <Package className="text-primary h-4 w-4" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
               {stats?.totalProducts || 0}
             </div>
+            <p className="text-xs text-muted-foreground mt-1">All products</p>
           </CardContent>
         </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Available</CardTitle>
-            <CheckCircle className="h-4 w-4 text-green-500" />
+        <Card className="border-l-4 border-l-emerald-500 shadow-sm">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Available</CardTitle>
+            <CheckCircle className="h-4 w-4 text-emerald-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">
+            <div className="text-2xl font-bold">
               {stats?.availableProducts || 0}
             </div>
+            <p className="text-xs text-muted-foreground mt-1">In stock</p>
           </CardContent>
         </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Out of Stock</CardTitle>
-            <XCircle className="h-4 w-4 text-red-500" />
+        <Card className="border-l-4 border-l-orange-500 shadow-sm">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Out of Stock</CardTitle>
+            <XCircle className="h-4 w-4 text-orange-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-red-600">
+            <div className="text-2xl font-bold">
               {stats?.outOfStockProducts || 0}
             </div>
+            <p className="text-xs text-muted-foreground mt-1">Need restocking</p>
           </CardContent>
         </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Featured</CardTitle>
-            <Star className="h-4 w-4 text-yellow-500" />
+        <Card className="border-l-4 border-l-violet-500 shadow-sm">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Featured</CardTitle>
+            <Star className="h-4 w-4 text-violet-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-yellow-600">
+            <div className="text-2xl font-bold">
               {stats?.featuredProducts || 0}
             </div>
+            <p className="text-xs text-muted-foreground mt-1">Priority placement</p>
           </CardContent>
         </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Stock</CardTitle>
-            <Box className="text-muted-foreground h-4 w-4" />
+        <Card className="border-l-4 border-l-blue-500 shadow-sm">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Total Stock</CardTitle>
+            <Box className="h-4 w-4 text-blue-500" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats?.totalStock || 0}</div>
+            <p className="text-xs text-muted-foreground mt-1">Units available</p>
           </CardContent>
         </Card>
       </div>
 
       {/* Filters */}
-      <Card>
-        <CardHeader>
+      <Card className="shadow-sm overflow-hidden">
+        <CardHeader className="border-b pb-4">
           <CardTitle>Products</CardTitle>
           <CardDescription>
             Products sold directly by TeranGO with priority placement
@@ -545,12 +550,12 @@ function TerangoProductsPage() {
             {/* Row 1: Search + main filters */}
             <div className="flex flex-wrap gap-3">
               <div className="relative min-w-[200px] flex-1">
-                <Search className="text-muted-foreground absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
                 <Input
                   placeholder="Search products..."
                   value={searchQuery}
                   onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
-                  className="pl-10"
+                  className="pl-9 h-9"
                 />
               </div>
               <Select
@@ -748,9 +753,10 @@ function TerangoProductsPage() {
               <RefreshCw className="h-6 w-6 animate-spin" />
             </div>
           ) : products.length > 0 ? (
+            <div className="overflow-x-auto">
             <Table>
               <TableHeader>
-                <TableRow>
+                <TableRow className="bg-muted/50 hover:bg-muted/50">
                   <TableHead>Product</TableHead>
                   <TableHead>Price</TableHead>
                   <TableHead>Stock</TableHead>
@@ -763,7 +769,7 @@ function TerangoProductsPage() {
               </TableHeader>
               <TableBody>
                 {products.map((product: TerangoProduct) => (
-                  <TableRow key={product.id}>
+                  <TableRow key={product.id} className="hover:bg-muted/30 transition-colors">
                     <TableCell>
                       <div className="flex items-center gap-3">
                         {product.imageUrl ? (
@@ -805,6 +811,11 @@ function TerangoProductsPage() {
                     </TableCell>
                     <TableCell>
                       <Badge
+                        className={
+                          product.stock && product.stock > 0
+                            ? "bg-emerald-500 hover:bg-emerald-600 text-white shadow-sm"
+                            : ""
+                        }
                         variant={
                           product.stock && product.stock > 0
                             ? "default"
@@ -822,6 +833,7 @@ function TerangoProductsPage() {
                     </TableCell>
                     <TableCell>
                       <Badge
+                        className={product.isAvailable ? "bg-emerald-500 hover:bg-emerald-600 text-white shadow-sm" : ""}
                         variant={product.isAvailable ? "default" : "secondary"}
                       >
                         {product.isAvailable ? "Available" : "Unavailable"}
@@ -881,11 +893,12 @@ function TerangoProductsPage() {
                 ))}
               </TableBody>
             </Table>
+            </div>
           ) : (
-            <div className="flex flex-col items-center justify-center py-12">
-              <Crown className="text-muted-foreground mb-4 h-16 w-16" />
-              <h3 className="text-lg font-medium">No Official Products Yet</h3>
-              <p className="text-muted-foreground mt-1">
+            <div className="flex flex-col items-center justify-center py-20 text-center">
+              <Crown className="h-12 w-12 text-muted-foreground mb-4 opacity-50" />
+              <p className="text-lg font-medium">No Official Products Yet</p>
+              <p className="text-sm text-muted-foreground mt-1">
                 Click "Setup Store" first, then add products to sell directly
                 from TeranGO
               </p>

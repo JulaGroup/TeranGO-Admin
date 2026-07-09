@@ -442,9 +442,20 @@ function TerangoStoreOrders() {
   const getStatusBadge = (status: string) => {
     const statusConfig = ORDER_STATUSES.find((s) => s.value === status);
     const Icon = statusConfig?.icon || Package;
+    const colorMap: Record<string, string> = {
+      PENDING: "border-amber-400 text-amber-600 bg-amber-50 dark:bg-amber-950/20",
+      ACCEPTED: "border-blue-400 text-blue-600 bg-blue-50 dark:bg-blue-950/20",
+      PROCESSING: "border-blue-400 text-blue-600 bg-blue-50 dark:bg-blue-950/20",
+      PREPARING: "border-violet-400 text-violet-600 bg-violet-50 dark:bg-violet-950/20",
+      READY: "bg-emerald-500 text-white shadow-sm border-emerald-500",
+      DISPATCHED: "border-blue-400 text-blue-600 bg-blue-50 dark:bg-blue-950/20",
+      DELIVERED: "bg-emerald-500 text-white shadow-sm border-emerald-500",
+      CANCELLED: "bg-destructive text-destructive-foreground",
+    };
     return (
       <Badge
-        className={`${statusConfig?.color || "bg-gray-500"} flex items-center gap-1`}
+        variant="outline"
+        className={`flex items-center gap-1 ${colorMap[status] || "bg-gray-100 text-gray-700"}`}
       >
         <Icon className="h-3 w-3" />
         {statusConfig?.label || status}
@@ -552,77 +563,87 @@ function TerangoStoreOrders() {
 
           {/* Stats Cards */}
           <div className="grid gap-4 md:grid-cols-5">
-            <Card>
-              <CardHeader className="pb-2">
+            <Card className="border-l-4 border-l-primary shadow-sm">
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <CardTitle className="text-muted-foreground text-sm font-medium">
                   Total Orders
                 </CardTitle>
+                <ShoppingBag className="h-4 w-4 text-primary" />
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">{stats.total}</div>
+                <p className="text-xs text-muted-foreground mt-1">All time</p>
               </CardContent>
             </Card>
-            <Card className="border-yellow-200 bg-yellow-50/50 dark:border-yellow-800 dark:bg-yellow-900/10">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-yellow-700 dark:text-yellow-500">
+            <Card className="border-l-4 border-l-orange-500 shadow-sm">
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
                   Pending
                 </CardTitle>
+                <Clock className="h-4 w-4 text-orange-500" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-yellow-700 dark:text-yellow-500">
+                <div className="text-2xl font-bold text-orange-600">
                   {stats.pending}
                 </div>
+                <p className="text-xs text-muted-foreground mt-1">Needs attention</p>
               </CardContent>
             </Card>
-            <Card>
-              <CardHeader className="pb-2">
+            <Card className="border-l-4 border-l-violet-500 shadow-sm">
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <CardTitle className="text-muted-foreground text-sm font-medium">
                   Preparing
                 </CardTitle>
+                <ChefHat className="h-4 w-4 text-violet-500" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-purple-600">
+                <div className="text-2xl font-bold text-violet-600">
                   {stats.preparing}
                 </div>
+                <p className="text-xs text-muted-foreground mt-1">In progress</p>
               </CardContent>
             </Card>
-            <Card>
-              <CardHeader className="pb-2">
+            <Card className="border-l-4 border-l-blue-500 shadow-sm">
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <CardTitle className="text-muted-foreground text-sm font-medium">
                   Ready
                 </CardTitle>
+                <Package className="h-4 w-4 text-blue-500" />
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold text-blue-600">
                   {stats.ready}
                 </div>
+                <p className="text-xs text-muted-foreground mt-1">Awaiting dispatch</p>
               </CardContent>
             </Card>
-            <Card>
-              <CardHeader className="pb-2">
+            <Card className="border-l-4 border-l-emerald-500 shadow-sm">
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <CardTitle className="text-muted-foreground text-sm font-medium">
                   Delivered
                 </CardTitle>
+                <CheckCircle className="h-4 w-4 text-emerald-500" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-green-600">
+                <div className="text-2xl font-bold text-emerald-600">
                   {stats.delivered}
                 </div>
+                <p className="text-xs text-muted-foreground mt-1">Completed</p>
               </CardContent>
             </Card>
           </div>
 
           {/* Filters */}
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex flex-col gap-4 md:flex-row md:items-center">
+          <Card className="shadow-sm">
+            <CardContent className="pt-4 pb-4">
+              <div className="flex flex-col gap-3 md:flex-row md:items-center">
                 <div className="relative flex-1">
-                  <Search className="text-muted-foreground absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2" />
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
                   <Input
                     placeholder="Search orders by number, customer name or phone..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-10"
+                    className="pl-9 h-9"
                   />
                 </div>
                 <div className="flex items-center gap-2">
@@ -646,17 +667,18 @@ function TerangoStoreOrders() {
           </Card>
 
           {/* Orders Table */}
-          <Card>
-            <CardContent className="pt-6">
+          <Card className="shadow-sm overflow-hidden">
+            <CardContent className="p-0">
               {isLoading ? (
-                <div className="flex justify-center py-8">
+                <div className="flex justify-center py-12">
                   <RefreshCw className="text-muted-foreground h-8 w-8 animate-spin" />
                 </div>
               ) : filteredOrders.length > 0 ? (
                 <>
+                  <div className="overflow-x-auto">
                   <Table>
                     <TableHeader>
-                      <TableRow>
+                      <TableRow className="bg-muted/50 hover:bg-muted/50">
                         <TableHead>Order #</TableHead>
                         <TableHead>Customer</TableHead>
                         <TableHead>Items</TableHead>
@@ -670,7 +692,7 @@ function TerangoStoreOrders() {
                     </TableHeader>
                     <TableBody>
                       {filteredOrders.map((order) => (
-                        <TableRow key={order.id}>
+                        <TableRow key={order.id} className="hover:bg-muted/30 transition-colors">
                           <TableCell className="font-medium">
                             #{order.orderNumber}
                           </TableCell>
@@ -751,10 +773,11 @@ function TerangoStoreOrders() {
                       ))}
                     </TableBody>
                   </Table>
+                  </div>
 
                   {/* Pagination */}
                   {pagination.pages > 1 && (
-                    <div className="flex items-center justify-center gap-2 pt-4">
+                    <div className="flex items-center justify-center gap-2 p-4 border-t">
                       <Button
                         variant="outline"
                         size="sm"
@@ -778,8 +801,10 @@ function TerangoStoreOrders() {
                   )}
                 </>
               ) : (
-                <div className="text-muted-foreground py-8 text-center">
-                  No orders found
+                <div className="flex flex-col items-center justify-center py-20 text-center">
+                  <ShoppingBag className="h-12 w-12 text-muted-foreground mb-4 opacity-50" />
+                  <p className="text-lg font-medium">No orders found</p>
+                  <p className="text-sm text-muted-foreground mt-1">Try adjusting your search or filter</p>
                 </div>
               )}
             </CardContent>

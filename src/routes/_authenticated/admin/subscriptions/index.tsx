@@ -30,11 +30,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { 
-  Search, 
-  TrendingUp, 
-  Users, 
-  DollarSign, 
+import {
+  Search,
+  TrendingUp,
+  Users,
+  DollarSign,
   Package,
   Crown,
   Gift,
@@ -312,13 +312,13 @@ function AdminSubscriptionsPage() {
   };
 
   const filteredSubscriptions = subscriptionsData?.filter((sub) => {
-    const matchesSearch = 
+    const matchesSearch =
       sub.vendor.businessName.toLowerCase().includes(searchQuery.toLowerCase()) ||
       sub.vendor.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
       sub.package.displayName.toLowerCase().includes(searchQuery.toLowerCase());
-    
+
     const matchesStatus = statusFilter === "all" || sub.status === statusFilter;
-    
+
     return matchesSearch && matchesStatus;
   });
 
@@ -357,13 +357,13 @@ function AdminSubscriptionsPage() {
     <div className="container mx-auto p-6 space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div className="space-y-2">
-          <h1 className="text-3xl font-bold tracking-tight">Subscription Management</h1>
-          <p className="text-muted-foreground">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Subscription Management</h1>
+          <p className="text-muted-foreground text-sm mt-1">
             Monitor and manage all vendor subscriptions
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex gap-2">
           <Button
             onClick={() => forceTrialAllMutation.mutate()}
             variant="outline"
@@ -379,9 +379,74 @@ function AdminSubscriptionsPage() {
         </div>
       </div>
 
+      {/* Stats Cards */}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <Card className="border-l-4 border-l-primary shadow-sm">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Total Subscriptions
+            </CardTitle>
+            <Users className="h-4 w-4 text-primary" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.total}</div>
+            <p className="text-xs text-muted-foreground mt-1">
+              All active and inactive
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="border-l-4 border-l-emerald-500 shadow-sm">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Active Subscriptions
+            </CardTitle>
+            <CheckCircle className="h-4 w-4 text-emerald-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.active}</div>
+            <p className="text-xs text-muted-foreground mt-1">
+              Currently paying
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="border-l-4 border-l-blue-500 shadow-sm">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Free Trials
+            </CardTitle>
+            <Gift className="h-4 w-4 text-blue-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.trial}</div>
+            <p className="text-xs text-muted-foreground mt-1">
+              30-day trials
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="border-l-4 border-l-violet-500 shadow-sm">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Monthly Revenue
+            </CardTitle>
+            <DollarSign className="h-4 w-4 text-violet-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              GMD {stats.revenue.toLocaleString()}
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              From paid plans
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+
       {/* Subscription Packages */}
-      <Card>
-        <CardHeader>
+      <Card className="shadow-sm overflow-hidden">
+        <CardHeader className="border-b pb-4">
           <div className="flex items-start justify-between gap-4">
             <div className="space-y-1">
               <CardTitle>Subscription Packages</CardTitle>
@@ -395,7 +460,7 @@ function AdminSubscriptionsPage() {
                 </Button>
               </DialogTrigger>
               <DialogContent className="max-w-2xl">
-                <DialogHeader>
+                <DialogHeader className="border-b pb-4 mb-2">
                   <DialogTitle>
                     {editingPackage ? "Edit Package" : "Create Package"}
                   </DialogTitle>
@@ -671,14 +736,16 @@ function AdminSubscriptionsPage() {
             </Dialog>
           </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-0">
           {loadingPackages ? (
-            <div className="text-muted-foreground">Loading packages...</div>
+            <div className="flex items-center justify-center py-10">
+              <p className="text-muted-foreground">Loading packages...</p>
+            </div>
           ) : (
-            <div className="rounded-md border">
+            <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
-                  <TableRow>
+                  <TableRow className="bg-muted/50 hover:bg-muted/50">
                     <TableHead>Order</TableHead>
                     <TableHead>Package</TableHead>
                     <TableHead>Status</TableHead>
@@ -690,7 +757,7 @@ function AdminSubscriptionsPage() {
                 <TableBody>
                   {packagesData && packagesData.length > 0 ? (
                     packagesData.map((pkg) => (
-                      <TableRow key={pkg.id} className="hover:bg-muted/50">
+                      <TableRow key={pkg.id} className="hover:bg-muted/30 transition-colors">
                         <TableCell className="text-muted-foreground">
                           {pkg.displayOrder}
                         </TableCell>
@@ -702,11 +769,11 @@ function AdminSubscriptionsPage() {
                         </TableCell>
                         <TableCell>
                           {pkg.isActive ? (
-                            <Badge variant="default" className="bg-green-100 text-green-700">
+                            <Badge className="bg-emerald-500 hover:bg-emerald-600 text-white shadow-sm">
                               Active
                             </Badge>
                           ) : (
-                            <Badge variant="outline">Inactive</Badge>
+                            <Badge variant="destructive">Inactive</Badge>
                           )}
                         </TableCell>
                         <TableCell className="text-muted-foreground">
@@ -738,10 +805,11 @@ function AdminSubscriptionsPage() {
                     ))
                   ) : (
                     <TableRow>
-                      <TableCell colSpan={6} className="text-center py-10">
-                        <div className="text-muted-foreground">
-                          <Package className="h-10 w-10 mx-auto mb-3 opacity-20" />
-                          <p>No packages found</p>
+                      <TableCell colSpan={6} className="text-center py-16">
+                        <div className="flex flex-col items-center justify-center text-center">
+                          <Package className="h-12 w-12 text-muted-foreground mb-4 opacity-50" />
+                          <p className="text-lg font-medium">No packages found</p>
+                          <p className="text-sm text-muted-foreground mt-1">Create your first subscription package</p>
                         </div>
                       </TableCell>
                     </TableRow>
@@ -753,88 +821,29 @@ function AdminSubscriptionsPage() {
         </CardContent>
       </Card>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card className="hover:shadow-lg transition-shadow">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Total Subscriptions
-            </CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.total}</div>
-            <p className="text-xs text-muted-foreground mt-1">
-              All active and inactive
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card className="hover:shadow-lg transition-shadow border-green-200">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Active Subscriptions
-            </CardTitle>
-            <CheckCircle className="h-4 w-4 text-green-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-600">{stats.active}</div>
-            <p className="text-xs text-muted-foreground mt-1">
-              Currently paying
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card className="hover:shadow-lg transition-shadow border-blue-200">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Free Trials
-            </CardTitle>
-            <Gift className="h-4 w-4 text-blue-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-blue-600">{stats.trial}</div>
-            <p className="text-xs text-muted-foreground mt-1">
-              30-day trials
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card className="hover:shadow-lg transition-shadow border-purple-200">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Monthly Revenue
-            </CardTitle>
-            <DollarSign className="h-4 w-4 text-purple-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-purple-600">
-              GMD {stats.revenue.toLocaleString()}
+      {/* Vendor Subscriptions Table */}
+      <Card className="shadow-sm overflow-hidden">
+        <CardHeader className="border-b pb-4">
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="flex-1 min-w-0">
+              <CardTitle>Vendor Subscriptions</CardTitle>
+              <CardDescription className="mt-1">
+                All active and inactive vendor subscription records
+              </CardDescription>
             </div>
-            <p className="text-xs text-muted-foreground mt-1">
-              From paid plans
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Filters and Search */}
-      <Card>
-        <CardHeader>
-          <div className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
-            <div className="flex items-center gap-2 flex-1 max-w-md">
-              <Search className="h-5 w-5 text-muted-foreground" />
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
               <Input
-                placeholder="Search by vendor, email, or package..."
+                className="pl-9 h-9 w-[260px]"
+                placeholder="Search vendor, email, package..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="flex-1"
               />
             </div>
             <div className="flex items-center gap-2">
               <Filter className="h-4 w-4 text-muted-foreground" />
               <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-[180px]">
+                <SelectTrigger className="h-9 w-[160px]">
                   <SelectValue placeholder="Filter by status" />
                 </SelectTrigger>
                 <SelectContent>
@@ -848,11 +857,11 @@ function AdminSubscriptionsPage() {
             </div>
           </div>
         </CardHeader>
-        <CardContent>
-          <div className="rounded-md border">
+        <CardContent className="p-0">
+          <div className="overflow-x-auto">
             <Table>
               <TableHeader>
-                <TableRow>
+                <TableRow className="bg-muted/50 hover:bg-muted/50">
                   <TableHead>Vendor</TableHead>
                   <TableHead>Package</TableHead>
                   <TableHead>Status</TableHead>
@@ -869,9 +878,9 @@ function AdminSubscriptionsPage() {
                     const PackageIcon = getPackageIcon(sub.package.name);
                     const daysLeft = getDaysRemaining(sub.endDate);
                     const isExpiringSoon = daysLeft < 7 && daysLeft > 0;
-                    
+
                     return (
-                      <TableRow key={sub.id} className="hover:bg-muted/50">
+                      <TableRow key={sub.id} className="hover:bg-muted/30 transition-colors">
                         <TableCell>
                           <div className="space-y-1">
                             <div className="font-medium">{sub.vendor.businessName}</div>
@@ -888,16 +897,20 @@ function AdminSubscriptionsPage() {
                         </TableCell>
                         <TableCell>
                           <Badge
-                            variant={
+                            className={
                               sub.status === "ACTIVE"
-                                ? "default"
+                                ? "bg-emerald-500 hover:bg-emerald-600 text-white shadow-sm flex items-center gap-1 w-fit"
                                 : sub.status === "TRIAL"
-                                ? "secondary"
+                                ? "border-amber-400 text-amber-600 bg-amber-50 dark:bg-amber-950/20 flex items-center gap-1 w-fit"
+                                : undefined
+                            }
+                            variant={
+                              sub.status === "ACTIVE" || sub.status === "TRIAL"
+                                ? undefined
                                 : sub.status === "EXPIRED"
                                 ? "destructive"
                                 : "outline"
                             }
-                            className="flex items-center gap-1 w-fit"
                           >
                             {sub.status === "ACTIVE" && <CheckCircle className="h-3 w-3" />}
                             {sub.status === "EXPIRED" && <XCircle className="h-3 w-3" />}
@@ -907,11 +920,11 @@ function AdminSubscriptionsPage() {
                         </TableCell>
                         <TableCell>
                           {sub.isTrial ? (
-                            <Badge variant="secondary" className="bg-blue-100 text-blue-700">
+                            <Badge className="border-amber-400 text-amber-600 bg-amber-50 dark:bg-amber-950/20">
                               Trial
                             </Badge>
                           ) : (
-                            <Badge variant="default" className="bg-green-100 text-green-700">
+                            <Badge className="bg-emerald-500 hover:bg-emerald-600 text-white shadow-sm">
                               Paid
                             </Badge>
                           )}
@@ -957,17 +970,19 @@ function AdminSubscriptionsPage() {
                   })
                 ) : (
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center py-12">
-                      <div className="text-muted-foreground">
+                    <TableCell colSpan={8} className="text-center py-20">
+                      <div className="flex flex-col items-center justify-center text-center">
                         {searchQuery || statusFilter !== "all" ? (
                           <>
-                            <Search className="h-12 w-12 mx-auto mb-4 opacity-20" />
-                            <p>No subscriptions found matching your criteria</p>
+                            <Search className="h-12 w-12 text-muted-foreground mb-4 opacity-50" />
+                            <p className="text-lg font-medium">No subscriptions found</p>
+                            <p className="text-sm text-muted-foreground mt-1">Try adjusting your search or filters</p>
                           </>
                         ) : (
                           <>
-                            <Package className="h-12 w-12 mx-auto mb-4 opacity-20" />
-                            <p>No subscriptions found</p>
+                            <Package className="h-12 w-12 text-muted-foreground mb-4 opacity-50" />
+                            <p className="text-lg font-medium">No subscriptions yet</p>
+                            <p className="text-sm text-muted-foreground mt-1">Vendor subscriptions will appear here</p>
                           </>
                         )}
                       </div>
@@ -982,11 +997,11 @@ function AdminSubscriptionsPage() {
 
       {/* Subscription Details Dialog */}
       <Dialog open={showDetailsDialog} onOpenChange={setShowDetailsDialog}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="sm:max-w-lg">
           {selectedSubscription && (
             <>
-              <DialogHeader>
-                <DialogTitle className="text-2xl">Subscription Details</DialogTitle>
+              <DialogHeader className="border-b pb-4 mb-2">
+                <DialogTitle>Subscription Details</DialogTitle>
                 <DialogDescription>
                   Complete information about this vendor's subscription
                 </DialogDescription>
@@ -994,7 +1009,7 @@ function AdminSubscriptionsPage() {
               <div className="space-y-6">
                 {/* Vendor Info */}
                 <div className="space-y-2">
-                  <h3 className="font-semibold text-lg">Vendor Information</h3>
+                  <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">Vendor Information</h3>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <p className="text-sm text-muted-foreground">Business Name</p>
@@ -1009,7 +1024,7 @@ function AdminSubscriptionsPage() {
 
                 {/* Package Info */}
                 <div className="space-y-2">
-                  <h3 className="font-semibold text-lg">Package Details</h3>
+                  <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">Package Details</h3>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <p className="text-sm text-muted-foreground">Package</p>
@@ -1026,17 +1041,30 @@ function AdminSubscriptionsPage() {
 
                 {/* Subscription Info */}
                 <div className="space-y-2">
-                  <h3 className="font-semibold text-lg">Subscription Status</h3>
+                  <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">Subscription Status</h3>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <p className="text-sm text-muted-foreground">Status</p>
-                      <Badge variant={selectedSubscription.status === "ACTIVE" ? "default" : "secondary"}>
+                      <Badge
+                        className={
+                          selectedSubscription.status === "ACTIVE"
+                            ? "bg-emerald-500 hover:bg-emerald-600 text-white shadow-sm mt-1"
+                            : undefined
+                        }
+                        variant={selectedSubscription.status === "ACTIVE" ? undefined : "secondary"}
+                      >
                         {selectedSubscription.status}
                       </Badge>
                     </div>
                     <div>
                       <p className="text-sm text-muted-foreground">Type</p>
-                      <Badge variant={selectedSubscription.isTrial ? "secondary" : "default"}>
+                      <Badge
+                        className={
+                          selectedSubscription.isTrial
+                            ? "border-amber-400 text-amber-600 bg-amber-50 dark:bg-amber-950/20 mt-1"
+                            : "bg-emerald-500 hover:bg-emerald-600 text-white shadow-sm mt-1"
+                        }
+                      >
                         {selectedSubscription.isTrial ? "Trial" : "Paid"}
                       </Badge>
                     </div>

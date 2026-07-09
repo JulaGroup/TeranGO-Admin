@@ -445,35 +445,46 @@ function DriversPage() {
   };
 
   const getStatusBadge = (status: string) => {
-    const variants: Record<
-      string,
-      {
-        variant: "default" | "secondary" | "destructive" | "outline";
-        label: string;
-      }
-    > = {
-      approved: { variant: "default", label: "Approved" },
-      pending: { variant: "secondary", label: "Pending" },
-      rejected: { variant: "destructive", label: "Rejected" },
-      suspended: { variant: "outline", label: "Suspended" },
-    };
-    const config = variants[status] || {
-      variant: "outline" as const,
-      label: status,
-    };
-    return <Badge variant={config.variant}>{config.label}</Badge>;
+    switch (status) {
+      case "approved":
+        return (
+          <Badge className="bg-emerald-500 hover:bg-emerald-600 text-white shadow-sm">
+            Approved
+          </Badge>
+        );
+      case "pending":
+        return (
+          <Badge
+            variant="outline"
+            className="border-amber-400 text-amber-600 bg-amber-50 dark:bg-amber-950/20"
+          >
+            Pending
+          </Badge>
+        );
+      case "rejected":
+        return <Badge variant="destructive">Rejected</Badge>;
+      case "suspended":
+        return <Badge variant="secondary">Suspended</Badge>;
+      default:
+        return <Badge variant="outline">{status}</Badge>;
+    }
   };
 
   const getAvailabilityBadge = (isAvailable: boolean, isOnline: boolean) => {
     if (!isOnline) {
-      return <Badge variant="outline">Offline</Badge>;
+      return <Badge variant="secondary">Offline</Badge>;
     }
     return isAvailable ? (
-      <Badge variant="default" className="bg-green-600">
+      <Badge className="bg-emerald-500 hover:bg-emerald-600 text-white shadow-sm">
         Available
       </Badge>
     ) : (
-      <Badge variant="secondary">Busy</Badge>
+      <Badge
+        variant="outline"
+        className="border-amber-400 text-amber-600 bg-amber-50 dark:bg-amber-950/20"
+      >
+        Busy
+      </Badge>
     );
   };
 
@@ -492,68 +503,28 @@ function DriversPage() {
       <Main>
         <div className="space-y-6">
           {/* Header */}
-          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-bold tracking-tight">Drivers</h1>
-              <p className="text-muted-foreground">
+              <h1 className="text-2xl font-bold tracking-tight">Drivers</h1>
+              <p className="text-muted-foreground text-sm mt-1">
                 Manage all delivery drivers and applications
               </p>
             </div>
-            <Button
-              onClick={() => setIsCreateOpen(true)}
-              className="flex items-center gap-2"
-            >
-              <UserPlus className="h-4 w-4" />
-              Create Driver
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                onClick={() => setIsCreateOpen(true)}
+                className="flex items-center gap-2"
+              >
+                <UserPlus className="h-4 w-4" />
+                Create Driver
+              </Button>
+            </div>
           </div>
-
-          {/* Filters */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Filter Drivers</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex flex-col gap-4 md:flex-row">
-                <div className="relative flex-1">
-                  <Search className="text-muted-foreground absolute top-3 left-3 h-4 w-4" />
-                  <Input
-                    placeholder="Search by name, phone, or vehicle..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-10"
-                  />
-                </div>
-                <Select value={statusFilter} onValueChange={setStatusFilter}>
-                  <SelectTrigger className="w-full md:w-[200px]">
-                    <SelectValue placeholder="Filter by status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Statuses</SelectItem>
-                    <SelectItem value="approved">Approved</SelectItem>
-                    <SelectItem value="pending">Pending</SelectItem>
-                    <SelectItem value="rejected">Rejected</SelectItem>
-                    <SelectItem value="suspended">Suspended</SelectItem>
-                  </SelectContent>
-                </Select>
-                <Select value={typeFilter} onValueChange={setTypeFilter}>
-                  <SelectTrigger className="w-full md:w-[200px]">
-                    <SelectValue placeholder="Filter by type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Types</SelectItem>
-                    <SelectItem value="SYSTEM">TeranGO (Salaried)</SelectItem>
-                    <SelectItem value="THIRD_PARTY">Third-Party</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </CardContent>
-          </Card>
 
           {/* Real-Time Driver Map */}
           <DriverMap className="mb-6" height="500px" />
 
-          {/* ── Pending Approvals ───────────────────────────── */}
+          {/* Pending Approvals */}
           {(() => {
             const pending = drivers.filter(
               (d: any) =>
@@ -635,254 +606,298 @@ function DriversPage() {
           })()}
 
           {/* Drivers Table */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Bike className="h-5 w-5" />
-                All Drivers ({filteredDrivers?.length || 0})
-              </CardTitle>
-              <CardDescription>
-                View and manage all registered drivers
-              </CardDescription>
+          <Card className="shadow-sm overflow-hidden">
+            <CardHeader className="border-b pb-4">
+              <div className="flex items-center justify-between mb-3">
+                <div>
+                  <CardTitle className="flex items-center gap-2">
+                    <Bike className="h-4 w-4 text-primary" />
+                    All Drivers ({filteredDrivers?.length || 0})
+                  </CardTitle>
+                  <CardDescription>
+                    View and manage all registered drivers
+                  </CardDescription>
+                </div>
+              </div>
+              <div className="flex flex-wrap items-center gap-3">
+                <div className="relative flex-1 min-w-[200px]">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                  <Input
+                    placeholder="Search by name, phone, or vehicle..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-9 h-9"
+                  />
+                </div>
+                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                  <SelectTrigger className="w-[160px] h-9">
+                    <SelectValue placeholder="Filter by status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Statuses</SelectItem>
+                    <SelectItem value="approved">Approved</SelectItem>
+                    <SelectItem value="pending">Pending</SelectItem>
+                    <SelectItem value="rejected">Rejected</SelectItem>
+                    <SelectItem value="suspended">Suspended</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Select value={typeFilter} onValueChange={setTypeFilter}>
+                  <SelectTrigger className="w-[160px] h-9">
+                    <SelectValue placeholder="Filter by type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Types</SelectItem>
+                    <SelectItem value="SYSTEM">TeranGO (Salaried)</SelectItem>
+                    <SelectItem value="THIRD_PARTY">Third-Party</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-0">
               {isLoading ? (
-                <div className="flex items-center justify-center py-8">
-                  <p className="text-muted-foreground">Loading drivers...</p>
+                <div className="flex flex-col items-center justify-center py-20 text-center">
+                  <Loader2 className="h-8 w-8 text-muted-foreground mb-4 animate-spin opacity-50" />
+                  <p className="text-sm text-muted-foreground">
+                    Loading drivers...
+                  </p>
                 </div>
               ) : filteredDrivers && filteredDrivers.length > 0 ? (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Driver</TableHead>
-                      <TableHead>Contact</TableHead>
-                      <TableHead>Vehicle</TableHead>
-                      <TableHead>Type</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Availability</TableHead>
-                      <TableHead>Rating</TableHead>
-                      <TableHead>Deliveries</TableHead>
-                      <TableHead className="text-right">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredDrivers.map((driver: any) => (
-                      <TableRow key={driver._id || driver.id}>
-                        <TableCell>
-                          <div className="flex items-center gap-3">
-                            <Avatar>
-                              <AvatarImage
-                                src={
-                                  driver.profileImage || driver.profileImageUrl
-                                }
-                                alt={driver.name || driver.user?.fullName}
-                              />
-                              <AvatarFallback>
-                                {(driver.name || driver.user?.fullName || "D")
-                                  .substring(0, 2)
-                                  .toUpperCase()}
-                              </AvatarFallback>
-                            </Avatar>
-                            <div>
-                              <p className="font-medium">
-                                {driver.name || driver.user?.fullName}
-                              </p>
-                              <p className="text-muted-foreground text-sm">
-                                ID:{" "}
-                                {(driver._id || driver.id || "N/A").substring(
-                                  0,
-                                  8,
-                                )}
-                              </p>
-                            </div>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="space-y-1">
-                            <div className="flex items-center gap-2 text-sm">
-                              <Phone className="h-3 w-3" />
-                              {driver.phoneNumber ||
-                                driver.phone ||
-                                driver.user?.phone ||
-                                "N/A"}
-                            </div>
-                            <div className="text-muted-foreground flex items-center gap-2 text-sm">
-                              <Mail className="h-3 w-3" />
-                              {driver.email || driver.user?.email || "N/A"}
-                            </div>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="text-sm">
-                            <div className="flex items-center gap-2">
-                              <span className="text-lg">
-                                {(() => {
-                                  const vehicleType =
-                                    driver.vehicleType || "BIKE";
-                                  const vehicleEmojis: {
-                                    [key: string]: string;
-                                  } = {
-                                    BIKE: "🏍️",
-                                    KEKE_CARGO: "🛺",
-                                    CAR: "🚗",
-                                    VAN: "🚐",
-                                    LORRY: "🚚",
-                                  };
-                                  return vehicleEmojis[vehicleType] || "🚛";
-                                })()}
-                              </span>
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="bg-muted/50 hover:bg-muted/50">
+                        <TableHead>Driver</TableHead>
+                        <TableHead>Contact</TableHead>
+                        <TableHead>Vehicle</TableHead>
+                        <TableHead>Type</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Availability</TableHead>
+                        <TableHead>Rating</TableHead>
+                        <TableHead>Deliveries</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredDrivers.map((driver: any) => (
+                        <TableRow
+                          key={driver._id || driver.id}
+                          className="hover:bg-muted/30 transition-colors"
+                        >
+                          <TableCell>
+                            <div className="flex items-center gap-3">
+                              <Avatar className="h-8 w-8">
+                                <AvatarImage
+                                  src={
+                                    driver.profileImage || driver.profileImageUrl
+                                  }
+                                  alt={driver.name || driver.user?.fullName}
+                                />
+                                <AvatarFallback className="text-xs font-medium">
+                                  {(driver.name || driver.user?.fullName || "D")
+                                    .substring(0, 2)
+                                    .toUpperCase()}
+                                </AvatarFallback>
+                              </Avatar>
                               <div>
-                                <p className="font-medium">
-                                  {(driver.vehicleType || "BIKE").replace(
-                                    "_",
-                                    " ",
-                                  )}
+                                <p className="font-medium text-sm">
+                                  {driver.name || driver.user?.fullName}
                                 </p>
                                 <p className="text-muted-foreground text-xs">
-                                  {driver.vehicleNo ||
-                                    driver.vehicleNumber ||
-                                    "No plate"}
+                                  ID:{" "}
+                                  {(driver._id || driver.id || "N/A").substring(
+                                    0,
+                                    8,
+                                  )}
                                 </p>
-                                {(driver.vehicleColor ||
-                                  driver.vehicle_color) && (
-                                  <p className="text-muted-foreground text-xs">
-                                    {driver.vehicleColor ||
-                                      driver.vehicle_color}
-                                  </p>
-                                )}
                               </div>
                             </div>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <Badge
-                            variant={
-                              driver.driverType === "THIRD_PARTY"
-                                ? "outline"
-                                : "default"
-                            }
-                            className={
-                              driver.driverType === "THIRD_PARTY"
-                                ? "border-orange-500 text-orange-600"
-                                : "bg-blue-600"
-                            }
-                          >
-                            {driver.driverType === "THIRD_PARTY"
-                              ? "Third-Party"
-                              : "TeranGO"}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          {getStatusBadge(driver.status || "approved")}
-                        </TableCell>
-                        <TableCell>
-                          {getAvailabilityBadge(
-                            driver.isAvailable ?? true,
-                            driver.isOnline ?? true,
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-1">
-                            <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                            <span className="font-medium">
-                              {driver.rating?.toFixed(1) || "N/A"}
-                            </span>
-                            <span className="text-muted-foreground text-xs">
-                              (
-                              {driver.totalRatings ||
+                          </TableCell>
+                          <TableCell>
+                            <div className="space-y-1">
+                              <div className="flex items-center gap-2 text-sm">
+                                <Phone className="h-3 w-3 text-muted-foreground" />
+                                {driver.phoneNumber ||
+                                  driver.phone ||
+                                  driver.user?.phone ||
+                                  "N/A"}
+                              </div>
+                              <div className="text-muted-foreground flex items-center gap-2 text-xs">
+                                <Mail className="h-3 w-3" />
+                                {driver.email || driver.user?.email || "N/A"}
+                              </div>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="text-sm">
+                              <div className="flex items-center gap-2">
+                                <span className="text-lg">
+                                  {(() => {
+                                    const vehicleType =
+                                      driver.vehicleType || "BIKE";
+                                    const vehicleEmojis: {
+                                      [key: string]: string;
+                                    } = {
+                                      BIKE: "🏍️",
+                                      KEKE_CARGO: "🛺",
+                                      CAR: "🚗",
+                                      VAN: "🚐",
+                                      LORRY: "🚚",
+                                    };
+                                    return vehicleEmojis[vehicleType] || "🚛";
+                                  })()}
+                                </span>
+                                <div>
+                                  <p className="font-medium text-sm">
+                                    {(driver.vehicleType || "BIKE").replace(
+                                      "_",
+                                      " ",
+                                    )}
+                                  </p>
+                                  <p className="text-muted-foreground text-xs">
+                                    {driver.vehicleNo ||
+                                      driver.vehicleNumber ||
+                                      "No plate"}
+                                  </p>
+                                  {(driver.vehicleColor ||
+                                    driver.vehicle_color) && (
+                                    <p className="text-muted-foreground text-xs">
+                                      {driver.vehicleColor ||
+                                        driver.vehicle_color}
+                                    </p>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <Badge
+                              variant="outline"
+                              className={
+                                driver.driverType === "THIRD_PARTY"
+                                  ? "border-amber-400 text-amber-600 bg-amber-50 dark:bg-amber-950/20"
+                                  : "border-blue-400 text-blue-600 bg-blue-50 dark:bg-blue-950/20"
+                              }
+                            >
+                              {driver.driverType === "THIRD_PARTY"
+                                ? "Third-Party"
+                                : "TeranGO"}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            {getStatusBadge(driver.status || "approved")}
+                          </TableCell>
+                          <TableCell>
+                            {getAvailabilityBadge(
+                              driver.isAvailable ?? true,
+                              driver.isOnline ?? true,
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-1">
+                              <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                              <span className="font-medium text-sm">
+                                {driver.rating?.toFixed(1) || "N/A"}
+                              </span>
+                              <span className="text-muted-foreground text-xs">
+                                (
+                                {driver.totalRatings ||
+                                  driver.orders?.length ||
+                                  0}
+                                )
+                              </span>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <span className="font-medium text-sm">
+                              {driver.totalDeliveries ||
                                 driver.orders?.length ||
                                 0}
-                              )
                             </span>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <span className="font-medium">
-                            {driver.totalDeliveries ||
-                              driver.orders?.length ||
-                              0}
-                          </span>
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon">
-                                <MoreHorizontal className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem
-                                onClick={() => handleViewDetails(driver)}
-                              >
-                                <Eye className="mr-2 h-4 w-4" />
-                                View Details
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                onClick={() =>
-                                  navigate({
-                                    to: "/admin/drivers/$driverId" as any,
-                                    params: {
-                                      driverId: driver._id || driver.id,
-                                    } as any,
-                                  })
-                                }
-                              >
-                                <DollarSign className="mr-2 h-4 w-4" />
-                                Earnings &amp; Ratings
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                onClick={() => handleEditDriver(driver)}
-                              >
-                                <Edit className="mr-2 h-4 w-4" />
-                                Edit Driver
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                onClick={() =>
-                                  handleResetDriverPassword(driver)
-                                }
-                                disabled={resetPasswordMutation.isPending}
-                              >
-                                <KeyRound className="mr-2 h-4 w-4" />
-                                Reset Password
-                              </DropdownMenuItem>
-                              {driver.status === "pending" && (
-                                <>
-                                  <DropdownMenuItem
-                                    onClick={() =>
-                                      approveMutation.mutate(
-                                        driver._id || driver.id,
-                                      )
-                                    }
-                                  >
-                                    <CheckCircle className="mr-2 h-4 w-4 text-green-600" />
-                                    Approve
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem
-                                    onClick={() =>
-                                      rejectMutation.mutate(
-                                        driver._id || driver.id,
-                                      )
-                                    }
-                                    className="text-red-600"
-                                  >
-                                    <XCircle className="mr-2 h-4 w-4" />
-                                    Reject
-                                  </DropdownMenuItem>
-                                </>
-                              )}
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-8 w-8">
+                                  <MoreHorizontal className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                                  onClick={() => handleViewDetails(driver)}
+                                >
+                                  <Eye className="mr-2 h-4 w-4" />
+                                  View Details
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  onClick={() =>
+                                    navigate({
+                                      to: "/admin/drivers/$driverId" as any,
+                                      params: {
+                                        driverId: driver._id || driver.id,
+                                      } as any,
+                                    })
+                                  }
+                                >
+                                  <DollarSign className="mr-2 h-4 w-4" />
+                                  Earnings &amp; Ratings
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  onClick={() => handleEditDriver(driver)}
+                                >
+                                  <Edit className="mr-2 h-4 w-4" />
+                                  Edit Driver
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  onClick={() =>
+                                    handleResetDriverPassword(driver)
+                                  }
+                                  disabled={resetPasswordMutation.isPending}
+                                >
+                                  <KeyRound className="mr-2 h-4 w-4" />
+                                  Reset Password
+                                </DropdownMenuItem>
+                                {driver.status === "pending" && (
+                                  <>
+                                    <DropdownMenuItem
+                                      onClick={() =>
+                                        approveMutation.mutate(
+                                          driver._id || driver.id,
+                                        )
+                                      }
+                                    >
+                                      <CheckCircle className="mr-2 h-4 w-4 text-green-600" />
+                                      Approve
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem
+                                      onClick={() =>
+                                        rejectMutation.mutate(
+                                          driver._id || driver.id,
+                                        )
+                                      }
+                                      className="text-red-600"
+                                    >
+                                      <XCircle className="mr-2 h-4 w-4" />
+                                      Reject
+                                    </DropdownMenuItem>
+                                  </>
+                                )}
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
               ) : (
-                <div className="flex flex-col items-center justify-center py-12">
-                  <Bike className="text-muted-foreground mb-4 h-12 w-12" />
-                  <p className="text-muted-foreground">No drivers found</p>
+                <div className="flex flex-col items-center justify-center py-20 text-center">
+                  <Bike className="h-12 w-12 text-muted-foreground mb-4 opacity-50" />
+                  <p className="text-lg font-medium">No drivers found</p>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Try adjusting your search or filters
+                  </p>
                 </div>
               )}
             </CardContent>
@@ -890,8 +905,8 @@ function DriversPage() {
 
           {/* Driver Details Dialog */}
           <Dialog open={isDetailsOpen} onOpenChange={setIsDetailsOpen}>
-            <DialogContent className="max-h-[80vh] max-w-2xl overflow-y-auto">
-              <DialogHeader>
+            <DialogContent className="sm:max-w-2xl max-h-[85vh] overflow-y-auto">
+              <DialogHeader className="border-b pb-4 mb-2">
                 <DialogTitle>Driver Details</DialogTitle>
                 <DialogDescription>
                   Complete information about the driver
@@ -910,7 +925,7 @@ function DriversPage() {
                           selectedDriver.name || selectedDriver.user?.fullName
                         }
                       />
-                      <AvatarFallback>
+                      <AvatarFallback className="text-lg font-semibold">
                         {(
                           selectedDriver.name ||
                           selectedDriver.user?.fullName ||
@@ -924,7 +939,7 @@ function DriversPage() {
                       <h3 className="text-2xl font-bold">
                         {selectedDriver.name || selectedDriver.user?.fullName}
                       </h3>
-                      <p className="text-muted-foreground">
+                      <p className="text-muted-foreground text-sm">
                         Driver ID:{" "}
                         {(
                           selectedDriver._id ||
@@ -1102,8 +1117,8 @@ function DriversPage() {
 
           {/* Edit Driver Dialog */}
           <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
-            <DialogContent className="max-h-[80vh] max-w-2xl overflow-y-auto">
-              <DialogHeader>
+            <DialogContent className="sm:max-w-2xl max-h-[85vh] overflow-y-auto">
+              <DialogHeader className="border-b pb-4 mb-2">
                 <DialogTitle>Edit Driver</DialogTitle>
                 <DialogDescription>
                   Update driver information and profile image
@@ -1119,7 +1134,7 @@ function DriversPage() {
                           src={editForm.profileImage}
                           alt={editForm.name}
                         />
-                        <AvatarFallback>
+                        <AvatarFallback className="text-lg font-semibold">
                           {editForm.name.substring(0, 2).toUpperCase()}
                         </AvatarFallback>
                       </Avatar>
@@ -1382,8 +1397,8 @@ function DriversPage() {
 
           {/* Create Driver Dialog */}
           <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-              <DialogHeader>
+            <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
+              <DialogHeader className="border-b pb-4 mb-2">
                 <DialogTitle className="flex items-center gap-2">
                   <UserPlus className="h-5 w-5" />
                   Create New Driver

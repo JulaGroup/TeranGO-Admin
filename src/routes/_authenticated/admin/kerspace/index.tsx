@@ -209,29 +209,29 @@ function StatCard({
   icon: Icon,
   color,
   loading,
+  borderColor = "border-l-primary",
 }: {
   title: string;
   value: number | string;
   icon: any;
   color: string;
   loading?: boolean;
+  borderColor?: string;
 }) {
   return (
-    <Card>
-      <CardContent className="pt-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-sm text-muted-foreground">{title}</p>
-            {loading ? (
-              <Skeleton className="h-7 w-16 mt-1" />
-            ) : (
-              <p className="text-2xl font-bold mt-1">{value}</p>
-            )}
-          </div>
-          <div className={cn("p-3 rounded-full", color)}>
-            <Icon className="h-5 w-5 text-white" />
-          </div>
+    <Card className={cn("border-l-4 shadow-sm", borderColor)}>
+      <CardHeader className="flex flex-row items-center justify-between pb-2">
+        <CardTitle className="text-sm font-medium text-muted-foreground">{title}</CardTitle>
+        <div className={cn("p-2 rounded-lg", color)}>
+          <Icon className="h-4 w-4 text-white" />
         </div>
+      </CardHeader>
+      <CardContent>
+        {loading ? (
+          <Skeleton className="h-7 w-16" />
+        ) : (
+          <p className="text-2xl font-bold">{value}</p>
+        )}
       </CardContent>
     </Card>
   );
@@ -896,14 +896,16 @@ function KerSpacePage() {
       </Header>
 
       <Main>
+        <div className="space-y-6">
         {/* ── Stats Row ──────────────────────────────────────────────────────── */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <StatCard
             title="Total Listings"
             value={stats?.totalListings ?? 0}
             icon={Building2}
             color="bg-blue-500"
             loading={statsLoading}
+            borderColor="border-l-primary"
           />
           <StatCard
             title="For Sale"
@@ -911,6 +913,7 @@ function KerSpacePage() {
             icon={Tag}
             color="bg-green-500"
             loading={statsLoading}
+            borderColor="border-l-blue-500"
           />
           <StatCard
             title="For Rent"
@@ -918,6 +921,7 @@ function KerSpacePage() {
             icon={Home}
             color="bg-purple-500"
             loading={statsLoading}
+            borderColor="border-l-emerald-500"
           />
           <StatCard
             title="Pending Inquiries"
@@ -925,6 +929,7 @@ function KerSpacePage() {
             icon={MessageSquare}
             color="bg-orange-500"
             loading={statsLoading}
+            borderColor="border-l-orange-500"
           />
           <StatCard
             title="Pending Appointments"
@@ -932,6 +937,7 @@ function KerSpacePage() {
             icon={Calendar}
             color="bg-red-500"
             loading={statsLoading}
+            borderColor="border-l-violet-500"
           />
           <StatCard
             title="Featured Listings"
@@ -939,6 +945,7 @@ function KerSpacePage() {
             icon={Star}
             color="bg-yellow-500"
             loading={statsLoading}
+            borderColor="border-l-blue-500"
           />
           <StatCard
             title="Verified"
@@ -946,6 +953,7 @@ function KerSpacePage() {
             icon={CheckCircle}
             color="bg-teal-500"
             loading={statsLoading}
+            borderColor="border-l-emerald-500"
           />
           <StatCard
             title="Active Listings"
@@ -953,12 +961,13 @@ function KerSpacePage() {
             icon={BarChart3}
             color="bg-indigo-500"
             loading={statsLoading}
+            borderColor="border-l-orange-500"
           />
         </div>
 
         {/* ── Tabs ───────────────────────────────────────────────────────────── */}
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center justify-between">
             <TabsList>
               <TabsTrigger
                 value="properties"
@@ -1005,11 +1014,11 @@ function KerSpacePage() {
           {/* ── Properties Tab ──────────────────────────────────────────────── */}
           <TabsContent value="properties">
             {/* Filters */}
-            <div className="flex flex-wrap gap-2 mb-4">
+            <div className="flex flex-wrap gap-2 mt-4">
               <div className="relative flex-1 min-w-[200px]">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
                 <Input
-                  className="pl-9"
+                  className="pl-9 h-9"
                   placeholder="Search listings..."
                   value={search}
                   onChange={(e) => {
@@ -1091,11 +1100,10 @@ function KerSpacePage() {
                 ))}
               </div>
             ) : properties.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-16 text-center">
-                <Building2 className="h-12 w-12 text-muted-foreground mb-3" />
-                <p className="font-medium text-muted-foreground">
-                  No listings found
-                </p>
+              <div className="flex flex-col items-center justify-center py-20 text-center">
+                <Building2 className="h-12 w-12 text-muted-foreground mb-4 opacity-50" />
+                <p className="text-lg font-medium">No listings found</p>
+                <p className="text-sm text-muted-foreground mt-1">Add your first property listing to get started</p>
                 <Button className="mt-4" onClick={() => setCreateOpen(true)}>
                   <Plus className="h-4 w-4 mr-1" /> Add First Listing
                 </Button>
@@ -1112,18 +1120,19 @@ function KerSpacePage() {
                       )}
                     >
                       {/* Image */}
-                      <div className="relative h-48 bg-muted overflow-hidden">
+                      <div className="relative h-48 w-full bg-muted overflow-hidden">
                         {p.images[0] ? (
                           <img
                             src={p.images[0].url}
                             alt={p.title}
-                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                            className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
                           />
                         ) : (
                           <div className="w-full h-full flex items-center justify-center">
                             <ImageIcon className="h-10 w-10 text-muted-foreground" />
                           </div>
                         )}
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
                         {/* Badges overlay */}
                         <div className="absolute top-2 left-2 flex flex-wrap gap-1">
                           <span
@@ -1161,7 +1170,7 @@ function KerSpacePage() {
                         </div>
                       </div>
 
-                      <CardContent className="pt-3 pb-3">
+                      <CardContent className="pt-4 space-y-2">
                         <div className="flex items-start justify-between gap-2">
                           <div className="flex-1 min-w-0">
                             <p className="font-semibold text-sm truncate">
@@ -1338,14 +1347,15 @@ function KerSpacePage() {
                 ))}
               </div>
             ) : inquiries.length === 0 ? (
-              <div className="text-center py-12 text-muted-foreground">
-                <MessageSquare className="h-10 w-10 mx-auto mb-2" />
-                No inquiries found
+              <div className="flex flex-col items-center justify-center py-20 text-center">
+                <MessageSquare className="h-12 w-12 text-muted-foreground mb-4 opacity-50" />
+                <p className="text-lg font-medium">No inquiries found</p>
+                <p className="text-sm text-muted-foreground mt-1">Inquiries from property listings will appear here</p>
               </div>
             ) : (
               <div className="space-y-3">
                 {inquiries.map((inq) => (
-                  <Card key={inq.id}>
+                  <Card key={inq.id} className="shadow-sm hover:shadow-md transition-shadow">
                     <CardContent className="pt-4 pb-4">
                       <div className="flex items-start justify-between gap-4">
                         <div className="flex-1 min-w-0">
@@ -1353,17 +1363,17 @@ function KerSpacePage() {
                             <p className="font-semibold text-sm">
                               {inq.fullName}
                             </p>
-                            <Badge variant="outline" className="text-xs">
+                            <Badge variant="outline" className="text-xs border-blue-400 text-blue-600 bg-blue-50 dark:bg-blue-950/20">
                               {inq.inquiryType}
                             </Badge>
                             <span
                               className={cn(
-                                "text-xs px-2 py-0.5 rounded-full font-medium",
+                                "text-xs px-2 py-0.5 rounded-full font-medium border",
                                 inq.status === "PENDING"
-                                  ? "bg-yellow-100 text-yellow-800"
+                                  ? "border-amber-400 text-amber-600 bg-amber-50 dark:bg-amber-950/20"
                                   : inq.status === "CONTACTED"
-                                    ? "bg-blue-100 text-blue-800"
-                                    : "bg-gray-100 text-gray-600",
+                                    ? "border-blue-400 text-blue-600 bg-blue-50 dark:bg-blue-950/20"
+                                    : "bg-muted text-muted-foreground",
                               )}
                             >
                               {inq.status}
@@ -1449,14 +1459,15 @@ function KerSpacePage() {
                 ))}
               </div>
             ) : appointments.length === 0 ? (
-              <div className="text-center py-12 text-muted-foreground">
-                <Calendar className="h-10 w-10 mx-auto mb-2" />
-                No appointments found
+              <div className="flex flex-col items-center justify-center py-20 text-center">
+                <Calendar className="h-12 w-12 text-muted-foreground mb-4 opacity-50" />
+                <p className="text-lg font-medium">No appointments found</p>
+                <p className="text-sm text-muted-foreground mt-1">Viewing appointments from property listings will appear here</p>
               </div>
             ) : (
               <div className="space-y-3">
                 {appointments.map((apt) => (
-                  <Card key={apt.id}>
+                  <Card key={apt.id} className="shadow-sm hover:shadow-md transition-shadow">
                     <CardContent className="pt-4 pb-4">
                       <div className="flex items-start justify-between gap-4">
                         <div className="flex-1 min-w-0">
@@ -1466,14 +1477,14 @@ function KerSpacePage() {
                             </p>
                             <span
                               className={cn(
-                                "text-xs px-2 py-0.5 rounded-full font-medium",
+                                "text-xs px-2 py-0.5 rounded-full font-medium border",
                                 apt.status === "PENDING"
-                                  ? "bg-yellow-100 text-yellow-800"
+                                  ? "border-amber-400 text-amber-600 bg-amber-50 dark:bg-amber-950/20"
                                   : apt.status === "CONFIRMED"
-                                    ? "bg-green-100 text-green-800"
+                                    ? "border-emerald-400 text-emerald-700 bg-emerald-50 dark:bg-emerald-950/20"
                                     : apt.status === "COMPLETED"
-                                      ? "bg-blue-100 text-blue-800"
-                                      : "bg-red-100 text-red-700",
+                                      ? "border-blue-400 text-blue-600 bg-blue-50 dark:bg-blue-950/20"
+                                      : "border-red-400 text-red-600 bg-red-50 dark:bg-red-950/20",
                               )}
                             >
                               {apt.status}
@@ -1540,6 +1551,7 @@ function KerSpacePage() {
             )}
           </TabsContent>
         </Tabs>
+        </div>
       </Main>
 
       {/* ── Create Dialog ─────────────────────────────────────────────────────── */}

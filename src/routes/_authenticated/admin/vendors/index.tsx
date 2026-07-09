@@ -665,7 +665,7 @@ function VendorsPage() {
 
   const getStatusBadge = (isActive: boolean) => {
     return isActive ? (
-      <Badge variant="default" className="bg-green-600 hover:bg-green-700">
+      <Badge className="bg-emerald-500 hover:bg-emerald-600 text-white shadow-sm">
         Active
       </Badge>
     ) : (
@@ -707,7 +707,7 @@ function VendorsPage() {
     const businessImage = getBusinessImage(vendor);
 
     return (
-      <Card className="flex flex-col transition-all hover:shadow-lg">
+      <Card className="flex flex-col shadow-sm transition-all hover:shadow-md">
         <CardHeader className="flex flex-row items-start gap-4 space-y-0">
           <Avatar className="h-12 w-12">
             <AvatarImage
@@ -784,7 +784,7 @@ function VendorsPage() {
             {vendor.subscription?.isTrial && (
               <Badge
                 variant="outline"
-                className="border-blue-500 text-blue-500"
+                className="border-blue-400 text-blue-600 bg-blue-50 dark:bg-blue-950/20"
               >
                 Trial
               </Badge>
@@ -865,8 +865,8 @@ function VendorsPage() {
         <div className="space-y-6">
           <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div>
-              <h1 className="text-3xl font-bold tracking-tight">Vendors</h1>
-              <p className="text-muted-foreground">
+              <h1 className="text-2xl font-bold tracking-tight">Vendors</h1>
+              <p className="text-muted-foreground text-sm mt-1">
                 Manage all vendors and their businesses
               </p>
             </div>
@@ -874,6 +874,7 @@ function VendorsPage() {
               <Button
                 variant="outline"
                 size="sm"
+                className="shadow-sm"
                 onClick={() => refetch()}
                 disabled={isLoading}
               >
@@ -882,7 +883,7 @@ function VendorsPage() {
                 />
                 Refresh
               </Button>
-              <Button size="sm" onClick={() => setIsCreateOpen(true)}>
+              <Button size="sm" className="shadow-sm" onClick={() => setIsCreateOpen(true)}>
                 <Plus className="mr-2 h-4 w-4" />
                 Create Vendor
               </Button>
@@ -894,94 +895,98 @@ function VendorsPage() {
               title="Total Vendors"
               value={stats.totalVendors}
               icon={Building2}
+              borderColor="border-l-primary"
+              iconColor="text-primary"
             />
             <StatCard
               title="Active Vendors"
               value={stats.activeVendors}
               icon={CheckCircle}
-              iconColor="text-green-600"
+              iconColor="text-emerald-500"
+              borderColor="border-l-emerald-500"
             />
             <StatCard
               title="Restaurants"
               value={stats.totalRestaurants}
               icon={UtensilsCrossed}
-              iconColor="text-orange-600"
+              iconColor="text-orange-500"
+              borderColor="border-l-orange-500"
             />
             <StatCard
               title="Shops"
               value={stats.totalShops}
               icon={Package}
-              iconColor="text-blue-600"
+              iconColor="text-blue-500"
+              borderColor="border-l-blue-500"
             />
             <StatCard
               title="Pharmacies"
               value={stats.totalPharmacies}
               icon={Pill}
-              iconColor="text-red-600"
+              iconColor="text-primary"
+              borderColor="border-l-primary"
             />
           </div>
 
-          <Card>
-            <CardHeader>
-              <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-                <div className="relative flex-1">
-                  <Search className="text-muted-foreground absolute top-3 left-3 h-4 w-4" />
+          <Card className="shadow-sm overflow-hidden">
+            <CardHeader className="border-b pb-4">
+              <div className="flex flex-wrap items-center gap-3">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
                   <Input
                     placeholder="Search by name, email, phone, business..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-10"
+                    className="pl-9 h-9 w-[260px]"
                   />
                 </div>
-                <div className="flex items-center gap-2">
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="outline" className="w-full md:w-auto">
-                        <Filter className="mr-2 h-4 w-4" />
-                        Filter:{" "}
-                        {filterStatus.charAt(0).toUpperCase() +
-                          filterStatus.slice(1)}
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => setFilterStatus("all")}>
-                        All
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        onClick={() => setFilterStatus("active")}
-                      >
-                        Active
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        onClick={() => setFilterStatus("inactive")}
-                      >
-                        Inactive
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                  <div className="flex items-center rounded-md bg-secondary p-1">
-                    <Button
-                      variant={viewMode === "grid" ? "primary" : "ghost"}
-                      size="sm"
-                      onClick={() => setViewMode("grid")}
-                    >
-                      <LayoutGrid className="h-4 w-4" />
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" size="sm" className="shadow-sm">
+                      <Filter className="mr-2 h-4 w-4" />
+                      Filter:{" "}
+                      {filterStatus.charAt(0).toUpperCase() +
+                        filterStatus.slice(1)}
                     </Button>
-                    <Button
-                      variant={viewMode === "list" ? "primary" : "ghost"}
-                      size="sm"
-                      onClick={() => setViewMode("list")}
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={() => setFilterStatus("all")}>
+                      All
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => setFilterStatus("active")}
                     >
-                      <List className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant={viewMode === "map" ? "primary" : "ghost"}
-                      size="sm"
-                      onClick={() => setViewMode("map")}
+                      Active
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => setFilterStatus("inactive")}
                     >
-                      <MapIcon className="h-4 w-4" />
-                    </Button>
-                  </div>
+                      Inactive
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+                <div className="flex items-center rounded-md bg-muted p-1">
+                  <Button
+                    variant={viewMode === "grid" ? "secondary" : "ghost"}
+                    size="sm"
+                    onClick={() => setViewMode("grid")}
+                  >
+                    <LayoutGrid className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant={viewMode === "list" ? "secondary" : "ghost"}
+                    size="sm"
+                    onClick={() => setViewMode("list")}
+                  >
+                    <List className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant={viewMode === "map" ? "secondary" : "ghost"}
+                    size="sm"
+                    onClick={() => setViewMode("map")}
+                  >
+                    <MapIcon className="h-4 w-4" />
+                  </Button>
                 </div>
               </div>
             </CardHeader>
@@ -997,9 +1002,10 @@ function VendorsPage() {
                   ))}
                 </div>
               ) : viewMode === "list" ? (
+                <div className="overflow-x-auto">
                 <Table>
                   <TableHeader>
-                    <TableRow>
+                    <TableRow className="bg-muted/50 hover:bg-muted/50">
                       <TableHead>Vendor</TableHead>
                       <TableHead>Contact</TableHead>
                       <TableHead>Businesses</TableHead>
@@ -1010,7 +1016,7 @@ function VendorsPage() {
                   </TableHeader>
                   <TableBody>
                     {filteredVendors.map((vendor) => (
-                      <TableRow key={vendor.id}>
+                      <TableRow key={vendor.id} className="hover:bg-muted/30 transition-colors">
                         <TableCell>
                           <div className="flex items-center gap-3">
                             <Avatar>
@@ -1067,7 +1073,7 @@ function VendorsPage() {
                               </span>
                             </div>
                           ) : (
-                            <Badge variant="outline">No Subscription</Badge>
+                            <Badge variant="secondary">No Subscription</Badge>
                           )}
                         </TableCell>
                         <TableCell className="text-right">
@@ -1127,6 +1133,7 @@ function VendorsPage() {
                     ))}
                   </TableBody>
                 </Table>
+                </div>
               ) : (
                 <div className="space-y-4">
                   <div className="flex items-center justify-between p-4 bg-muted/40 rounded-lg">
@@ -1221,8 +1228,10 @@ function VendorsPage() {
                 </div>
               )}
               {filteredVendors.length === 0 && !isLoading && (
-                <div className="py-16 text-center text-muted-foreground">
-                  No vendors found.
+                <div className="flex flex-col items-center justify-center py-20 text-center">
+                  <Store className="h-12 w-12 text-muted-foreground mb-4 opacity-50" />
+                  <p className="text-lg font-medium">No vendors found</p>
+                  <p className="text-sm text-muted-foreground mt-1">Try adjusting your search or filter</p>
                 </div>
               )}
             </CardContent>
@@ -1594,11 +1603,11 @@ function VendorsPage() {
   );
 }
 
-const StatCard = ({ title, value, icon: Icon, iconColor }: any) => (
-  <Card>
-    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-      <CardTitle className="text-sm font-medium">{title}</CardTitle>
-      <Icon className={cn("h-4 w-4 text-muted-foreground", iconColor)} />
+const StatCard = ({ title, value, icon: Icon, iconColor, borderColor }: any) => (
+  <Card className={cn("border-l-4 shadow-sm", borderColor || "border-l-primary")}>
+    <CardHeader className="flex flex-row items-center justify-between pb-2">
+      <CardTitle className="text-sm font-medium text-muted-foreground">{title}</CardTitle>
+      <Icon className={cn("h-4 w-4", iconColor || "text-primary")} />
     </CardHeader>
     <CardContent>
       <div className="text-2xl font-bold">{value}</div>
@@ -1661,7 +1670,7 @@ function VendorDetailsDialog({ vendor, isOpen, onClose }: any) {
               </DialogDescription>
               <div className="mt-2 flex items-center gap-2">
                 {vendor.isActive ? (
-                  <Badge className="bg-green-600 hover:bg-green-700">
+                  <Badge className="bg-emerald-500 hover:bg-emerald-600 text-white shadow-sm">
                     <CheckCircle2 className="mr-1 h-3 w-3" />
                     Active
                   </Badge>
@@ -1711,7 +1720,7 @@ function VendorDetailsDialog({ vendor, isOpen, onClose }: any) {
                     {vendor.subscription.isTrial && (
                       <Badge
                         variant="outline"
-                        className="border-blue-500 text-blue-500"
+                        className="border-blue-400 text-blue-600 bg-blue-50 dark:bg-blue-950/20"
                       >
                         Trial
                       </Badge>

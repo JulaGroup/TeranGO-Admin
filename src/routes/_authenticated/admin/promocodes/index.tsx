@@ -8,11 +8,18 @@ import {
   Trash2,
   CheckCircle,
   XCircle,
+  Tag,
+  Search,
 } from "lucide-react";
 import { toast } from "sonner";
 import { api } from "@/lib/api";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -26,12 +33,14 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
 import {
   Table,
   TableHeader,
   TableBody,
   TableCell,
   TableRow,
+  TableHead,
 } from "@/components/ui/table";
 import { Header } from "@/components/layout/header";
 import { Main } from "@/components/layout/main";
@@ -221,94 +230,160 @@ function PromoCodesPage() {
       <Header />
       <TopNav links={topNav} />
       <Main>
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-2xl font-bold">Promo Codes</h2>
-          <div className="flex gap-2">
-            <Input
-              placeholder="Search promo codes"
-              value={searchQuery}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                setSearchQuery(e.target.value)
-              }
-            />
-            <Button onClick={openNew} icon={<Plus />}>
-              New
-            </Button>
+        <div className="space-y-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-bold tracking-tight">Promo Codes</h1>
+              <p className="text-muted-foreground text-sm mt-1">
+                Manage discount codes, offers, and promotional campaigns.
+              </p>
+            </div>
+            <div className="flex gap-2">
+              <Button onClick={openNew} size="sm">
+                <Plus className="h-4 w-4 mr-1" />
+                New Code
+              </Button>
+            </div>
           </div>
+
+          <Card className="shadow-sm overflow-hidden">
+            <CardHeader className="border-b pb-4">
+              <div className="flex flex-wrap items-center gap-3">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                  <Input
+                    className="pl-9 h-9 w-[260px]"
+                    placeholder="Search promo codes..."
+                    value={searchQuery}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                      setSearchQuery(e.target.value)
+                    }
+                  />
+                </div>
+                {filtered.length !== promoCodes.length && (
+                  <span className="text-sm text-muted-foreground">
+                    {filtered.length} of {promoCodes.length} codes
+                  </span>
+                )}
+              </div>
+            </CardHeader>
+            <CardContent className="p-0">
+              {filtered.length > 0 ? (
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="bg-muted/50 hover:bg-muted/50">
+                        <TableHead>Code</TableHead>
+                        <TableHead>Type</TableHead>
+                        <TableHead>Value</TableHead>
+                        <TableHead>Created</TableHead>
+                        <TableHead>Expires</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {filtered.map((p: PromoCode) => (
+                        <TableRow key={p.id} className="hover:bg-muted/30 transition-colors">
+                          <TableCell>
+                            <span className="font-mono bg-muted px-2 py-0.5 rounded text-sm">
+                              {p.code}
+                            </span>
+                            {p.description && (
+                              <p className="text-xs text-muted-foreground mt-1">{p.description}</p>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant="outline" className="text-xs">
+                              {p.type.replace("_", " ")}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <span className="text-lg font-bold text-primary">
+                              {p.type === "PERCENTAGE" ? `${p.value}%` : p.type === "FIXED_AMOUNT" ? `D${p.value}` : "—"}
+                            </span>
+                          </TableCell>
+                          <TableCell>
+                            <span className="text-sm text-muted-foreground">
+                              {p.createdAt
+                                ? new Date(p.createdAt).toLocaleDateString()
+                                : "-"}
+                            </span>
+                          </TableCell>
+                          <TableCell>
+                            <span className="text-sm text-muted-foreground">
+                              {p.validUntil
+                                ? new Date(p.validUntil).toLocaleDateString()
+                                : "-"}
+                            </span>
+                          </TableCell>
+                          <TableCell>
+                            {p.isActive ? (
+                              <Badge className="bg-emerald-500 hover:bg-emerald-600 text-white shadow-sm">
+                                <CheckCircle className="mr-1 h-3 w-3" />
+                                Active
+                              </Badge>
+                            ) : (
+                              <Badge variant="destructive">
+                                <XCircle className="mr-1 h-3 w-3" />
+                                Inactive
+                              </Badge>
+                            )}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                                  <MoreHorizontal className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem onClick={() => openEdit(p)}>
+                                  <Edit className="mr-2 h-4 w-4" /> Edit
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  onClick={() => deleteMutation.mutate(p.id)}
+                                  className="text-destructive focus:text-destructive"
+                                >
+                                  <Trash2 className="mr-2 h-4 w-4" /> Delete
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  onClick={() => toggleMutation.mutate(p.id)}
+                                >
+                                  {p.isActive ? "Deactivate" : "Activate"}
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center py-20 text-center">
+                  <Tag className="h-12 w-12 text-muted-foreground mb-4 opacity-50" />
+                  <p className="text-lg font-medium">No promo codes found</p>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    {searchQuery
+                      ? "Try adjusting your search query."
+                      : "Create your first promo code to get started."}
+                  </p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </div>
-        <Card>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableCell>Code</TableCell>
-                  <TableCell>Type</TableCell>
-                  <TableCell>Value</TableCell>
-                  <TableCell>Created</TableCell>
-                  <TableCell>Expires</TableCell>
-                  <TableCell>Active</TableCell>
-                  <TableCell>Actions</TableCell>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filtered.map((p: PromoCode) => (
-                  <TableRow key={p.id}>
-                    <TableCell>{p.code}</TableCell>
-                    <TableCell>{p.type}</TableCell>
-                    <TableCell>{p.value}</TableCell>
-                    <TableCell>
-                      {p.createdAt
-                        ? new Date(p.createdAt).toLocaleDateString()
-                        : "-"}
-                    </TableCell>
-                    <TableCell>
-                      {p.validUntil
-                        ? new Date(p.validUntil).toLocaleDateString()
-                        : "-"}
-                    </TableCell>
-                    <TableCell>
-                      {p.isActive ? <CheckCircle /> : <XCircle />}
-                    </TableCell>
-                    <TableCell>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="sm">
-                            <MoreHorizontal />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent>
-                          <DropdownMenuItem onClick={() => openEdit(p)}>
-                            <Edit /> Edit
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onClick={() => deleteMutation.mutate(p.id)}
-                          >
-                            <Trash2 /> Delete
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onClick={() => toggleMutation.mutate(p.id)}
-                          >
-                            {p.isActive ? "Deactivate" : "Activate"}
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
       </Main>
 
       <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
-        <DialogContent>
-          <DialogHeader>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader className="border-b pb-4 mb-2">
             <DialogTitle>{editing ? "Edit" : "New"} Promo Code</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4 mt-4">
+          <div className="space-y-4">
             <Input
-              placeholder="Code"
+              placeholder="Code (e.g. SUMMER20)"
               value={formData.code}
               onChange={(e) =>
                 setFormData({ ...formData, code: e.target.value.toUpperCase() })
@@ -326,7 +401,7 @@ function PromoCodesPage() {
               onChange={(e) =>
                 setFormData({ ...formData, type: e.target.value })
               }
-              className="input"
+              className="input w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
             >
               <option value="PERCENTAGE">Percentage</option>
               <option value="FIXED_AMOUNT">Fixed Amount</option>
@@ -381,10 +456,10 @@ function PromoCodesPage() {
                   setFormData({ ...formData, isActive: e.target.checked })
                 }
               />
-              <span>Active</span>
+              <span className="text-sm">Active</span>
             </div>
-            <div className="flex justify-end gap-2">
-              <Button variant="secondary" onClick={() => setIsFormOpen(false)}>
+            <div className="flex justify-end gap-2 pt-2">
+              <Button variant="outline" onClick={() => setIsFormOpen(false)}>
                 Cancel
               </Button>
               <Button onClick={handleSubmit}>

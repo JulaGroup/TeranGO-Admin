@@ -615,96 +615,97 @@ function VendorDetailPage() {
 
       <Main>
         <div className="space-y-6">
-          {/* Back */}
-          <div className="flex items-center gap-3">
-            <Link to="/admin/vendors">
-              <Button variant="outline" size="sm">
-                <ArrowLeft className="mr-2 h-4 w-4" />
-                Back to Vendors
-              </Button>
+          {/* Breadcrumb */}
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <Link to="/admin/vendors" className="hover:text-foreground transition-colors flex items-center gap-1.5">
+              <ArrowLeft className="h-3.5 w-3.5" />
+              Vendors
             </Link>
+            <span>/</span>
+            <span className="text-foreground font-medium">{vendorName}</span>
           </div>
 
-          {/* Header card */}
-          <Card>
-            <CardContent className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-              <div className="flex items-start gap-4">
-                <Avatar className="h-16 w-16">
-                  <AvatarImage
-                    src={
-                      vendor.restaurants?.[0]?.imageUrl ||
-                      vendor.shops?.[0]?.imageUrl ||
-                      vendor.pharmacies?.[0]?.imageUrl ||
-                      vendor.user?.avatarUrl ||
-                      ""
-                    }
-                    alt={vendorName}
-                  />
-                  <AvatarFallback className="text-xl">{initials}</AvatarFallback>
-                </Avatar>
-                <div className="space-y-1">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <h1 className="text-2xl font-bold tracking-tight">
-                      {vendorName}
-                    </h1>
-                    {vendor.isActive ? (
-                      <Badge className="bg-green-600 hover:bg-green-700">
-                        Active
-                      </Badge>
-                    ) : (
-                      <Badge variant="destructive">Inactive</Badge>
-                    )}
+          {/* Hero card */}
+          <Card className="overflow-hidden">
+            <div className="h-1.5 w-full bg-gradient-to-r from-primary via-primary/60 to-primary/20" />
+            <CardContent className="pt-6 pb-6">
+              <div className="flex flex-col gap-5 md:flex-row md:items-start md:justify-between">
+                <div className="flex items-start gap-5">
+                  <Avatar className="h-20 w-20 ring-4 ring-background shadow-xl">
+                    <AvatarImage
+                      src={
+                        vendor.restaurants?.[0]?.imageUrl ||
+                        vendor.shops?.[0]?.imageUrl ||
+                        vendor.pharmacies?.[0]?.imageUrl ||
+                        vendor.user?.avatarUrl ||
+                        ""
+                      }
+                      alt={vendorName}
+                    />
+                    <AvatarFallback className="text-2xl font-bold">{initials}</AvatarFallback>
+                  </Avatar>
+                  <div className="space-y-2.5">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <h1 className="text-2xl font-bold tracking-tight">{vendorName}</h1>
+                      {vendor.isActive ? (
+                        <Badge className="bg-emerald-500 hover:bg-emerald-600 text-white shadow-sm">Active</Badge>
+                      ) : (
+                        <Badge variant="destructive" className="shadow-sm">Inactive</Badge>
+                      )}
+                      {vendor.subscription && (
+                        <Badge variant="outline" className="border-amber-400 text-amber-600 bg-amber-50 dark:bg-amber-950/20 shadow-sm">
+                          <Crown className="mr-1 h-3 w-3" />
+                          {vendor.subscription.packageName}
+                          {vendor.subscription.isTrial ? " · Trial" : ""}
+                        </Badge>
+                      )}
+                    </div>
+                    <div className="flex flex-wrap items-center gap-x-5 gap-y-1.5 text-sm text-muted-foreground">
+                      <span className="flex items-center gap-1.5">
+                        <Phone className="h-3.5 w-3.5" />
+                        {vendor.user?.phone || "No phone"}
+                      </span>
+                      <span className="flex items-center gap-1.5">
+                        <Mail className="h-3.5 w-3.5" />
+                        {vendor.user?.email || "No email"}
+                      </span>
+                      <span className="flex items-center gap-1.5">
+                        <Calendar className="h-3.5 w-3.5" />
+                        Joined {formatDate(vendor.user?.createdAt)}
+                      </span>
+                      {vendor.waveNumber && (
+                        <span className="flex items-center gap-1.5">
+                          <Wallet className="h-3.5 w-3.5" />
+                          Wave: {vendor.waveNumber}
+                        </span>
+                      )}
+                    </div>
                     {vendor.subscription && (
-                      <Badge
-                        variant="outline"
-                        className="border-yellow-500 text-yellow-600"
-                      >
-                        <Crown className="mr-1 h-3 w-3" />
-                        {vendor.subscription.packageName}
-                        {vendor.subscription.isTrial ? " · TRIAL" : ""}
-                      </Badge>
+                      <p className="text-xs text-muted-foreground">
+                        Subscription{" "}
+                        <span className={cn("font-semibold", vendor.subscription.status === "ACTIVE" ? "text-emerald-600" : "text-red-500")}>
+                          {vendor.subscription.status}
+                        </span>{" "}
+                        · expires {formatDate(vendor.subscription.endDate)}
+                      </p>
                     )}
                   </div>
-                  <div className="text-muted-foreground flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
-                    <span className="flex items-center gap-1.5">
-                      <Phone className="h-3.5 w-3.5" />
-                      {vendor.user?.phone || "No phone"}
-                    </span>
-                    <span className="flex items-center gap-1.5">
-                      <Mail className="h-3.5 w-3.5" />
-                      {vendor.user?.email || "No email"}
-                    </span>
-                    <span className="flex items-center gap-1.5">
-                      <Calendar className="h-3.5 w-3.5" />
-                      Joined {formatDate(vendor.user?.createdAt)}
-                    </span>
-                  </div>
-                  {vendor.subscription && (
-                    <p className="text-muted-foreground text-xs">
-                      Subscription {vendor.subscription.status} — ends{" "}
-                      {formatDate(vendor.subscription.endDate)}
-                    </p>
-                  )}
                 </div>
-              </div>
 
-              <div className="flex items-center gap-4">
-                <div className="flex items-center gap-2">
-                  <Switch
-                    checked={vendor.isActive}
-                    disabled={toggleStatusMutation.isPending}
-                    onCheckedChange={(checked) =>
-                      toggleStatusMutation.mutate(checked)
-                    }
-                  />
-                  <span className="text-sm font-medium">
-                    {vendor.isActive ? "Active" : "Inactive"}
-                  </span>
+                <div className="flex shrink-0 items-center gap-3">
+                  <div className="flex items-center gap-2 rounded-full border bg-muted/40 px-3.5 py-1.5">
+                    <Switch
+                      checked={vendor.isActive}
+                      disabled={toggleStatusMutation.isPending}
+                      onCheckedChange={(checked) => toggleStatusMutation.mutate(checked)}
+                    />
+                    <span className="text-sm font-medium">{vendor.isActive ? "Active" : "Inactive"}</span>
+                  </div>
+                  <Button variant="outline" size="sm" onClick={openEditDialog} className="shadow-sm">
+                    <Edit className="mr-2 h-4 w-4" />
+                    Edit Vendor
+                  </Button>
                 </div>
-                <Button variant="outline" size="sm" onClick={openEditDialog}>
-                  <Edit className="mr-2 h-4 w-4" />
-                  Edit
-                </Button>
               </div>
             </CardContent>
           </Card>
@@ -777,45 +778,40 @@ function VendorDetailPage() {
                     const meta = businessTypeMeta[business.type];
                     const Icon = meta.icon;
                     return (
-                      <Card key={business.id} className="overflow-hidden pt-0">
-                        <div className="bg-muted flex h-36 w-full items-center justify-center overflow-hidden">
+                      <Card key={business.id} className="group overflow-hidden pt-0 transition-shadow hover:shadow-lg">
+                        <div className="relative h-44 w-full overflow-hidden bg-muted">
                           {business.imageUrl ? (
                             <img
                               src={business.imageUrl}
                               alt={business.name}
-                              className="h-full w-full object-cover"
+                              className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
                             />
                           ) : (
-                            <ImageIcon className="text-muted-foreground h-10 w-10" />
+                            <div className="flex h-full w-full items-center justify-center">
+                              <ImageIcon className="text-muted-foreground h-10 w-10" />
+                            </div>
                           )}
-                        </div>
-                        <CardHeader>
-                          <div className="flex items-center justify-between gap-2">
-                            <CardTitle className="truncate text-base">
-                              {business.name}
-                            </CardTitle>
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
+                          <div className="absolute bottom-3 left-3 right-3 flex items-end justify-between gap-2">
+                            <h3 className="truncate text-base font-semibold text-white drop-shadow">{business.name}</h3>
                             {business.isActive === false ? (
-                              <Badge variant="destructive">Inactive</Badge>
+                              <Badge variant="destructive" className="shrink-0 shadow">Inactive</Badge>
                             ) : (
-                              <Badge className="bg-green-600 hover:bg-green-700">
-                                Active
-                              </Badge>
+                              <Badge className="shrink-0 bg-emerald-500 hover:bg-emerald-600 shadow">Active</Badge>
                             )}
                           </div>
-                          <CardDescription className="flex items-center gap-1.5">
-                            <Icon className={cn("h-4 w-4", meta.color)} />
-                            {meta.label}
-                          </CardDescription>
-                        </CardHeader>
-                        <CardContent className="space-y-2 text-sm">
-                          <div className="text-muted-foreground flex items-center gap-2">
-                            <MapPin className="h-4 w-4 flex-shrink-0" />
-                            <span className="truncate">
-                              {business.address || "No address"}
-                            </span>
+                        </div>
+                        <CardContent className="space-y-2.5 pt-4 text-sm">
+                          <div className="flex items-center gap-1.5">
+                            <Icon className={cn("h-3.5 w-3.5 shrink-0", meta.color)} />
+                            <span className="font-medium text-muted-foreground">{meta.label}</span>
                           </div>
                           <div className="text-muted-foreground flex items-center gap-2">
-                            <Phone className="h-4 w-4 flex-shrink-0" />
+                            <MapPin className="h-3.5 w-3.5 shrink-0" />
+                            <span className="truncate">{business.address || "No address"}</span>
+                          </div>
+                          <div className="text-muted-foreground flex items-center gap-2">
+                            <Phone className="h-3.5 w-3.5 shrink-0" />
                             <span>{business.phone || "No phone"}</span>
                           </div>
                         </CardContent>

@@ -252,13 +252,12 @@ function MaintenancePage() {
       <Main>
         <div className="space-y-6 max-w-3xl">
           {/* Page header */}
-          <div className="flex items-start justify-between">
+          <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-2xl font-bold flex items-center gap-2">
-                <Wrench className="h-6 w-6" />
+              <h1 className="text-2xl font-bold tracking-tight">
                 Maintenance Mode
               </h1>
-              <p className="text-muted-foreground mt-1 text-sm">
+              <p className="text-muted-foreground text-sm mt-1">
                 Toggle maintenance mode per service. Changes take effect
                 immediately — no deploy required.
               </p>
@@ -279,7 +278,7 @@ function MaintenancePage() {
           </div>
 
           {/* Global kill switch */}
-          <Card className={isGlobalOn ? "border-destructive" : ""}>
+          <Card className={`shadow-sm ${isGlobalOn ? "border-destructive" : ""}`}>
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
@@ -316,50 +315,48 @@ function MaintenancePage() {
           )}
 
           {/* Per-service toggles */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Service Maintenance</CardTitle>
+          <Card className="shadow-sm">
+            <CardHeader className="border-b pb-4">
+              <CardTitle className="text-base font-semibold">Service Maintenance</CardTitle>
               <CardDescription>
                 Toggle individual services. Users see an in-app banner or
                 maintenance screen for the affected service only.
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-1 p-0">
+            <CardContent className="pt-2 pb-2">
               {SERVICE_CONFIG.map((service, index) => {
                 const Icon = service.icon;
                 const isActive = getVal(service.key);
                 return (
-                  <div key={service.key}>
-                    {index > 0 && <Separator />}
-                    <div className="flex items-center justify-between px-6 py-4">
-                      <div className="flex items-start gap-3">
-                        <Icon
-                          className={`h-5 w-5 mt-0.5 shrink-0 ${isActive ? "text-destructive" : "text-muted-foreground"}`}
-                        />
-                        <div>
-                          <Label className="text-sm font-medium cursor-pointer">
-                            {service.label}
-                          </Label>
-                          <p className="text-xs text-muted-foreground mt-0.5">
-                            {service.description}
-                          </p>
-                        </div>
+                  <div
+                    key={service.key}
+                    className={`flex items-center justify-between py-3 ${index < SERVICE_CONFIG.length - 1 ? "border-b" : ""}`}
+                  >
+                    <div className="flex items-start gap-3">
+                      <Icon
+                        className={`h-5 w-5 mt-0.5 shrink-0 ${isActive ? "text-destructive" : "text-muted-foreground"}`}
+                      />
+                      <div>
+                        <p className="font-medium text-sm">{service.label}</p>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          {service.description}
+                        </p>
                       </div>
-                      <div className="flex items-center gap-3 shrink-0 ml-4">
-                        {isActive && (
-                          <Badge
-                            variant="destructive"
-                            className="text-xs hidden sm:flex"
-                          >
-                            Maintenance
-                          </Badge>
-                        )}
-                        <Switch
-                          checked={isActive}
-                          onCheckedChange={(v) => handleToggle(service.key, v)}
-                          disabled={toggleMutation.isPending}
-                        />
-                      </div>
+                    </div>
+                    <div className="flex items-center gap-3 shrink-0 ml-4">
+                      {isActive && (
+                        <Badge
+                          variant="destructive"
+                          className="text-xs hidden sm:flex"
+                        >
+                          Maintenance
+                        </Badge>
+                      )}
+                      <Switch
+                        checked={isActive}
+                        onCheckedChange={(v) => handleToggle(service.key, v)}
+                        disabled={toggleMutation.isPending}
+                      />
                     </div>
                   </div>
                 );
@@ -368,15 +365,15 @@ function MaintenancePage() {
           </Card>
 
           {/* Maintenance message */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Maintenance Message</CardTitle>
+          <Card className="shadow-sm">
+            <CardHeader className="border-b pb-4">
+              <CardTitle className="text-base font-semibold">Maintenance Message</CardTitle>
               <CardDescription>
                 This message is shown to users when any service is in
                 maintenance mode.
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-3">
+            <CardContent className="pt-6 space-y-3">
               <Textarea
                 value={getMessage()}
                 onChange={(e) => handleMessageChange(e.target.value)}
@@ -400,32 +397,24 @@ function MaintenancePage() {
           </Card>
 
           {/* How it works */}
-          <Card className="bg-muted/40">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium">
+          <Card className="shadow-sm bg-muted/30 border-dashed">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
                 How It Works
               </CardTitle>
             </CardHeader>
-            <CardContent className="text-xs text-muted-foreground space-y-1">
-              <p>
-                • The mobile app polls{" "}
-                <code className="bg-muted px-1 py-0.5 rounded">
-                  GET /api/app-status
-                </code>{" "}
-                on launch and navigation.
-              </p>
-              <p>
-                • When a service toggle is on, users see an in-app maintenance
-                screen for that service.
-              </p>
-              <p>
-                • The global toggle overrides all service toggles and shows a
-                full-screen message.
-              </p>
-              <p>
-                • No redeployment is needed — changes are persisted to the
-                database and served in real time.
-              </p>
+            <CardContent className="space-y-2 pt-0">
+              {[
+                <>The mobile app polls <code className="bg-muted px-1 py-0.5 rounded text-xs">GET /api/app-status</code> on launch and navigation.</>,
+                "When a service toggle is on, users see an in-app maintenance screen for that service.",
+                "The global toggle overrides all service toggles and shows a full-screen message.",
+                "No redeployment is needed — changes are persisted to the database and served in real time.",
+              ].map((item, i) => (
+                <div key={i} className="flex items-start gap-2 text-xs text-muted-foreground">
+                  <span className="shrink-0 mt-0.5 h-4 w-4 rounded-full bg-muted-foreground/20 flex items-center justify-center text-[10px] font-medium text-muted-foreground">{i + 1}</span>
+                  <span>{item}</span>
+                </div>
+              ))}
             </CardContent>
           </Card>
         </div>

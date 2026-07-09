@@ -298,96 +298,109 @@ function ShopsPage() {
         </div>
       </Header>
       <Main>
-        <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight">Shops</h1>
-            <p className="text-muted-foreground">
-              Manage all shops on the platform
-            </p>
+        <div className="space-y-6">
+          {/* Header */}
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-bold tracking-tight">Shops</h1>
+              <p className="text-muted-foreground text-sm mt-1">
+                Manage all shops on the platform
+              </p>
+            </div>
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" className="shadow-sm" onClick={() => refetch()}>
+                <RefreshCw className="mr-2 h-4 w-4" /> Refresh
+              </Button>
+            </div>
           </div>
-          <Button variant="outline" onClick={() => refetch()}>
-            <RefreshCw className="mr-2 h-4 w-4" /> Refresh
-          </Button>
-        </div>
 
-        {/* Stats */}
-        <div className="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
-          <StatCard title="Total" value={stats.total} icon={Package} />
-          <StatCard
-            title="Active"
-            value={stats.active}
-            icon={CheckCircle2}
-            iconColor="text-green-500"
-          />
-          <StatCard
-            title="Accepting Orders"
-            value={stats.accepting}
-            icon={ToggleRight}
-            iconColor="text-blue-500"
-          />
-          <StatCard
-            title="Avg Rating"
-            value={stats.avgRating}
-            icon={Star}
-            iconColor="text-yellow-500"
-          />
-        </div>
-
-        {/* Filters */}
-        <div className="mb-4 flex flex-col gap-3 sm:flex-row">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              className="pl-9"
-              placeholder="Search by name, city, type, or vendor..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
+          {/* Stats */}
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            <StatCard title="Total" value={stats.total} icon={Package} borderColor="border-l-primary" iconColor="text-primary" />
+            <StatCard
+              title="Active"
+              value={stats.active}
+              icon={CheckCircle2}
+              iconColor="text-emerald-500"
+              borderColor="border-l-emerald-500"
+            />
+            <StatCard
+              title="Accepting Orders"
+              value={stats.accepting}
+              icon={ToggleRight}
+              iconColor="text-blue-500"
+              borderColor="border-l-blue-500"
+            />
+            <StatCard
+              title="Avg Rating"
+              value={stats.avgRating}
+              icon={Star}
+              iconColor="text-orange-500"
+              borderColor="border-l-orange-500"
             />
           </div>
-          <div className="flex gap-2">
-            {(["all", "active", "inactive"] as const).map((s) => (
-              <Button
-                key={s}
-                size="sm"
-                variant={filterStatus === s ? "default" : "outline"}
-                onClick={() => setFilterStatus(s)}
-                className="capitalize"
-              >
-                {s}
-              </Button>
-            ))}
-          </div>
-        </div>
 
-        {/* List */}
-        {isLoading ? (
-          <div className="flex h-48 items-center justify-center">
-            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-          </div>
-        ) : filtered.length === 0 ? (
-          <div className="flex h-48 flex-col items-center justify-center text-muted-foreground">
-            <Package className="mb-2 h-10 w-10" />
-            <p>No shops found</p>
-          </div>
-        ) : (
-          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-            {filtered.map((s) => (
-              <ShopCard
-                key={s.id}
-                shop={s}
-                onEdit={openEdit}
-                onView={openDetails}
-                onDelete={openDelete}
-                onToggleStatus={(id, active) =>
-                  toggleStatusMutation.mutate({ id, isActive: active })
-                }
-                onToggleOrders={(id, accepts) =>
-                  toggleOrdersMutation.mutate({ id, acceptsOrders: accepts })
-                }
-              />
-            ))}
-          </div>
-        )}
+          {/* Filter + Grid */}
+          <Card className="shadow-sm overflow-hidden">
+            <CardHeader className="border-b pb-4">
+              <div className="flex flex-wrap items-center gap-3">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                  <Input
+                    className="pl-9 h-9 w-[260px]"
+                    placeholder="Search by name, city, type, or vendor..."
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                  />
+                </div>
+                <div className="flex gap-2">
+                  {(["all", "active", "inactive"] as const).map((s) => (
+                    <Button
+                      key={s}
+                      size="sm"
+                      variant={filterStatus === s ? "default" : "outline"}
+                      onClick={() => setFilterStatus(s)}
+                      className="capitalize"
+                    >
+                      {s}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="p-4">
+              {isLoading ? (
+                <div className="flex h-48 items-center justify-center">
+                  <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                </div>
+              ) : filtered.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-20 text-center">
+                  <Package className="h-12 w-12 text-muted-foreground mb-4 opacity-50" />
+                  <p className="text-lg font-medium">No shops found</p>
+                  <p className="text-sm text-muted-foreground mt-1">Try adjusting your search or filter</p>
+                </div>
+              ) : (
+                <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                  {filtered.map((s) => (
+                    <ShopCard
+                      key={s.id}
+                      shop={s}
+                      onEdit={openEdit}
+                      onView={openDetails}
+                      onDelete={openDelete}
+                      onToggleStatus={(id, active) =>
+                        toggleStatusMutation.mutate({ id, isActive: active })
+                      }
+                      onToggleOrders={(id, accepts) =>
+                        toggleOrdersMutation.mutate({ id, acceptsOrders: accepts })
+                      }
+                    />
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
       </Main>
 
       {/* Details Dialog */}
@@ -466,10 +479,10 @@ function ShopsPage() {
                 </p>
               )}
               <div className="flex gap-2">
-                <Badge variant={selected.isActive ? "default" : "secondary"}>
+                <Badge className={selected.isActive ? "bg-emerald-500 hover:bg-emerald-600 text-white shadow-sm" : undefined} variant={selected.isActive ? undefined : "destructive"}>
                   {selected.isActive ? "Active" : "Inactive"}
                 </Badge>
-                <Badge variant={selected.acceptsOrders ? "default" : "outline"}>
+                <Badge className={selected.acceptsOrders ? "border-blue-400 text-blue-600 bg-blue-50 dark:bg-blue-950/20" : undefined} variant={selected.acceptsOrders ? "outline" : "secondary"}>
                   {selected.acceptsOrders
                     ? "Accepting Orders"
                     : "Not Accepting"}
@@ -759,7 +772,7 @@ function ShopCard({
   return (
     <Card
       className={cn(
-        "transition-shadow hover:shadow-md",
+        "shadow-sm transition-all hover:shadow-md",
         !s.isActive && "opacity-60",
       )}
     >
@@ -777,8 +790,7 @@ function ShopCard({
         )}
         <div className="absolute right-2 top-2 flex gap-1">
           <Badge
-            variant={s.isActive ? "default" : "secondary"}
-            className="text-xs"
+            className={cn("text-xs", s.isActive ? "bg-emerald-500 hover:bg-emerald-600 text-white shadow-sm" : "bg-muted text-muted-foreground")}
           >
             {s.isActive ? "Active" : "Inactive"}
           </Badge>
@@ -900,17 +912,19 @@ function StatCard({
   value,
   icon: Icon,
   iconColor,
+  borderColor,
 }: {
   title: string;
   value: string | number;
   icon: any;
   iconColor?: string;
+  borderColor?: string;
 }) {
   return (
-    <Card>
+    <Card className={cn("border-l-4 shadow-sm", borderColor || "border-l-primary")}>
       <CardHeader className="flex flex-row items-center justify-between pb-2">
-        <CardTitle className="text-sm font-medium">{title}</CardTitle>
-        <Icon className={cn("h-4 w-4 text-muted-foreground", iconColor)} />
+        <CardTitle className="text-sm font-medium text-muted-foreground">{title}</CardTitle>
+        <Icon className={cn("h-4 w-4", iconColor || "text-primary")} />
       </CardHeader>
       <CardContent>
         <div className="text-2xl font-bold">{value}</div>

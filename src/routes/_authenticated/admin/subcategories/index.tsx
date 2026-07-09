@@ -20,7 +20,6 @@ import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
@@ -336,100 +335,109 @@ function SubCategoriesPage() {
       <Main>
         <div className="space-y-6">
           {/* Header */}
-          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-bold tracking-tight">
+              <h1 className="text-2xl font-bold tracking-tight">
                 Subcategories
               </h1>
-              <p className="text-muted-foreground">
+              <p className="text-muted-foreground text-sm mt-1">
                 Manage product subcategories
               </p>
             </div>
-            <Button onClick={handleAddSubCategory} className="gap-2">
-              <Plus className="h-4 w-4" />
-              Add Subcategory
-            </Button>
+            <div className="flex gap-2">
+              <Button onClick={handleAddSubCategory} className="gap-2">
+                <Plus className="h-4 w-4" />
+                Add Subcategory
+              </Button>
+            </div>
           </div>
 
           {/* Stats Cards */}
           <div className="grid gap-4 md:grid-cols-3">
-            <Card>
-              <CardContent className="pt-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-muted-foreground text-sm">
-                      Total Subcategories
-                    </p>
-                    <p className="text-3xl font-bold">{subCategories.length}</p>
-                  </div>
-                  <Tag className="h-12 w-12 text-blue-500 opacity-20" />
-                </div>
+            <Card className="border-l-4 border-l-primary shadow-sm">
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  Total Subcategories
+                </CardTitle>
+                <Tag className="h-4 w-4 text-primary" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{subCategories.length}</div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  All product subcategories
+                </p>
               </CardContent>
             </Card>
 
-            <Card>
-              <CardContent className="pt-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-muted-foreground text-sm">
-                      Total Categories
-                    </p>
-                    <p className="text-3xl font-bold">{categories.length}</p>
-                  </div>
-                  <Folder className="h-12 w-12 text-purple-500 opacity-20" />
-                </div>
+            <Card className="border-l-4 border-l-blue-500 shadow-sm">
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  Total Categories
+                </CardTitle>
+                <Folder className="h-4 w-4 text-blue-500" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{categories.length}</div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Parent categories
+                </p>
               </CardContent>
             </Card>
 
-            <Card>
-              <CardContent className="pt-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-muted-foreground text-sm">
-                      Created Today
-                    </p>
-                    <p className="text-3xl font-bold">
-                      {
-                        subCategories.filter((sub) => {
-                          const today = new Date();
-                          const subDate = sub.createdAt
-                            ? new Date(sub.createdAt)
-                            : null;
-                          return (
-                            subDate &&
-                            subDate.toDateString() === today.toDateString()
-                          );
-                        }).length
-                      }
-                    </p>
-                  </div>
-                  <RefreshCw className="h-12 w-12 text-green-500 opacity-20" />
+            <Card className="border-l-4 border-l-emerald-500 shadow-sm">
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  Created Today
+                </CardTitle>
+                <RefreshCw className="h-4 w-4 text-emerald-500" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {
+                    subCategories.filter((sub) => {
+                      const today = new Date();
+                      const subDate = sub.createdAt
+                        ? new Date(sub.createdAt)
+                        : null;
+                      return (
+                        subDate &&
+                        subDate.toDateString() === today.toDateString()
+                      );
+                    }).length
+                  }
                 </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  New additions today
+                </p>
               </CardContent>
             </Card>
           </div>
 
-          {/* Search and Filter */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Search & Filter</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex gap-4">
-                <div className="relative flex-1">
-                  <Search className="text-muted-foreground absolute top-3 left-3 h-4 w-4" />
+          {/* Subcategories Table */}
+          <Card className="shadow-sm overflow-hidden">
+            <CardHeader className="border-b pb-4">
+              <div className="flex flex-wrap items-center gap-3">
+                <div className="flex items-center gap-2 flex-1 min-w-0">
+                  <Tag className="h-5 w-5 text-muted-foreground shrink-0" />
+                  <CardTitle className="text-base">All Subcategories</CardTitle>
+                  <Badge variant="outline">
+                    {filteredSubCategories.length} total
+                  </Badge>
+                </div>
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
                   <Input
-                    placeholder="Search by name..."
+                    className="pl-9 h-9 w-[220px]"
+                    placeholder="Search subcategories..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-10"
                   />
                 </div>
                 <Select
                   value={categoryFilter}
                   onValueChange={setCategoryFilter}
                 >
-                  <SelectTrigger className="w-[200px]">
+                  <SelectTrigger className="h-9 w-[180px]">
                     <SelectValue placeholder="Filter by category" />
                   </SelectTrigger>
                   <SelectContent>
@@ -442,119 +450,122 @@ function SubCategoriesPage() {
                   </SelectContent>
                 </Select>
               </div>
-            </CardContent>
-          </Card>
-
-          {/* Subcategories Table */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Tag className="h-5 w-5" />
-                  All Subcategories
-                </div>
-                <Badge variant="outline">
-                  {filteredSubCategories.length} total
-                </Badge>
-              </CardTitle>
-              <CardDescription>
-                View and manage all product subcategories
-              </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-0">
               {isLoading ? (
-                <div className="flex items-center justify-center py-8">
+                <div className="flex items-center justify-center py-16">
                   <p className="text-muted-foreground">
                     Loading subcategories...
                   </p>
                 </div>
               ) : filteredSubCategories.length > 0 ? (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Name</TableHead>
-                      <TableHead>Category</TableHead>
-                      <TableHead>Image</TableHead>
-                      <TableHead className="text-right">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredSubCategories.map((subCategory) => (
-                      <TableRow key={subCategory.id}>
-                        <TableCell>
-                          <div className="font-medium">{subCategory.name}</div>
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant="outline">
-                            {subCategory.category?.name || "N/A"}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          {subCategory.imageUrl ? (
-                            <Avatar>
-                              <AvatarImage
-                                src={subCategory.imageUrl}
-                                alt={subCategory.name}
-                              />
-                              <AvatarFallback>
-                                {subCategory.name.substring(0, 2).toUpperCase()}
-                              </AvatarFallback>
-                            </Avatar>
-                          ) : (
-                            <span className="text-muted-foreground text-xs">
-                              No image
-                            </span>
-                          )}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon">
-                                <MoreHorizontal className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem
-                                onClick={() => handleViewDetails(subCategory)}
-                              >
-                                <Eye className="mr-2 h-4 w-4" />
-                                View Details
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                onClick={() =>
-                                  handleEditSubCategory(subCategory)
-                                }
-                              >
-                                <Edit className="mr-2 h-4 w-4" />
-                                Edit
-                              </DropdownMenuItem>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem
-                                onClick={() =>
-                                  deleteMutation.mutate(subCategory.id)
-                                }
-                                className="text-red-600"
-                              >
-                                <Trash2 className="mr-2 h-4 w-4" />
-                                Delete
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </TableCell>
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="bg-muted/50 hover:bg-muted/50">
+                        <TableHead>Name</TableHead>
+                        <TableHead>Category</TableHead>
+                        <TableHead>Image</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredSubCategories.map((subCategory) => (
+                        <TableRow
+                          key={subCategory.id}
+                          className="hover:bg-muted/30 transition-colors"
+                        >
+                          <TableCell>
+                            <div className="font-medium">{subCategory.name}</div>
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant="outline">
+                              {subCategory.category?.name || "N/A"}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            {subCategory.imageUrl ? (
+                              <Avatar>
+                                <AvatarImage
+                                  src={subCategory.imageUrl}
+                                  alt={subCategory.name}
+                                />
+                                <AvatarFallback>
+                                  {subCategory.name
+                                    .substring(0, 2)
+                                    .toUpperCase()}
+                                </AvatarFallback>
+                              </Avatar>
+                            ) : (
+                              <span className="text-muted-foreground text-xs">
+                                No image
+                              </span>
+                            )}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon">
+                                  <MoreHorizontal className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                                  onClick={() => handleViewDetails(subCategory)}
+                                >
+                                  <Eye className="mr-2 h-4 w-4" />
+                                  View Details
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  onClick={() =>
+                                    handleEditSubCategory(subCategory)
+                                  }
+                                >
+                                  <Edit className="mr-2 h-4 w-4" />
+                                  Edit
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                                  onClick={() =>
+                                    deleteMutation.mutate(subCategory.id)
+                                  }
+                                  className="text-red-600"
+                                >
+                                  <Trash2 className="mr-2 h-4 w-4" />
+                                  Delete
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
               ) : (
-                <div className="flex flex-col items-center justify-center py-12">
-                  <Tag className="text-muted-foreground mb-4 h-12 w-12" />
-                  <p className="text-muted-foreground">
+                <div className="flex flex-col items-center justify-center py-20 text-center">
+                  <Tag className="h-12 w-12 text-muted-foreground mb-4 opacity-50" />
+                  <p className="text-lg font-medium">
                     {searchQuery || categoryFilter !== "all"
                       ? "No subcategories match your filters"
                       : "No subcategories yet"}
                   </p>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    {searchQuery || categoryFilter !== "all"
+                      ? "Try adjusting your filters"
+                      : "Get started by creating your first subcategory"}
+                  </p>
+                  {!searchQuery && categoryFilter === "all" && (
+                    <Button
+                      className="mt-4"
+                      size="sm"
+                      onClick={handleAddSubCategory}
+                    >
+                      Add Subcategory
+                    </Button>
+                  )}
                 </div>
               )}
             </CardContent>
@@ -562,8 +573,8 @@ function SubCategoriesPage() {
 
           {/* Subcategory Details Dialog */}
           <Dialog open={isDetailsOpen} onOpenChange={setIsDetailsOpen}>
-            <DialogContent className="max-w-2xl">
-              <DialogHeader>
+            <DialogContent className="sm:max-w-lg">
+              <DialogHeader className="border-b pb-4 mb-2">
                 <DialogTitle>Subcategory Details</DialogTitle>
                 <DialogDescription>
                   View subcategory information
@@ -610,8 +621,8 @@ function SubCategoriesPage() {
 
           {/* Add/Edit Subcategory Dialog */}
           <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
-            <DialogContent>
-              <DialogHeader>
+            <DialogContent className="sm:max-w-md">
+              <DialogHeader className="border-b pb-4 mb-2">
                 <DialogTitle>
                   {editingSubCategory
                     ? "Edit Subcategory"

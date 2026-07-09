@@ -20,7 +20,6 @@ import {
   XCircle,
   Package,
   ChefHat,
-  Filter,
   Inbox,
   Gift,
   ArrowRight,
@@ -28,6 +27,8 @@ import {
   Receipt,
   Banknote,
   Calendar,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { toast } from "sonner";
 import { adminApi } from "@/lib/api";
@@ -194,51 +195,57 @@ const ADMIN_STATUS_CONFIG = {
 };
 
 const ORDER_STATUSES = [
-  { value: "PENDING", label: "Pending", color: "bg-yellow-500", icon: Clock },
-  {
-    value: "CONFIRMED",
-    label: "Confirmed",
-    color: "bg-blue-500",
-    icon: CheckCircle,
-  },
-  {
-    value: "PREPARING",
-    label: "Preparing",
-    color: "bg-purple-500",
-    icon: ChefHat,
-  },
-  { value: "READY", label: "Ready", color: "bg-green-500", icon: Package },
-  {
-    value: "IN_TRANSIT",
-    label: "In Transit",
-    color: "bg-indigo-500",
-    icon: Truck,
-  },
-  {
-    value: "DELIVERED",
-    label: "Delivered",
-    color: "bg-green-600",
-    icon: CheckCircle,
-  },
-  {
-    value: "CANCELLED",
-    label: "Cancelled",
-    color: "bg-red-500",
-    icon: XCircle,
-  },
+  { value: "PENDING", label: "Pending", icon: Clock },
+  { value: "CONFIRMED", label: "Confirmed", icon: CheckCircle },
+  { value: "PREPARING", label: "Preparing", icon: ChefHat },
+  { value: "READY", label: "Ready", icon: Package },
+  { value: "IN_TRANSIT", label: "In Transit", icon: Truck },
+  { value: "DELIVERED", label: "Delivered", icon: CheckCircle },
+  { value: "CANCELLED", label: "Cancelled", icon: XCircle },
 ];
 
 const getStatusBadge = (status: string) => {
-  const statusConfig = ORDER_STATUSES.find(
-    (s) => s.value === status?.toUpperCase(),
-  );
+  const s = status?.toUpperCase();
+  const statusConfig = ORDER_STATUSES.find((os) => os.value === s);
   const Icon = statusConfig?.icon || Package;
+  const label = statusConfig?.label || status;
+
+  if (s === "DELIVERED") {
+    return (
+      <Badge className="bg-emerald-500 hover:bg-emerald-600 text-white shadow-sm flex items-center gap-1">
+        <Icon className="h-3 w-3" />
+        {label}
+      </Badge>
+    );
+  }
+  if (s === "CANCELLED") {
+    return (
+      <Badge variant="destructive" className="flex items-center gap-1">
+        <Icon className="h-3 w-3" />
+        {label}
+      </Badge>
+    );
+  }
+  if (s === "IN_TRANSIT" || s === "DISPATCHED" || s === "CONFIRMED") {
+    return (
+      <Badge className="border border-blue-400 text-blue-600 bg-blue-50 dark:bg-blue-950/20 flex items-center gap-1">
+        <Icon className="h-3 w-3" />
+        {label}
+      </Badge>
+    );
+  }
+  if (s === "PENDING" || s === "PREPARING") {
+    return (
+      <Badge className="border border-amber-400 text-amber-600 bg-amber-50 dark:bg-amber-950/20 flex items-center gap-1">
+        <Icon className="h-3 w-3" />
+        {label}
+      </Badge>
+    );
+  }
   return (
-    <Badge
-      className={`${statusConfig?.color || "bg-gray-500"} flex items-center gap-1 text-white`}
-    >
+    <Badge variant="secondary" className="flex items-center gap-1">
       <Icon className="h-3 w-3" />
-      {statusConfig?.label || status}
+      {label}
     </Badge>
   );
 };
@@ -397,291 +404,293 @@ function OrdersPage() {
 
   return (
     <div className="space-y-6 p-4 md:p-6">
-      {/* Header */}
+      {/* Page Header */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="rounded-lg bg-linear-to-br from-blue-500 to-blue-600 p-3">
-            <ShoppingCart className="h-6 w-6 text-white" />
-          </div>
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight">Orders</h1>
-            <p className="text-muted-foreground">
-              Track and manage all customer orders
-            </p>
-          </div>
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Orders</h1>
+          <p className="text-muted-foreground text-sm mt-1">
+            Track and manage all customer orders
+          </p>
         </div>
-        <Button
-          onClick={() => refetch()}
-          variant="outline"
-          size="sm"
-          disabled={isLoading}
-        >
-          <RefreshCw
-            className={`mr-2 h-4 w-4 ${isLoading ? "animate-spin" : ""}`}
-          />
-          Refresh
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            onClick={() => refetch()}
+            variant="outline"
+            size="sm"
+            disabled={isLoading}
+          >
+            <RefreshCw
+              className={`mr-2 h-4 w-4 ${isLoading ? "animate-spin" : ""}`}
+            />
+            Refresh
+          </Button>
+        </div>
       </div>
 
       {/* Stats Cards */}
-      <div className="grid gap-4 md:grid-cols-5">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-muted-foreground text-sm font-medium">
+      <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-5">
+        <Card className="border-l-4 border-l-primary shadow-sm">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
               Total Orders
             </CardTitle>
+            <ShoppingCart className="h-4 w-4 text-primary" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.total}</div>
+            <p className="text-xs text-muted-foreground mt-1">All time</p>
           </CardContent>
         </Card>
-        <Card className="border-yellow-200 bg-yellow-50/50 dark:border-yellow-800 dark:bg-yellow-900/10">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-yellow-700 dark:text-yellow-500">
+        <Card className="border-l-4 border-l-amber-500 shadow-sm">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
               Pending
             </CardTitle>
+            <Clock className="h-4 w-4 text-amber-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-yellow-700 dark:text-yellow-500">
-              {stats.pending}
-            </div>
+            <div className="text-2xl font-bold">{stats.pending}</div>
+            <p className="text-xs text-muted-foreground mt-1">Awaiting action</p>
           </CardContent>
         </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-muted-foreground text-sm font-medium">
+        <Card className="border-l-4 border-l-blue-500 shadow-sm">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
               Preparing
             </CardTitle>
+            <ChefHat className="h-4 w-4 text-blue-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-purple-600">
-              {stats.preparing}
-            </div>
+            <div className="text-2xl font-bold">{stats.preparing}</div>
+            <p className="text-xs text-muted-foreground mt-1">In progress</p>
           </CardContent>
         </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-muted-foreground text-sm font-medium">
+        <Card className="border-l-4 border-l-orange-500 shadow-sm">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
               Ready
             </CardTitle>
+            <ShoppingBag className="h-4 w-4 text-orange-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-blue-600">
-              {stats.ready}
-            </div>
+            <div className="text-2xl font-bold">{stats.ready}</div>
+            <p className="text-xs text-muted-foreground mt-1">For pickup/dispatch</p>
           </CardContent>
         </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-muted-foreground text-sm font-medium">
+        <Card className="border-l-4 border-l-emerald-500 shadow-sm">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
               Delivered
             </CardTitle>
+            <CheckCircle className="h-4 w-4 text-emerald-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">
-              {stats.delivered}
-            </div>
+            <div className="text-2xl font-bold">{stats.delivered}</div>
+            <p className="text-xs text-muted-foreground mt-1">Completed</p>
           </CardContent>
         </Card>
       </div>
 
-      {/* Filters */}
-      <Card>
-        <CardContent className="pt-6">
-          <div className="flex flex-col gap-4 md:flex-row md:items-center">
-            <div className="relative flex-1">
-              <Search className="text-muted-foreground absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2" />
+      {/* Orders Table with integrated filters */}
+      <Card className="shadow-sm overflow-hidden">
+        <CardHeader className="border-b pb-4">
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
               <Input
-                placeholder="Search by order ID, customer, vendor..."
+                className="pl-9 h-9 w-[260px]"
+                placeholder="Search orders, customer, vendor..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10"
               />
             </div>
-            <div className="flex items-center gap-2">
-              <Filter className="text-muted-foreground h-4 w-4" />
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-45">
-                  <SelectValue placeholder="Filter by status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Orders</SelectItem>
-                  {ORDER_STATUSES.map((s) => (
-                    <SelectItem key={s.value} value={s.value}>
-                      {s.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="h-9 w-[160px]">
+                <SelectValue placeholder="Filter by status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Orders</SelectItem>
+                {ORDER_STATUSES.map((s) => (
+                  <SelectItem key={s.value} value={s.value}>
+                    {s.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
-        </CardContent>
-      </Card>
-
-      {/* Orders Table */}
-      <Card>
-        <CardContent className="pt-6">
+        </CardHeader>
+        <CardContent className="p-0">
           {isLoading ? (
-            <div className="flex justify-center py-8">
-              <RefreshCw className="text-muted-foreground h-8 w-8 animate-spin" />
+            <div className="flex flex-col items-center justify-center py-20 text-center">
+              <RefreshCw className="h-8 w-8 animate-spin text-muted-foreground mb-4 opacity-50" />
+              <p className="text-sm text-muted-foreground">Loading orders...</p>
             </div>
           ) : filteredOrders.length > 0 ? (
             <>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Order</TableHead>
-                    <TableHead>Customer</TableHead>
-                    <TableHead>Vendor</TableHead>
-                    <TableHead>Items</TableHead>
-                    <TableHead>Amount</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Payment</TableHead>
-                    <TableHead>Driver</TableHead>
-                    <TableHead>Date</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredOrders.map((order) => (
-                    <TableRow key={order.id}>
-                      <TableCell className="font-medium">
-                        TG{order.id?.slice(-4).toUpperCase()}
-                      </TableCell>
-                      <TableCell>
-                        <div>
-                          <p className="font-medium flex items-center gap-1">
-                            {order.user?.name || "Guest"}
-                            {order.isGiftOrder && (
-                              <span
-                                title="Gift order"
-                                className="text-base leading-none"
-                              >
-                                🎁
-                              </span>
-                            )}
-                          </p>
-                          <p className="text-muted-foreground text-xs">
-                            {order.user?.phoneNumber || order.user?.phone}
-                          </p>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        {order.vendor?.shopName ||
-                          order.vendor?.businessName ||
-                          "N/A"}
-                      </TableCell>
-                      <TableCell className="text-sm text-muted-foreground">
-                        {order.items?.length || 0} item
-                        {order.items?.length !== 1 ? "s" : ""}
-                      </TableCell>
-                      <TableCell>
-                        <div className="space-y-0.5">
-                          <p className="font-semibold text-sm">
-                            D{order.totalAmount?.toFixed(2) || "0.00"}
-                          </p>
-                          {order.deliveryFee ? (
-                            <p className="text-xs text-muted-foreground flex items-center gap-1">
-                              <Truck className="h-2.5 w-2.5" />D
-                              {order.deliveryFee.toFixed(2)} del.
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-muted/50 hover:bg-muted/50">
+                      <TableHead>Order</TableHead>
+                      <TableHead>Customer</TableHead>
+                      <TableHead>Vendor</TableHead>
+                      <TableHead>Items</TableHead>
+                      <TableHead>Amount</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Payment</TableHead>
+                      <TableHead>Driver</TableHead>
+                      <TableHead>Date</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredOrders.map((order) => (
+                      <TableRow
+                        key={order.id}
+                        className="hover:bg-muted/30 transition-colors"
+                      >
+                        <TableCell className="font-medium">
+                          TG{order.id?.slice(-4).toUpperCase()}
+                        </TableCell>
+                        <TableCell>
+                          <div>
+                            <p className="font-medium flex items-center gap-1">
+                              {order.user?.name || "Guest"}
+                              {order.isGiftOrder && (
+                                <span
+                                  title="Gift order"
+                                  className="text-base leading-none"
+                                >
+                                  🎁
+                                </span>
+                              )}
                             </p>
-                          ) : null}
-                        </div>
-                      </TableCell>
-                      <TableCell>{getStatusBadge(order.status)}</TableCell>
-                      <TableCell>
-                        <Badge
-                          variant="outline"
-                          className={`text-xs ${
-                            order.paymentStatus === "PAID"
-                              ? "border-green-300 bg-green-50 text-green-700"
-                              : "border-amber-300 bg-amber-50 text-amber-700"
-                          }`}
-                        >
-                          {order.paymentStatus === "PAID" ? (
-                            <Check className="h-3 w-3 mr-1" />
+                            <p className="text-muted-foreground text-xs">
+                              {order.user?.phoneNumber || order.user?.phone}
+                            </p>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          {order.vendor?.shopName ||
+                            order.vendor?.businessName ||
+                            "N/A"}
+                        </TableCell>
+                        <TableCell className="text-sm text-muted-foreground">
+                          {order.items?.length || 0} item
+                          {order.items?.length !== 1 ? "s" : ""}
+                        </TableCell>
+                        <TableCell>
+                          <div className="space-y-0.5">
+                            <p className="font-semibold text-sm">
+                              D{order.totalAmount?.toFixed(2) || "0.00"}
+                            </p>
+                            {order.deliveryFee ? (
+                              <p className="text-xs text-muted-foreground flex items-center gap-1">
+                                <Truck className="h-2.5 w-2.5" />D
+                                {order.deliveryFee.toFixed(2)} del.
+                              </p>
+                            ) : null}
+                          </div>
+                        </TableCell>
+                        <TableCell>{getStatusBadge(order.status)}</TableCell>
+                        <TableCell>
+                          <Badge
+                            variant="outline"
+                            className={`text-xs ${
+                              order.paymentStatus === "PAID"
+                                ? "border-emerald-300 bg-emerald-50 text-emerald-700 dark:bg-emerald-950/20"
+                                : "border-amber-300 bg-amber-50 text-amber-700 dark:bg-amber-950/20"
+                            }`}
+                          >
+                            {order.paymentStatus === "PAID" ? (
+                              <Check className="h-3 w-3 mr-1" />
+                            ) : (
+                              <Clock className="h-3 w-3 mr-1" />
+                            )}
+                            {order.paymentStatus || "PENDING"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          {order.driver ? (
+                            <div className="flex items-center gap-1">
+                              <span className="text-sm">{order.driver.name}</span>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-6 px-1 text-xs text-blue-600 hover:text-blue-800"
+                                onClick={() => handleAssignDriverClick(order)}
+                                title="Change driver"
+                              >
+                                <RefreshCw className="h-3 w-3" />
+                              </Button>
+                            </div>
                           ) : (
-                            <Clock className="h-3 w-3 mr-1" />
-                          )}
-                          {order.paymentStatus || "PENDING"}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        {order.driver ? (
-                          <div className="flex items-center gap-1">
-                            <span className="text-sm">{order.driver.name}</span>
                             <Button
                               variant="ghost"
                               size="sm"
-                              className="h-6 px-1 text-xs text-blue-600 hover:text-blue-800"
                               onClick={() => handleAssignDriverClick(order)}
-                              title="Change driver"
+                              disabled={
+                                order.status === "CANCELLED" ||
+                                order.status === "DELIVERED"
+                              }
                             >
-                              <RefreshCw className="h-3 w-3" />
+                              <Truck className="mr-1 h-3 w-3" />
+                              Assign
                             </Button>
-                          </div>
-                        ) : (
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {format(new Date(order.createdAt), "MMM dd, yyyy")}
+                        </TableCell>
+                        <TableCell className="text-right">
                           <Button
                             variant="ghost"
-                            size="sm"
-                            onClick={() => handleAssignDriverClick(order)}
-                            disabled={
-                              order.status === "CANCELLED" ||
-                              order.status === "DELIVERED"
-                            }
+                            size="icon"
+                            onClick={() => handleViewDetails(order)}
                           >
-                            <Truck className="mr-1 h-3 w-3" />
-                            Assign
+                            <Eye className="h-4 w-4" />
                           </Button>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        {format(new Date(order.createdAt), "MMM dd, yyyy")}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleViewDetails(order)}
-                        >
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
 
               {/* Pagination */}
               {paginationInfo.pages > 1 && (
-                <div className="flex items-center justify-center gap-2 pt-4">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    disabled={currentPage === 1}
-                    onClick={() => setCurrentPage((p) => p - 1)}
-                  >
-                    Previous
-                  </Button>
-                  <span className="text-muted-foreground text-sm">
+                <div className="flex items-center justify-between px-4 py-3 border-t">
+                  <p className="text-sm text-muted-foreground">
                     Page {paginationInfo.page} of {paginationInfo.pages}
-                  </span>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    disabled={currentPage >= paginationInfo.pages}
-                    onClick={() => setCurrentPage((p) => p + 1)}
-                  >
-                    Next
-                  </Button>
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={currentPage === 1}
+                      onClick={() => setCurrentPage((p) => p - 1)}
+                    >
+                      <ChevronLeft className="h-4 w-4 mr-1" />
+                      Previous
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={currentPage >= paginationInfo.pages}
+                      onClick={() => setCurrentPage((p) => p + 1)}
+                    >
+                      Next
+                      <ChevronRight className="h-4 w-4 ml-1" />
+                    </Button>
+                  </div>
                 </div>
               )}
             </>
           ) : (
-            <div className="flex flex-col items-center justify-center py-12 text-center">
-              <Inbox className="h-12 w-12 text-gray-400" />
-              <h3 className="mt-4 text-lg font-semibold">No Orders Found</h3>
-              <p className="text-muted-foreground mt-1">
+            <div className="flex flex-col items-center justify-center py-20 text-center">
+              <Inbox className="h-12 w-12 text-muted-foreground mb-4 opacity-50" />
+              <p className="text-lg font-medium">No orders found</p>
+              <p className="text-sm text-muted-foreground mt-1">
                 Try adjusting your search or filters.
               </p>
             </div>
@@ -691,7 +700,7 @@ function OrdersPage() {
 
       {/* Order Details Dialog */}
       <Dialog open={isDetailsOpen} onOpenChange={setIsDetailsOpen}>
-        <DialogContent className="max-w-3xl">
+        <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader className="border-b pb-4">
             <div className="flex items-start justify-between gap-4">
               <div className="space-y-1">
@@ -711,7 +720,7 @@ function OrdersPage() {
                   variant="outline"
                   className={`text-xs ${
                     selectedOrder?.paymentStatus === "PAID"
-                      ? "border-green-300 bg-green-50 text-green-700"
+                      ? "border-emerald-300 bg-emerald-50 text-emerald-700"
                       : "border-amber-300 bg-amber-50 text-amber-700"
                   }`}
                 >
@@ -727,58 +736,64 @@ function OrdersPage() {
           </DialogHeader>
 
           {selectedOrder && (
-            <div className="space-y-4 max-h-[70vh] overflow-y-auto pr-1">
+            <div className="space-y-4 pr-1">
               {/* Customer Info */}
               <div>
-                <h3 className="mb-2 flex items-center gap-2 font-semibold">
-                  <User className="h-4 w-4" />
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2 flex items-center gap-2">
+                  <User className="h-3.5 w-3.5" />
                   {selectedOrder.isGiftOrder
                     ? "Ordering Customer"
                     : "Customer Information"}
-                </h3>
-                <div className="space-y-1 rounded-lg border p-3">
-                  <p className="flex items-center gap-2 text-sm">
-                    <span className="text-muted-foreground">Name:</span>
-                    {selectedOrder.user?.name || "N/A"}
-                  </p>
-                  <p className="flex items-center gap-2 text-sm">
-                    <Phone className="h-3 w-3" />
-                    <span className="text-muted-foreground">Phone:</span>
-                    {selectedOrder.user?.phoneNumber ||
-                      selectedOrder.user?.phone ||
-                      "N/A"}
-                  </p>
+                </p>
+                <div className="grid grid-cols-2 gap-3 text-sm rounded-lg border p-3">
+                  <div>
+                    <p className="text-xs text-muted-foreground">Name</p>
+                    <p className="font-medium">{selectedOrder.user?.name || "N/A"}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Phone</p>
+                    <p className="font-medium flex items-center gap-1">
+                      <Phone className="h-3 w-3" />
+                      {selectedOrder.user?.phoneNumber ||
+                        selectedOrder.user?.phone ||
+                        "N/A"}
+                    </p>
+                  </div>
                 </div>
               </div>
 
               {/* Vendor Info */}
               <div>
-                <h3 className="mb-2 flex items-center gap-2 font-semibold">
-                  <Store className="h-4 w-4" />
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2 flex items-center gap-2">
+                  <Store className="h-3.5 w-3.5" />
                   Vendor
-                </h3>
-                <div className="space-y-1 rounded-lg border p-3">
-                  <p className="flex items-center gap-2 text-sm">
-                    <span className="text-muted-foreground">Name:</span>
-                    {selectedOrder.vendor?.shopName ||
-                      selectedOrder.vendor?.businessName ||
-                      "N/A"}
-                  </p>
-                  <p className="flex items-center gap-2 text-sm">
-                    <Phone className="h-3 w-3" />
-                    <span className="text-muted-foreground">Phone:</span>
-                    {selectedOrder.vendor?.phoneNumber || "N/A"}
-                  </p>
+                </p>
+                <div className="grid grid-cols-2 gap-3 text-sm rounded-lg border p-3">
+                  <div>
+                    <p className="text-xs text-muted-foreground">Name</p>
+                    <p className="font-medium">
+                      {selectedOrder.vendor?.shopName ||
+                        selectedOrder.vendor?.businessName ||
+                        "N/A"}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Phone</p>
+                    <p className="font-medium flex items-center gap-1">
+                      <Phone className="h-3 w-3" />
+                      {selectedOrder.vendor?.phoneNumber || "N/A"}
+                    </p>
+                  </div>
                 </div>
               </div>
 
               {/* Delivery */}
               {selectedOrder.deliveryAddress && (
                 <div>
-                  <h3 className="mb-2 flex items-center gap-2 font-semibold">
-                    <MapPin className="h-4 w-4" />
+                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2 flex items-center gap-2">
+                    <MapPin className="h-3.5 w-3.5" />
                     Delivery Address
-                  </h3>
+                  </p>
                   <div className="rounded-lg border p-3 text-sm">
                     {typeof selectedOrder.deliveryAddress === "string"
                       ? selectedOrder.deliveryAddress
@@ -805,32 +820,26 @@ function OrdersPage() {
 
               {/* Gift Recipient */}
               {selectedOrder.isGiftOrder && (
-                <div className="rounded-lg border border-pink-200 bg-linear-to-r from-pink-50 to-rose-50 p-3">
-                  <h3 className="mb-2 flex items-center gap-2 font-semibold text-pink-800">
-                    <Gift className="h-4 w-4" />
+                <div className="rounded-lg border border-pink-200 bg-gradient-to-r from-pink-50 to-rose-50 p-3">
+                  <p className="text-xs font-medium text-pink-700 uppercase tracking-wide mb-2 flex items-center gap-2">
+                    <Gift className="h-3.5 w-3.5" />
                     Gift Recipient
-                  </h3>
-                  <div className="space-y-1 text-sm">
+                  </p>
+                  <div className="grid grid-cols-2 gap-3 text-sm">
                     {selectedOrder.recipientName && (
-                      <p className="flex items-center gap-2">
-                        <span className="text-muted-foreground w-20">
-                          Recipient:
-                        </span>
-                        <span className="font-medium">
-                          {selectedOrder.recipientName}
-                        </span>
-                      </p>
+                      <div>
+                        <p className="text-xs text-muted-foreground">Recipient</p>
+                        <p className="font-medium">{selectedOrder.recipientName}</p>
+                      </div>
                     )}
                     {selectedOrder.recipientPhone && (
-                      <p className="flex items-center gap-2">
-                        <Phone className="h-3 w-3 text-pink-500" />
-                        <span className="text-muted-foreground w-20">
-                          Phone:
-                        </span>
-                        <span className="font-medium">
+                      <div>
+                        <p className="text-xs text-muted-foreground">Phone</p>
+                        <p className="font-medium flex items-center gap-1">
+                          <Phone className="h-3 w-3 text-pink-500" />
                           {selectedOrder.recipientPhone}
-                        </span>
-                      </p>
+                        </p>
+                      </div>
                     )}
                   </div>
                 </div>
@@ -838,14 +847,14 @@ function OrdersPage() {
 
               {/* Order Items */}
               <div>
-                <h3 className="mb-3 flex items-center gap-2 font-semibold">
-                  <Package className="h-4 w-4" />
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2 flex items-center gap-2">
+                  <Package className="h-3.5 w-3.5" />
                   Order Items
-                  <span className="ml-auto text-xs font-normal text-muted-foreground">
+                  <span className="ml-auto normal-case text-muted-foreground font-normal">
                     {selectedOrder.items?.length || 0} item
                     {selectedOrder.items?.length !== 1 ? "s" : ""}
                   </span>
-                </h3>
+                </p>
                 <div className="space-y-2">
                   {selectedOrder.items?.map((item, idx) => {
                     const name =
@@ -859,7 +868,7 @@ function OrdersPage() {
                     return (
                       <div
                         key={item.product?._id || item._id || idx}
-                        className="flex items-center gap-3 rounded-lg border p-3 bg-gray-50/50"
+                        className="flex items-center gap-3 rounded-lg border p-3 bg-muted/30"
                       >
                         {imageUrl ? (
                           <img
@@ -868,8 +877,8 @@ function OrdersPage() {
                             className="w-12 h-12 rounded-lg object-cover border shrink-0"
                           />
                         ) : (
-                          <div className="w-12 h-12 rounded-lg bg-gray-100 border flex items-center justify-center shrink-0">
-                            <Package className="h-5 w-5 text-gray-400" />
+                          <div className="w-12 h-12 rounded-lg bg-muted border flex items-center justify-center shrink-0">
+                            <Package className="h-5 w-5 text-muted-foreground" />
                           </div>
                         )}
                         <div className="flex-1 min-w-0">
@@ -925,11 +934,11 @@ function OrdersPage() {
 
               {/* Financial Breakdown */}
               <div className="rounded-lg border overflow-hidden">
-                <div className="bg-gray-50 dark:bg-gray-800/50 px-4 py-2.5 border-b flex items-center gap-2">
-                  <Receipt className="h-4 w-4 text-gray-500" />
-                  <h3 className="font-semibold text-sm text-gray-700 dark:text-gray-300">
+                <div className="bg-muted/50 px-4 py-2.5 border-b flex items-center gap-2">
+                  <Receipt className="h-4 w-4 text-muted-foreground" />
+                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
                     Financial Summary
-                  </h3>
+                  </p>
                 </div>
                 <div className="p-4 space-y-2.5 text-sm">
                   {(() => {
@@ -1006,7 +1015,7 @@ function OrdersPage() {
                           )}
                         <div className="flex justify-between border-t pt-2.5 font-bold text-base">
                           <span>Total charged</span>
-                          <span className="text-green-700 dark:text-green-400">
+                          <span className="text-emerald-700 dark:text-emerald-400">
                             D{selectedOrder.totalAmount?.toFixed(2)}
                           </span>
                         </div>
@@ -1031,7 +1040,7 @@ function OrdersPage() {
                     Payment Method
                   </p>
                   <div className="flex items-center gap-2">
-                    <Banknote className="h-4 w-4 text-gray-400" />
+                    <Banknote className="h-4 w-4 text-muted-foreground" />
                     <span className="font-semibold text-sm">
                       {selectedOrder.paymentMethod || "N/A"}
                     </span>
@@ -1045,7 +1054,7 @@ function OrdersPage() {
                     variant="outline"
                     className={`text-xs ${
                       selectedOrder.paymentStatus === "PAID"
-                        ? "border-green-300 bg-green-50 text-green-700"
+                        ? "border-emerald-300 bg-emerald-50 text-emerald-700"
                         : "border-amber-300 bg-amber-50 text-amber-700"
                     }`}
                   >
@@ -1063,9 +1072,9 @@ function OrdersPage() {
                   </p>
                   <div className="flex items-center gap-2">
                     {selectedOrder.orderType === "PICKUP" ? (
-                      <Store className="h-4 w-4 text-gray-400" />
+                      <Store className="h-4 w-4 text-muted-foreground" />
                     ) : (
-                      <Truck className="h-4 w-4 text-gray-400" />
+                      <Truck className="h-4 w-4 text-muted-foreground" />
                     )}
                     <span className="font-semibold text-sm">
                       {selectedOrder.orderType || "DELIVERY"}
@@ -1085,7 +1094,7 @@ function OrdersPage() {
                 <div className="flex items-start gap-2 rounded-lg border p-3">
                   <Calendar className="h-3.5 w-3.5 shrink-0 mt-0.5" />
                   <div>
-                    <p className="font-medium text-gray-600 dark:text-gray-400 mb-0.5">
+                    <p className="font-medium text-foreground mb-0.5">
                       Order Placed
                     </p>
                     <p>{format(new Date(selectedOrder.createdAt), "PPp")}</p>
@@ -1095,7 +1104,7 @@ function OrdersPage() {
                   <div className="flex items-start gap-2 rounded-lg border p-3">
                     <RefreshCw className="h-3.5 w-3.5 shrink-0 mt-0.5" />
                     <div>
-                      <p className="font-medium text-gray-600 dark:text-gray-400 mb-0.5">
+                      <p className="font-medium text-foreground mb-0.5">
                         Last Updated
                       </p>
                       <p>{format(new Date(selectedOrder.updatedAt), "PPp")}</p>
@@ -1106,12 +1115,12 @@ function OrdersPage() {
 
               {/* Assigned Driver */}
               {selectedOrder.driver && (
-                <div className="rounded-lg border p-4 bg-linear-to-r from-blue-50 to-indigo-50">
+                <div className="rounded-lg border p-4 bg-blue-50/50 dark:bg-blue-950/20">
                   <div className="flex items-center justify-between mb-3">
-                    <h4 className="font-semibold text-gray-800 flex items-center gap-2">
-                      <Truck className="h-4 w-4 text-blue-600" />
+                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide flex items-center gap-2">
+                      <Truck className="h-3.5 w-3.5 text-blue-600" />
                       Assigned Driver
-                    </h4>
+                    </p>
                     <Button
                       variant="outline"
                       size="sm"
@@ -1126,14 +1135,14 @@ function OrdersPage() {
                     </Button>
                   </div>
                   <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-full bg-linear-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white font-bold text-lg border-2 border-blue-200 shadow-md">
+                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white font-bold text-lg border-2 border-blue-200 shadow-md">
                       {selectedOrder.driver.name?.charAt(0)?.toUpperCase()}
                     </div>
                     <div className="flex-1 space-y-1 text-sm">
-                      <p className="font-semibold text-gray-800">
+                      <p className="font-semibold">
                         {selectedOrder.driver.name}
                       </p>
-                      <p className="text-gray-600 flex items-center gap-1">
+                      <p className="text-muted-foreground flex items-center gap-1">
                         <Phone className="h-3 w-3" />
                         {selectedOrder.driver.phone ||
                           selectedOrder.driver.phoneNumber}
@@ -1164,18 +1173,18 @@ function OrdersPage() {
                 );
                 if (transitions.length === 0) return null;
                 return (
-                  <div className="rounded-xl border border-gray-100 overflow-hidden">
-                    <div className="px-4 py-2.5 bg-gray-50 border-b border-gray-100 flex items-center justify-between">
-                      <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                  <div className="rounded-xl border overflow-hidden">
+                    <div className="px-4 py-2.5 bg-muted/50 border-b flex items-center justify-between">
+                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
                         Update Status
                       </p>
-                      <div className="flex items-center gap-1 text-xs text-gray-400">
+                      <div className="flex items-center gap-1 text-xs text-muted-foreground">
                         <span>Current:</span>
                         <span
                           className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold border ${
                             ADMIN_STATUS_CONFIG[selectedOrder.status]?.bg ??
-                            "bg-gray-50 border-gray-200"
-                          } ${ADMIN_STATUS_CONFIG[selectedOrder.status]?.color ?? "text-gray-600"}`}
+                            "bg-muted border-border"
+                          } ${ADMIN_STATUS_CONFIG[selectedOrder.status]?.color ?? "text-foreground"}`}
                         >
                           {ADMIN_STATUS_CONFIG[selectedOrder.status]?.icon}
                           {ADMIN_STATUS_CONFIG[selectedOrder.status]?.label ??
@@ -1213,7 +1222,7 @@ function OrdersPage() {
                       })}
                     </div>
                     {isPaid && (
-                      <p className="px-4 pb-3 text-xs text-gray-400">
+                      <p className="px-4 pb-3 text-xs text-muted-foreground">
                         Cancellation disabled — payment already received.
                       </p>
                     )}
@@ -1281,7 +1290,7 @@ function OrdersPage() {
 
       {/* Assign Driver Dialog */}
       <Dialog open={isAssignDriverOpen} onOpenChange={setIsAssignDriverOpen}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>
               {selectedOrder?.driver ? "Change Driver" : "Assign Driver"}
@@ -1321,10 +1330,10 @@ function OrdersPage() {
                             <img
                               src={driver.profileImageUrl}
                               alt={driverName}
-                              className="w-8 h-8 rounded-full object-cover border border-gray-200"
+                              className="w-8 h-8 rounded-full object-cover border border-border"
                             />
                           ) : (
-                            <div className="w-8 h-8 rounded-full bg-linear-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white font-medium text-sm">
+                            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white font-medium text-sm">
                               {driverName.charAt(0).toUpperCase()}
                             </div>
                           )}
@@ -1332,7 +1341,7 @@ function OrdersPage() {
                             <div className="flex items-center gap-2">
                               <span className="font-medium">{driverName}</span>
                               {driver.vehicleType && (
-                                <span className="text-xs bg-gray-100 px-2 py-0.5 rounded">
+                                <span className="text-xs bg-muted px-2 py-0.5 rounded">
                                   {driver.vehicleType === "BIKE" && "🏍️ Bike"}
                                   {driver.vehicleType === "KEKE_CARGO" &&
                                     "🛺 Keke"}
@@ -1343,12 +1352,12 @@ function OrdersPage() {
                               )}
                               {driver.isAvailable && (
                                 <span
-                                  className="w-2 h-2 bg-green-400 rounded-full"
+                                  className="w-2 h-2 bg-emerald-400 rounded-full"
                                   title="Available"
                                 />
                               )}
                             </div>
-                            <div className="text-xs text-gray-500">
+                            <div className="text-xs text-muted-foreground">
                               {driver.user?.phone ||
                                 driver.user?.phoneNumber ||
                                 driver.phoneNumber}

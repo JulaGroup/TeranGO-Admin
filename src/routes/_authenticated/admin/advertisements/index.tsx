@@ -430,67 +430,68 @@ function AdvertisementsPage() {
   const stats = statsData
 
   return (
-    <div className='flex flex-col gap-6 p-4 md:p-6'>
+    <div className='space-y-6 p-4 md:p-6'>
       {/* Header */}
-      <div className='flex flex-col gap-4 md:flex-row md:items-center md:justify-between'>
+      <div className='flex items-center justify-between'>
         <div>
-          <h1 className='flex items-center gap-2 text-2xl font-bold tracking-tight'>
+          <h1 className='text-2xl font-bold tracking-tight flex items-center gap-2'>
             <Megaphone className='text-primary h-6 w-6' />
             Advertisements
           </h1>
-          <p className='text-muted-foreground'>
+          <p className='text-muted-foreground text-sm mt-1'>
             Manage promotional banners and advertisements across the app
           </p>
         </div>
-        <Button
-          onClick={() => setShowCreateDialog(true)}
-          className='w-full md:w-auto'
-        >
-          <Plus className='mr-2 h-4 w-4' />
-          Create Advertisement
-        </Button>
+        <div className='flex gap-2'>
+          <Button onClick={() => setShowCreateDialog(true)}>
+            <Plus className='mr-2 h-4 w-4' />
+            Create Advertisement
+          </Button>
+        </div>
       </div>
 
       {/* Stats Cards */}
       <div className='grid gap-4 md:grid-cols-2 lg:grid-cols-4'>
-        <Card>
-          <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2'>
-            <CardTitle className='text-sm font-medium'>Total Ads</CardTitle>
-            <ImageIcon className='text-muted-foreground h-4 w-4' />
+        <Card className='border-l-4 border-l-primary shadow-sm'>
+          <CardHeader className='flex flex-row items-center justify-between pb-2'>
+            <CardTitle className='text-sm font-medium text-muted-foreground'>Total Ads</CardTitle>
+            <ImageIcon className='h-4 w-4 text-primary' />
           </CardHeader>
           <CardContent>
             <div className='text-2xl font-bold'>{stats?.total || 0}</div>
-            <p className='text-muted-foreground text-xs'>
+            <p className='text-muted-foreground text-xs mt-1'>
               {stats?.active || 0} active
             </p>
           </CardContent>
         </Card>
-        <Card>
-          <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2'>
-            <CardTitle className='text-sm font-medium'>
+
+        <Card className='border-l-4 border-l-blue-500 shadow-sm'>
+          <CardHeader className='flex flex-row items-center justify-between pb-2'>
+            <CardTitle className='text-sm font-medium text-muted-foreground'>
               Total Impressions
             </CardTitle>
-            <Eye className='text-muted-foreground h-4 w-4' />
+            <Eye className='h-4 w-4 text-blue-500' />
           </CardHeader>
           <CardContent>
             <div className='text-2xl font-bold'>
               {(stats?.totalImpressions || 0).toLocaleString()}
             </div>
-            <p className='text-muted-foreground text-xs'>
+            <p className='text-muted-foreground text-xs mt-1'>
               Views across all ads
             </p>
           </CardContent>
         </Card>
-        <Card>
-          <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2'>
-            <CardTitle className='text-sm font-medium'>Total Clicks</CardTitle>
-            <MousePointer className='text-muted-foreground h-4 w-4' />
+
+        <Card className='border-l-4 border-l-emerald-500 shadow-sm'>
+          <CardHeader className='flex flex-row items-center justify-between pb-2'>
+            <CardTitle className='text-sm font-medium text-muted-foreground'>Total Clicks</CardTitle>
+            <MousePointer className='h-4 w-4 text-emerald-500' />
           </CardHeader>
           <CardContent>
             <div className='text-2xl font-bold'>
               {(stats?.totalClicks || 0).toLocaleString()}
             </div>
-            <p className='text-muted-foreground text-xs'>
+            <p className='text-muted-foreground text-xs mt-1'>
               CTR:{' '}
               {calculateCTR(
                 stats?.totalClicks || 0,
@@ -499,35 +500,42 @@ function AdvertisementsPage() {
             </p>
           </CardContent>
         </Card>
-        <Card>
-          <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2'>
-            <CardTitle className='text-sm font-medium'>Paid Ads</CardTitle>
-            <DollarSign className='text-muted-foreground h-4 w-4' />
+
+        <Card className='border-l-4 border-l-violet-500 shadow-sm'>
+          <CardHeader className='flex flex-row items-center justify-between pb-2'>
+            <CardTitle className='text-sm font-medium text-muted-foreground'>Paid Ads</CardTitle>
+            <DollarSign className='h-4 w-4 text-violet-500' />
           </CardHeader>
           <CardContent>
             <div className='text-2xl font-bold'>{stats?.paid || 0}</div>
-            <p className='text-muted-foreground text-xs'>
+            <p className='text-muted-foreground text-xs mt-1'>
               {stats?.unpaid || 0} unpaid
             </p>
           </CardContent>
         </Card>
       </div>
 
-      {/* Filters */}
-      <Card>
-        <CardContent className='pt-6'>
-          <div className='flex flex-col gap-4 md:flex-row md:items-center'>
-            <div className='relative flex-1'>
-              <Search className='text-muted-foreground absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 transform' />
+      {/* Advertisements Table with Filters */}
+      <Card className='shadow-sm overflow-hidden'>
+        <CardHeader className='border-b pb-4'>
+          <div className='flex flex-wrap items-center gap-3'>
+            <div className='flex-1 min-w-0'>
+              <CardTitle>All Advertisements</CardTitle>
+              <CardDescription className='mt-1'>
+                Manage your promotional content and track performance
+              </CardDescription>
+            </div>
+            <div className='relative'>
+              <Search className='absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none' />
               <Input
+                className='pl-9 h-9 w-[220px]'
                 placeholder='Search advertisements...'
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className='pl-10'
               />
             </div>
             <Select value={positionFilter} onValueChange={setPositionFilter}>
-              <SelectTrigger className='w-full md:w-[200px]'>
+              <SelectTrigger className='h-9 w-[180px]'>
                 <SelectValue placeholder='Filter by position' />
               </SelectTrigger>
               <SelectContent>
@@ -540,7 +548,7 @@ function AdvertisementsPage() {
               </SelectContent>
             </Select>
             <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className='w-full md:w-[150px]'>
+              <SelectTrigger className='h-9 w-[130px]'>
                 <SelectValue placeholder='Status' />
               </SelectTrigger>
               <SelectContent>
@@ -552,6 +560,7 @@ function AdvertisementsPage() {
             <Button
               variant='outline'
               size='icon'
+              className='h-9 w-9'
               onClick={() =>
                 queryClient.invalidateQueries({ queryKey: ['advertisements'] })
               }
@@ -559,31 +568,28 @@ function AdvertisementsPage() {
               <RefreshCw className='h-4 w-4' />
             </Button>
           </div>
-        </CardContent>
-      </Card>
-
-      {/* Advertisements Table */}
-      <Card>
-        <CardHeader>
-          <CardTitle>All Advertisements</CardTitle>
-          <CardDescription>
-            Manage your promotional content and track performance
-          </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className='p-0'>
           {isLoading ? (
-            <div className='flex items-center justify-center py-8'>
+            <div className='flex items-center justify-center py-16'>
               <RefreshCw className='text-muted-foreground h-6 w-6 animate-spin' />
             </div>
           ) : advertisements.length === 0 ? (
-            <div className='text-muted-foreground py-8 text-center'>
-              No advertisements found. Create your first ad!
+            <div className='flex flex-col items-center justify-center py-20 text-center'>
+              <Megaphone className='h-12 w-12 text-muted-foreground mb-4 opacity-50' />
+              <p className='text-lg font-medium'>No advertisements found</p>
+              <p className='text-sm text-muted-foreground mt-1'>
+                Create your first promotional advertisement
+              </p>
+              <Button className='mt-4' size='sm' onClick={() => setShowCreateDialog(true)}>
+                Create Advertisement
+              </Button>
             </div>
           ) : (
             <div className='overflow-x-auto'>
               <Table>
                 <TableHeader>
-                  <TableRow>
+                  <TableRow className='bg-muted/50 hover:bg-muted/50'>
                     <TableHead>Preview</TableHead>
                     <TableHead>Title</TableHead>
                     <TableHead>Position</TableHead>
@@ -597,7 +603,7 @@ function AdvertisementsPage() {
                 </TableHeader>
                 <TableBody>
                   {advertisements.map((ad: Advertisement) => (
-                    <TableRow key={ad.id}>
+                    <TableRow key={ad.id} className='hover:bg-muted/30 transition-colors'>
                       <TableCell>
                         <div className='bg-muted h-14 w-24 overflow-hidden rounded-md'>
                           <img
@@ -629,9 +635,13 @@ function AdvertisementsPage() {
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        <Badge variant={ad.isActive ? 'default' : 'secondary'}>
-                          {ad.isActive ? 'Active' : 'Inactive'}
-                        </Badge>
+                        {ad.isActive ? (
+                          <Badge className='bg-emerald-500 hover:bg-emerald-600 text-white shadow-sm'>
+                            Active
+                          </Badge>
+                        ) : (
+                          <Badge variant='secondary'>Inactive</Badge>
+                        )}
                       </TableCell>
                       <TableCell>{ad.impressions.toLocaleString()}</TableCell>
                       <TableCell>{ad.clicks.toLocaleString()}</TableCell>
@@ -639,9 +649,13 @@ function AdvertisementsPage() {
                         {calculateCTR(ad.clicks, ad.impressions)}
                       </TableCell>
                       <TableCell>
-                        <Badge variant={ad.isPaid ? 'default' : 'destructive'}>
-                          {ad.isPaid ? `GMD ${ad.amount}` : 'Unpaid'}
-                        </Badge>
+                        {ad.isPaid ? (
+                          <Badge className='bg-emerald-500 hover:bg-emerald-600 text-white shadow-sm'>
+                            GMD {ad.amount}
+                          </Badge>
+                        ) : (
+                          <Badge variant='destructive'>Unpaid</Badge>
+                        )}
                       </TableCell>
                       <TableCell className='text-right'>
                         <DropdownMenu>
@@ -695,7 +709,7 @@ function AdvertisementsPage() {
         }}
       >
         <DialogContent className='max-h-[90vh] max-w-2xl overflow-y-auto'>
-          <DialogHeader>
+          <DialogHeader className='border-b pb-4 mb-2'>
             <DialogTitle>
               {showEditDialog ? 'Edit Advertisement' : 'Create Advertisement'}
             </DialogTitle>
@@ -1074,8 +1088,8 @@ function AdvertisementsPage() {
 
       {/* Delete Confirmation Dialog */}
       <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-        <DialogContent>
-          <DialogHeader>
+        <DialogContent className='sm:max-w-md'>
+          <DialogHeader className='border-b pb-4 mb-2'>
             <DialogTitle>Delete Advertisement</DialogTitle>
             <DialogDescription>
               Are you sure you want to delete "{selectedAd?.title}"? This action

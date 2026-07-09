@@ -14,6 +14,8 @@ import {
   Upload,
   Loader2,
   KeyRound,
+  Phone,
+  Mail,
 } from "lucide-react";
 import { toast } from "sonner";
 import { adminApi, api } from "@/lib/api";
@@ -269,274 +271,207 @@ function DriverDetailPage() {
 
       <Main>
         <div className="space-y-6">
-          {/* Back */}
-          <div className="flex items-center gap-3">
-            <Link to="/admin/drivers">
-              <Button variant="outline" size="sm">
-                <ArrowLeft className="mr-2 h-4 w-4" />
-                Back to Drivers
-              </Button>
+          {/* Breadcrumb */}
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <Link to="/admin/drivers" className="hover:text-foreground transition-colors flex items-center gap-1.5">
+              <ArrowLeft className="h-3.5 w-3.5" />
+              Drivers
             </Link>
-            <div>
-              <h1 className="text-2xl font-bold">{driverName}</h1>
-              <p className="text-muted-foreground text-sm">
-                Driver earnings, ratings &amp; settlement history
-              </p>
-            </div>
+            <span>/</span>
+            <span className="text-foreground font-medium">{driverName}</span>
           </div>
 
-          {/* Driver type badge + rating + edit button */}
-          {/* Driver Info */}
-          <div className="grid gap-4 md:grid-cols-3 items-start">
-            <Card className="md:col-span-1">
-              <CardContent className="flex flex-col items-center gap-3">
-                <Avatar className="h-24 w-24">
-                  <AvatarImage
-                    src={
-                      driver?.profileImage ||
-                      driver?.profileImageUrl ||
-                      driver?.user?.avatarUrl
-                    }
-                  />
-                  <AvatarFallback>
-                    {(driver?.name || driver?.user?.fullName || "DR")
-                      .slice(0, 2)
-                      .toUpperCase()}
-                  </AvatarFallback>
-                </Avatar>
-                <h2 className="text-lg font-semibold">{driverName}</h2>
-                <p className="text-sm text-muted-foreground">
-                  {driver?.user?.email || driver?.email || "—"}
-                </p>
-                <p className="text-sm text-muted-foreground">
-                  {driver?.user?.phone ||
-                    driver?.phone ||
-                    driver?.phoneNumber ||
-                    "—"}
-                </p>
-              </CardContent>
-            </Card>
-            <Card className="md:col-span-2">
-              <CardContent>
-                <div className="grid gap-2 md:grid-cols-3">
-                  <div>
-                    <p className="text-xs text-muted-foreground">Vehicle</p>
-                    <p className="font-medium">
-                      {driver?.vehicleNumber || driver?.vehicleNo || "—"}
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                      {driver?.vehicleType || "—"}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">Status</p>
-                    <p className="font-medium">
-                      {(driver as any)?.status ||
-                        (driver?.isAvailable ? "Available" : "Unavailable")}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      Driver Type: {driver?.driverType || "—"}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">Location</p>
-                    <p className="font-medium">
-                      {driver?.currentLatitude && driver?.currentLongitude
-                        ? `${driver.currentLatitude.toFixed(5)}, ${driver.currentLongitude.toFixed(5)}`
-                        : "No location"}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {driver?.lastLocationUpdate
-                        ? formatDate(driver.lastLocationUpdate)
-                        : ""}
-                    </p>
-                  </div>
-                </div>
-                {/* Mini-map of the driver's last known position */}
-                {driver?.currentLatitude != null &&
-                  driver?.currentLongitude != null && (
-                    <div className="mt-4">
-                      <OrderLocationMap
-                        latitude={driver.currentLatitude}
-                        longitude={driver.currentLongitude}
-                        label="Driver's last known location"
-                        height={200}
-                      />
-                    </div>
-                  )}
-                <div className="mt-4 grid gap-2 md:grid-cols-2">
-                  <div>
-                    <p className="text-xs text-muted-foreground">Joined</p>
-                    <p className="font-medium">
-                      {driver?.createdAt ? formatDate(driver.createdAt) : "—"}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">
-                      Recent Orders
-                    </p>
-                    <p className="font-medium">
-                      {driver?.recentOrders?.length ?? 0}
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-          <div className="flex flex-wrap items-center gap-3">
-            <Badge
-              variant={
-                driver?.driverType === "THIRD_PARTY" ? "outline" : "default"
-              }
-              className={
-                driver?.driverType === "THIRD_PARTY"
-                  ? "border-orange-500 text-orange-600 text-sm px-3 py-1"
-                  : "bg-blue-600 text-sm px-3 py-1"
-              }
-            >
-              {driver?.driverType === "THIRD_PARTY"
-                ? "Third-Party Driver"
-                : "TeranGO Driver (Salaried)"}
-            </Badge>
-            {driver?.driverType === "THIRD_PARTY" && driver?.thirdPartyRate && (
-              <Badge variant="secondary">
-                Split Rate: {Math.round((driver.thirdPartyRate ?? 0.7) * 100)}%
-                driver /{" "}
-                {Math.round((1 - (driver.thirdPartyRate ?? 0.7)) * 100)}%
-                platform
-              </Badge>
-            )}
-            {/* ─── Average Rating Display ─────────────────────────── */}
-            {(driver?.rating != null || ratingsData?.average != null) && (
-              <div className="flex items-center gap-1.5 rounded-full border border-yellow-300 bg-yellow-50 px-3 py-1">
-                {[1, 2, 3, 4, 5].map((s) => {
-                  const avg = driver?.rating ?? ratingsData?.average ?? 0;
-                  return (
-                    <Star
-                      key={s}
-                      className={`h-3.5 w-3.5 ${
-                        s <= Math.round(avg)
-                          ? "fill-yellow-400 text-yellow-400"
-                          : "text-gray-300"
-                      }`}
+          {/* Hero card */}
+          <Card className="overflow-hidden">
+            <div className="h-1.5 w-full bg-gradient-to-r from-primary via-primary/60 to-primary/20" />
+            <CardContent className="pt-6 pb-6">
+              <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:gap-8">
+                {/* Left: avatar + identity */}
+                <div className="flex items-start gap-5">
+                  <Avatar className="h-20 w-20 ring-4 ring-background shadow-xl shrink-0">
+                    <AvatarImage
+                      src={
+                        driver?.profileImage ||
+                        driver?.profileImageUrl ||
+                        driver?.user?.avatarUrl
+                      }
                     />
-                  );
-                })}
-                <span className="text-sm font-bold text-yellow-700">
-                  {(driver?.rating ?? ratingsData?.average ?? 0).toFixed(1)}
-                </span>
-                {(driver?.totalRatings ?? ratingsData?.totalRatings) !=
-                  null && (
-                  <span className="text-muted-foreground text-xs">
-                    ({driver?.totalRatings ?? ratingsData?.totalRatings}{" "}
-                    reviews)
-                  </span>
-                )}
+                    <AvatarFallback className="text-2xl font-bold">
+                      {(driver?.name || driver?.user?.fullName || "DR")
+                        .slice(0, 2)
+                        .toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="space-y-2.5">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <h1 className="text-2xl font-bold tracking-tight">{driverName}</h1>
+                      {driver?.isAvailable ? (
+                        <Badge className="bg-emerald-500 hover:bg-emerald-600 text-white shadow-sm">Available</Badge>
+                      ) : (
+                        <Badge variant="secondary" className="shadow-sm">Offline</Badge>
+                      )}
+                      <Badge
+                        variant={driver?.driverType === "THIRD_PARTY" ? "outline" : "default"}
+                        className={driver?.driverType === "THIRD_PARTY"
+                          ? "border-orange-400 text-orange-600 bg-orange-50 dark:bg-orange-950/20 shadow-sm"
+                          : "bg-blue-600 text-white shadow-sm"}
+                      >
+                        {driver?.driverType === "THIRD_PARTY" ? "Third-Party" : "TeranGO Driver"}
+                      </Badge>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-x-5 gap-y-1.5 text-sm text-muted-foreground">
+                      <span className="flex items-center gap-1.5">
+                        <Phone className="h-3.5 w-3.5" />
+                        {driver?.user?.phone || driver?.phone || driver?.phoneNumber || "No phone"}
+                      </span>
+                      <span className="flex items-center gap-1.5">
+                        <Mail className="h-3.5 w-3.5" />
+                        {driver?.user?.email || driver?.email || "No email"}
+                      </span>
+                    </div>
+                    {/* Rating */}
+                    {(driver?.rating != null || ratingsData?.average != null) && (
+                      <div className="flex items-center gap-1.5">
+                        {[1, 2, 3, 4, 5].map((s) => {
+                          const avg = driver?.rating ?? ratingsData?.average ?? 0;
+                          return (
+                            <Star
+                              key={s}
+                              className={`h-4 w-4 ${s <= Math.round(avg) ? "fill-yellow-400 text-yellow-400" : "text-muted"}`}
+                            />
+                          );
+                        })}
+                        <span className="text-sm font-bold text-yellow-600">
+                          {(driver?.rating ?? ratingsData?.average ?? 0).toFixed(1)}
+                        </span>
+                        {(driver?.totalRatings ?? ratingsData?.totalRatings) != null && (
+                          <span className="text-muted-foreground text-xs">
+                            ({driver?.totalRatings ?? ratingsData?.totalRatings} reviews)
+                          </span>
+                        )}
+                      </div>
+                    )}
+                    {driver?.driverType === "THIRD_PARTY" && driver?.thirdPartyRate && (
+                      <p className="text-xs text-muted-foreground">
+                        Split: <span className="font-semibold text-foreground">{Math.round((driver.thirdPartyRate ?? 0.7) * 100)}%</span> driver · {Math.round((1 - (driver.thirdPartyRate ?? 0.7)) * 100)}% platform
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Right: vehicle + location + actions */}
+                <div className="flex flex-1 flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+                  <div className="grid grid-cols-2 gap-x-8 gap-y-3 text-sm sm:grid-cols-3">
+                    <div>
+                      <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1">Vehicle</p>
+                      <p className="font-semibold">{driver?.vehicleNumber || driver?.vehicleNo || "—"}</p>
+                      <p className="text-muted-foreground">{driver?.vehicleType || "—"}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1">Status</p>
+                      <p className="font-semibold capitalize">{(driver as any)?.status || "—"}</p>
+                      <p className="text-xs text-muted-foreground">Joined {driver?.createdAt ? new Date(driver.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) : "—"}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1">Location</p>
+                      <p className="font-semibold">
+                        {driver?.currentLatitude && driver?.currentLongitude
+                          ? `${driver.currentLatitude.toFixed(4)}, ${driver.currentLongitude.toFixed(4)}`
+                          : "No location"}
+                      </p>
+                      {driver?.lastLocationUpdate && (
+                        <p className="text-xs text-muted-foreground">{new Date(driver.lastLocationUpdate).toLocaleTimeString()}</p>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="flex shrink-0 items-center gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="shadow-sm"
+                      onClick={() => {
+                        setEditForm({
+                          name: driver?.name || driver?.user?.fullName || "",
+                          email: driver?.email || driver?.user?.email || "",
+                          phoneNumber: driver?.phoneNumber || driver?.phone || driver?.user?.phone || "",
+                          vehicleType: driver?.vehicleType || "BIKE",
+                          vehicleNumber: driver?.vehicleNumber || driver?.vehicleNo || "",
+                          vehicleColor: (driver as any)?.vehicleColor || "",
+                          profileImage: driver?.profileImage || driver?.profileImageUrl || "",
+                          status: (driver as any)?.status || "approved",
+                          driverType: (driver as any)?.driverType || "SYSTEM",
+                          thirdPartyRate: (driver as any)?.thirdPartyRate ? String((driver as any).thirdPartyRate) : "",
+                        });
+                        setIsEditOpen(true);
+                      }}
+                    >
+                      <Edit className="mr-2 h-4 w-4" />
+                      Edit
+                    </Button>
+                    <Button size="sm" variant="outline" className="shadow-sm" onClick={() => setIsResetPasswordOpen(true)}>
+                      <KeyRound className="mr-2 h-4 w-4" />
+                      Reset Password
+                    </Button>
+                  </div>
+                </div>
               </div>
-            )}
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => {
-                setEditForm({
-                  name: driver?.name || driver?.user?.fullName || "",
-                  email: driver?.email || driver?.user?.email || "",
-                  phoneNumber:
-                    driver?.phoneNumber ||
-                    driver?.phone ||
-                    driver?.user?.phone ||
-                    "",
-                  vehicleType: driver?.vehicleType || "BIKE",
-                  vehicleNumber:
-                    driver?.vehicleNumber || driver?.vehicleNo || "",
-                  vehicleColor: (driver as any)?.vehicleColor || "",
-                  profileImage:
-                    driver?.profileImage || driver?.profileImageUrl || "",
-                  status: (driver as any)?.status || "approved",
-                  driverType: (driver as any)?.driverType || "SYSTEM",
-                  thirdPartyRate: (driver as any)?.thirdPartyRate
-                    ? String((driver as any).thirdPartyRate)
-                    : "",
-                });
-                setIsEditOpen(true);
-              }}
-            >
-              <Edit className="mr-2 h-4 w-4" />
-              Edit Driver
-            </Button>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => setIsResetPasswordOpen(true)}
-            >
-              <KeyRound className="mr-2 h-4 w-4" />
-              Reset Password
-            </Button>
-          </div>
+
+              {/* Mini-map */}
+              {driver?.currentLatitude != null && driver?.currentLongitude != null && (
+                <div className="mt-5 overflow-hidden rounded-xl border">
+                  <OrderLocationMap
+                    latitude={driver.currentLatitude}
+                    longitude={driver.currentLongitude}
+                    label="Driver's last known location"
+                    height={200}
+                  />
+                </div>
+              )}
+            </CardContent>
+          </Card>
 
           {/* Summary Cards */}
           {summary && (
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-              <Card>
+              <Card className="border-l-4 border-l-primary shadow-sm">
                 <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <CardTitle className="text-sm font-medium">Today</CardTitle>
-                  <Clock className="text-muted-foreground h-4 w-4" />
+                  <CardTitle className="text-sm font-medium text-muted-foreground">Today</CardTitle>
+                  <Clock className="h-4 w-4 text-primary" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">
-                    {formatGMD(summary.today.total)}
-                  </div>
-                  <p className="text-muted-foreground text-xs">
-                    {summary.today.deliveries} deliveries
-                  </p>
+                  <div className="text-2xl font-bold">{formatGMD(summary.today.total)}</div>
+                  <p className="text-muted-foreground text-xs mt-1">{summary.today.deliveries} deliveries</p>
                 </CardContent>
               </Card>
-              <Card>
+              <Card className="border-l-4 border-l-blue-500 shadow-sm">
                 <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <CardTitle className="text-sm font-medium">
-                    This Month
-                  </CardTitle>
-                  <TrendingUp className="text-muted-foreground h-4 w-4" />
+                  <CardTitle className="text-sm font-medium text-muted-foreground">This Month</CardTitle>
+                  <TrendingUp className="h-4 w-4 text-blue-500" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">
-                    {formatGMD(summary.thisMonth.total)}
-                  </div>
-                  <p className="text-muted-foreground text-xs">
-                    {summary.thisMonth.deliveries} deliveries
-                  </p>
+                  <div className="text-2xl font-bold">{formatGMD(summary.thisMonth.total)}</div>
+                  <p className="text-muted-foreground text-xs mt-1">{summary.thisMonth.deliveries} deliveries</p>
                 </CardContent>
               </Card>
-              <Card>
+              <Card className="border-l-4 border-l-emerald-500 shadow-sm">
                 <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <CardTitle className="text-sm font-medium">
-                    All Time
-                  </CardTitle>
-                  <DollarSign className="text-muted-foreground h-4 w-4" />
+                  <CardTitle className="text-sm font-medium text-muted-foreground">All Time</CardTitle>
+                  <DollarSign className="h-4 w-4 text-emerald-500" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">
-                    {formatGMD(summary.allTime.total)}
-                  </div>
-                  <p className="text-muted-foreground text-xs">
-                    {summary.allTime.deliveries} total deliveries
-                  </p>
+                  <div className="text-2xl font-bold">{formatGMD(summary.allTime.total)}</div>
+                  <p className="text-muted-foreground text-xs mt-1">{summary.allTime.deliveries} total deliveries</p>
                 </CardContent>
               </Card>
-              <Card>
+              <Card className="border-l-4 border-l-orange-500 shadow-sm">
                 <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <CardTitle className="text-sm font-medium">
-                    Pending Unsettled
-                  </CardTitle>
+                  <CardTitle className="text-sm font-medium text-muted-foreground">Pending Unsettled</CardTitle>
                   <AlertCircle className="h-4 w-4 text-orange-500" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold text-orange-600">
-                    {formatGMD(summary.pendingUnsettled.total)}
-                  </div>
-                  <p className="text-muted-foreground text-xs">
-                    {summary.pendingUnsettled.count} earnings pending
-                  </p>
+                  <div className="text-2xl font-bold text-orange-600">{formatGMD(summary.pendingUnsettled.total)}</div>
+                  <p className="text-muted-foreground text-xs mt-1">{summary.pendingUnsettled.count} earnings pending</p>
                 </CardContent>
               </Card>
             </div>

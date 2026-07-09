@@ -173,113 +173,150 @@ function PaymentsPage() {
     return (
       <div className="flex h-[60vh] items-center justify-center">
         <div className="text-center">
-          <div className="border-primary mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-b-2"></div>
-          <p className="text-muted-foreground">Loading payments...</p>
+          <RefreshCw className="mx-auto mb-4 h-8 w-8 animate-spin text-muted-foreground opacity-50" />
+          <p className="text-muted-foreground text-sm">Loading payments...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="container mx-auto space-y-6 p-4 md:p-6">
-      <header className="flex flex-col items-start justify-between gap-4 md:flex-row md:items-center">
+    <div className="space-y-6 p-4 md:p-6">
+      {/* Page Header */}
+      <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Payments</h1>
-          <p className="text-muted-foreground">
+          <h1 className="text-2xl font-bold tracking-tight">Payments</h1>
+          <p className="text-muted-foreground text-sm mt-1">
             Monitor all transactions and payouts.
           </p>
         </div>
-        <Button
-          onClick={() =>
-            queryClient.invalidateQueries({ queryKey: ["admin-payments"] })
-          }
-          variant="outline"
-          className="flex items-center gap-2"
-          disabled={isLoading}
-        >
-          <RefreshCw className={cn("h-4 w-4", isLoading && "animate-spin")} />
-          Refresh
-        </Button>
-      </header>
-
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <StatCard
-          title="Total Volume"
-          value={`D ${stats.totalVolume.toLocaleString()}`}
-          icon={Banknote}
-          color="bg-blue-500"
-        />
-        <StatCard
-          title="Total Payments"
-          value={stats.totalPayments.toLocaleString()}
-          icon={ArrowRightLeft}
-          color="bg-purple-500"
-        />
-        <StatCard
-          title="Succeeded"
-          value={stats.succeeded.toLocaleString()}
-          icon={CheckCircle2}
-          color="bg-green-500"
-        />
-        <StatCard
-          title="Failed"
-          value={stats.failed.toLocaleString()}
-          icon={XCircle}
-          color="bg-red-500"
-        />
+        <div className="flex gap-2">
+          <Button
+            onClick={() =>
+              queryClient.invalidateQueries({ queryKey: ["admin-payments"] })
+            }
+            variant="outline"
+            size="sm"
+            disabled={isLoading}
+          >
+            <RefreshCw className={cn("mr-2 h-4 w-4", isLoading && "animate-spin")} />
+            Refresh
+          </Button>
+        </div>
       </div>
 
-      <Card>
+      {/* Stat Cards */}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <Card className="border-l-4 border-l-primary shadow-sm">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Total Volume
+            </CardTitle>
+            <Banknote className="h-4 w-4 text-primary" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              D {stats.totalVolume.toLocaleString()}
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">All transactions</p>
+          </CardContent>
+        </Card>
+        <Card className="border-l-4 border-l-blue-500 shadow-sm">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Total Payments
+            </CardTitle>
+            <ArrowRightLeft className="h-4 w-4 text-blue-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {stats.totalPayments.toLocaleString()}
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">All time count</p>
+          </CardContent>
+        </Card>
+        <Card className="border-l-4 border-l-emerald-500 shadow-sm">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Succeeded
+            </CardTitle>
+            <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {stats.succeeded.toLocaleString()}
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">Successful payments</p>
+          </CardContent>
+        </Card>
+        <Card className="border-l-4 border-l-orange-500 shadow-sm">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Failed
+            </CardTitle>
+            <XCircle className="h-4 w-4 text-orange-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {stats.failed.toLocaleString()}
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">Failed transactions</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Filters + View Toggle */}
+      <Card className="shadow-sm">
         <CardContent className="p-4">
-          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-            <div className="relative flex-1">
-              <Search className="text-muted-foreground absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 transform" />
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
               <Input
+                className="pl-9 h-9 w-[260px]"
                 placeholder="Search by ID, customer, vendor..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10"
               />
             </div>
-            <div className="flex items-center gap-2">
-              <Select value={networkFilter} onValueChange={setNetworkFilter}>
-                <SelectTrigger className="w-full md:w-[180px]">
-                  <SelectValue placeholder="Network" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Networks</SelectItem>
-                  <SelectItem value="wave">Wave</SelectItem>
-                  <SelectItem value="wave_payout">Wave Payout</SelectItem>
-                  <SelectItem value="modempay">Modempay</SelectItem>
-                </SelectContent>
-              </Select>
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-full md:w-[180px]">
-                  <SelectValue placeholder="Status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Statuses</SelectItem>
-                  <SelectItem value="PENDING">Pending</SelectItem>
-                  <SelectItem value="SUCCEEDED">Succeeded</SelectItem>
-                  <SelectItem value="FAILED">Failed</SelectItem>
-                </SelectContent>
-              </Select>
-              <div className="flex items-center rounded-md bg-gray-100 p-1 dark:bg-gray-800">
-                <Button
-                  variant={viewLayout === "grid" ? "secondary" : "ghost"}
-                  size="sm"
-                  onClick={() => setViewLayout("grid")}
-                >
-                  <LayoutGrid className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant={viewLayout === "list" ? "secondary" : "ghost"}
-                  size="sm"
-                  onClick={() => setViewLayout("list")}
-                >
-                  <List className="h-4 w-4" />
-                </Button>
-              </div>
+            <Select value={networkFilter} onValueChange={setNetworkFilter}>
+              <SelectTrigger className="h-9 w-[160px]">
+                <SelectValue placeholder="Network" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Networks</SelectItem>
+                <SelectItem value="wave">Wave</SelectItem>
+                <SelectItem value="wave_payout">Wave Payout</SelectItem>
+                <SelectItem value="modempay">Modempay</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="h-9 w-[160px]">
+                <SelectValue placeholder="Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Statuses</SelectItem>
+                <SelectItem value="PENDING">Pending</SelectItem>
+                <SelectItem value="SUCCEEDED">Succeeded</SelectItem>
+                <SelectItem value="FAILED">Failed</SelectItem>
+              </SelectContent>
+            </Select>
+            <div className="ml-auto flex items-center rounded-md border bg-muted/40 p-0.5">
+              <Button
+                variant={viewLayout === "grid" ? "secondary" : "ghost"}
+                size="sm"
+                className="h-7 w-7 p-0"
+                onClick={() => setViewLayout("grid")}
+              >
+                <LayoutGrid className="h-3.5 w-3.5" />
+              </Button>
+              <Button
+                variant={viewLayout === "list" ? "secondary" : "ghost"}
+                size="sm"
+                className="h-7 w-7 p-0"
+                onClick={() => setViewLayout("list")}
+              >
+                <List className="h-3.5 w-3.5" />
+              </Button>
             </div>
           </div>
         </CardContent>
@@ -288,7 +325,7 @@ function PaymentsPage() {
       {payments.length > 0 ? (
         <>
           {viewLayout === "grid" ? (
-            <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
               {payments.map((payment) => (
                 <PaymentCard
                   key={payment.id}
@@ -310,10 +347,10 @@ function PaymentsPage() {
           />
         </>
       ) : (
-        <div className="flex h-64 flex-col items-center justify-center rounded-lg border-2 border-dashed bg-gray-50 dark:bg-gray-800/50">
-          <Inbox className="h-12 w-12 text-gray-400" />
-          <h3 className="mt-4 text-lg font-semibold">No Payments Found</h3>
-          <p className="text-muted-foreground mt-1">
+        <div className="flex flex-col items-center justify-center py-20 text-center">
+          <Inbox className="h-12 w-12 text-muted-foreground mb-4 opacity-50" />
+          <p className="text-lg font-medium">No payments found</p>
+          <p className="text-sm text-muted-foreground mt-1">
             Try adjusting your search or filters.
           </p>
         </div>
@@ -353,59 +390,27 @@ function getPaymentService(payment: Payment): string {
 }
 
 // Sub-components
-const StatCard = ({
-  title,
-  value,
-  icon: Icon,
-  color,
-}: {
-  title: string;
-  value: string;
-  icon: React.ElementType;
-  color: string;
-}) => (
-  <Card>
-    <CardContent className="p-4">
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="text-sm font-medium text-muted-foreground">{title}</p>
-          <p className="text-2xl font-bold">{value}</p>
-        </div>
-        <div className={`rounded-full p-3 ${color}`}>
-          <Icon className="h-6 w-6 text-white" />
-        </div>
-      </div>
-    </CardContent>
-  </Card>
-);
-
-const getStatusConfig = (status: string) => {
-  const configs = {
-    PENDING: { icon: Clock, color: "text-yellow-600", bg: "bg-yellow-100" },
-    SUCCEEDED: {
-      icon: CheckCircle2,
-      color: "text-green-600",
-      bg: "bg-green-100",
-    },
-    FAILED: { icon: XCircle, color: "text-red-600", bg: "bg-red-100" },
-  };
-
-  const s = (status?.toUpperCase() || "PENDING") as keyof typeof configs;
-
-  return configs[s] || configs.PENDING;
-};
 const StatusBadge = ({ status }: { status: string }) => {
-  const config = getStatusConfig(status);
-  const Icon = config.icon;
+  const s = status?.toUpperCase();
+  if (s === "SUCCEEDED") {
+    return (
+      <Badge className="bg-emerald-500 hover:bg-emerald-600 text-white shadow-sm flex items-center gap-1.5 whitespace-nowrap">
+        <CheckCircle2 className="h-3 w-3" />
+        {status}
+      </Badge>
+    );
+  }
+  if (s === "FAILED") {
+    return (
+      <Badge variant="destructive" className="flex items-center gap-1.5 whitespace-nowrap">
+        <XCircle className="h-3 w-3" />
+        {status}
+      </Badge>
+    );
+  }
   return (
-    <Badge
-      className={cn(
-        "flex items-center gap-1.5 whitespace-nowrap",
-        config.bg,
-        config.color,
-      )}
-    >
-      <Icon className="h-3 w-3" />
+    <Badge className="border border-amber-400 text-amber-600 bg-amber-50 dark:bg-amber-950/20 flex items-center gap-1.5 whitespace-nowrap">
+      <Clock className="h-3 w-3" />
       {status}
     </Badge>
   );
@@ -421,48 +426,48 @@ const PaymentCard = ({
   const vendorName = getPaymentService(payment);
 
   return (
-    <Card className="flex flex-col justify-between transition-all hover:shadow-lg">
-      <CardHeader>
+    <Card className="flex flex-col justify-between shadow-sm hover:shadow-md transition-shadow">
+      <CardHeader className="pb-3">
         <div className="flex items-start justify-between">
           <div>
-            <CardTitle className="text-base font-mono">
-              {payment.id.slice(-8).toUpperCase()}
+            <CardTitle className="text-sm font-mono font-semibold">
+              #{payment.id.slice(-8).toUpperCase()}
             </CardTitle>
-            <CardDescription>
+            <CardDescription className="text-xs mt-0.5">
               {format(new Date(payment.createdAt), "MMM dd, yyyy, HH:mm")}
             </CardDescription>
           </div>
           <StatusBadge status={payment.status} />
         </div>
       </CardHeader>
-      <CardContent className="space-y-3 text-sm">
+      <CardContent className="space-y-2.5 text-sm pb-3">
         <div className="flex items-center justify-between">
-          <span className="text-muted-foreground">Amount</span>
+          <span className="text-muted-foreground text-xs">Amount</span>
           <span className="font-semibold">
             D {payment.amount.toLocaleString()}
           </span>
         </div>
         <div className="flex items-center justify-between">
-          <span className="text-muted-foreground">Customer</span>
-          <span className="font-medium">{getPaymentCustomer(payment)}</span>
+          <span className="text-muted-foreground text-xs">Customer</span>
+          <span className="font-medium text-xs">{getPaymentCustomer(payment)}</span>
         </div>
         <div className="flex items-center justify-between">
-          <span className="text-muted-foreground">Vendor</span>
-          <span className="font-medium">{vendorName}</span>
+          <span className="text-muted-foreground text-xs">Vendor</span>
+          <span className="font-medium text-xs">{vendorName}</span>
         </div>
         <div className="flex items-center justify-between">
-          <span className="text-muted-foreground">Network</span>
-          <Badge variant="outline">{payment.network}</Badge>
+          <span className="text-muted-foreground text-xs">Network</span>
+          <Badge variant="outline" className="text-xs">{payment.network}</Badge>
         </div>
       </CardContent>
-      <CardFooter>
+      <CardFooter className="pt-0">
         <Button
           variant="outline"
           size="sm"
-          className="w-full"
+          className="w-full h-8 text-xs"
           onClick={() => onViewDetails(payment)}
         >
-          <Eye className="mr-2 h-4 w-4" />
+          <Eye className="mr-2 h-3.5 w-3.5" />
           View Details
         </Button>
       </CardFooter>
@@ -477,25 +482,26 @@ const PaymentTable = ({
   payments: any[];
   onViewDetails: (payment: any) => void;
 }) => (
-  <Card>
-    <Table>
-      <TableHeader>
-        <TableRow>
-          <TableHead>Payment ID</TableHead>
-          <TableHead>Customer</TableHead>
-          <TableHead>Vendor</TableHead>
-          <TableHead>Amount</TableHead>
-          <TableHead>Network</TableHead>
-          <TableHead>Status</TableHead>
-          <TableHead>Date</TableHead>
-          <TableHead className="text-right">Actions</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {payments.map((payment) => (
-            <TableRow key={payment.id}>
-              <TableCell className="font-mono text-xs">
-                {payment.id.slice(-8).toUpperCase()}
+  <Card className="shadow-sm overflow-hidden">
+    <div className="overflow-x-auto">
+      <Table>
+        <TableHeader>
+          <TableRow className="bg-muted/50 hover:bg-muted/50">
+            <TableHead>Payment ID</TableHead>
+            <TableHead>Customer</TableHead>
+            <TableHead>Vendor</TableHead>
+            <TableHead>Amount</TableHead>
+            <TableHead>Network</TableHead>
+            <TableHead>Status</TableHead>
+            <TableHead>Date</TableHead>
+            <TableHead className="text-right">Actions</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {payments.map((payment) => (
+            <TableRow key={payment.id} className="hover:bg-muted/30 transition-colors">
+              <TableCell className="font-mono text-xs font-medium">
+                #{payment.id.slice(-8).toUpperCase()}
               </TableCell>
               <TableCell>{getPaymentCustomer(payment)}</TableCell>
               <TableCell>{getPaymentService(payment)}</TableCell>
@@ -503,16 +509,18 @@ const PaymentTable = ({
                 D {payment.amount.toLocaleString()}
               </TableCell>
               <TableCell>
-                <Badge variant="outline">{payment.network}</Badge>
+                <Badge variant="outline" className="text-xs">{payment.network}</Badge>
               </TableCell>
               <TableCell>
                 <StatusBadge status={payment.status} />
               </TableCell>
-              <TableCell>{format(new Date(payment.createdAt), "PP")}</TableCell>
+              <TableCell className="text-muted-foreground text-sm">
+                {format(new Date(payment.createdAt), "PP")}
+              </TableCell>
               <TableCell className="text-right">
                 <Button
                   variant="ghost"
-                  size="sm"
+                  size="icon"
                   onClick={() => onViewDetails(payment)}
                 >
                   <Eye className="h-4 w-4" />
@@ -520,8 +528,9 @@ const PaymentTable = ({
               </TableCell>
             </TableRow>
           ))}
-      </TableBody>
-    </Table>
+        </TableBody>
+      </Table>
+    </div>
   </Card>
 );
 
@@ -534,26 +543,30 @@ const Pagination = ({
   totalPages: number;
   onPageChange: (page: number) => void;
 }) => (
-  <div className="flex items-center justify-center gap-2">
-    <Button
-      onClick={() => onPageChange(currentPage - 1)}
-      disabled={currentPage <= 1}
-      variant="outline"
-      size="sm"
-    >
-      <ChevronLeft className="h-4 w-4" />
-    </Button>
-    <span className="text-sm text-muted-foreground">
+  <div className="flex items-center justify-between">
+    <p className="text-sm text-muted-foreground">
       Page {currentPage} of {totalPages}
-    </span>
-    <Button
-      onClick={() => onPageChange(currentPage + 1)}
-      disabled={currentPage >= totalPages}
-      variant="outline"
-      size="sm"
-    >
-      <ChevronRight className="h-4 w-4" />
-    </Button>
+    </p>
+    <div className="flex items-center gap-2">
+      <Button
+        onClick={() => onPageChange(currentPage - 1)}
+        disabled={currentPage <= 1}
+        variant="outline"
+        size="sm"
+      >
+        <ChevronLeft className="h-4 w-4 mr-1" />
+        Previous
+      </Button>
+      <Button
+        onClick={() => onPageChange(currentPage + 1)}
+        disabled={currentPage >= totalPages}
+        variant="outline"
+        size="sm"
+      >
+        Next
+        <ChevronRight className="h-4 w-4 ml-1" />
+      </Button>
+    </div>
   </div>
 );
 
@@ -573,19 +586,19 @@ const PaymentDetailsDialog = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogContent className="max-w-lg">
-        <DialogHeader>
-          <DialogTitle className="text-xl font-mono">
-            {payment.id.slice(-8).toUpperCase()}
+      <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader className="border-b pb-4">
+          <DialogTitle className="font-mono text-lg">
+            #{payment.id.slice(-8).toUpperCase()}
           </DialogTitle>
-          <div className="flex items-center justify-between pt-2">
+          <div className="flex items-center justify-between pt-1">
             <StatusBadge status={payment.status} />
             <p className="text-sm text-muted-foreground">
               {format(new Date(payment.createdAt), "PPpp")}
             </p>
           </div>
         </DialogHeader>
-        <div className="grid gap-4 py-4">
+        <div className="space-y-4 py-2">
           <InfoSection title="Transaction Details">
             <InfoRow
               label="Amount"
@@ -628,12 +641,14 @@ const InfoSection = ({
   title: string;
   children: React.ReactNode;
 }) => (
-  <Card>
-    <CardHeader className="pb-2">
-      <CardTitle className="text-base">{title}</CardTitle>
-    </CardHeader>
-    <CardContent className="space-y-2 text-sm">{children}</CardContent>
-  </Card>
+  <div className="rounded-lg border overflow-hidden">
+    <div className="bg-muted/50 px-4 py-2.5 border-b">
+      <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+        {title}
+      </p>
+    </div>
+    <div className="p-4 space-y-2.5 text-sm">{children}</div>
+  </div>
 );
 
 const InfoRow = ({
@@ -645,7 +660,7 @@ const InfoRow = ({
   value?: string | null;
   isMonospace?: boolean;
 }) => (
-  <div className="flex justify-between">
+  <div className="flex justify-between items-center">
     <p className="text-muted-foreground">{label}</p>
     <p className={cn("font-medium", isMonospace && "font-mono text-xs")}>
       {value || "N/A"}

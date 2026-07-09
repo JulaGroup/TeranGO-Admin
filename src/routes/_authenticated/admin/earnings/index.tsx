@@ -82,14 +82,12 @@ function StatCard({
   loading?: boolean;
 }) {
   return (
-    <Card className="relative overflow-hidden">
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+    <Card className={`border-l-4 ${color} shadow-sm`}>
+      <CardHeader className="flex flex-row items-center justify-between pb-2">
         <CardTitle className="text-sm font-medium text-muted-foreground">
           {title}
         </CardTitle>
-        <div className={`rounded-lg p-2 ${color}`}>
-          <Icon className="h-4 w-4 text-white" />
-        </div>
+        <Icon className="h-4 w-4 text-muted-foreground" />
       </CardHeader>
       <CardContent>
         {loading ? (
@@ -158,14 +156,14 @@ function RevenueBreakdownCard({
   ];
 
   return (
-    <Card>
-      <CardHeader>
+    <Card className="shadow-sm">
+      <CardHeader className="border-b pb-4">
         <CardTitle className="text-base font-semibold">
           Revenue Breakdown
         </CardTitle>
         <CardDescription>How TeranGO earns its revenue</CardDescription>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-4 pt-4">
         {loading
           ? Array.from({ length: 3 }).map((_, i) => (
               <div key={i} className="space-y-1">
@@ -174,15 +172,15 @@ function RevenueBreakdownCard({
               </div>
             ))
           : streams.map((s) => (
-              <div key={s.label} className="space-y-1">
+              <div key={s.label} className="space-y-1.5">
                 <div className="flex items-center justify-between text-sm">
-                  <div>
+                  <div className="min-w-0 pr-2">
                     <span className="font-medium">{s.label}</span>
-                    <span className="ml-2 text-muted-foreground text-xs">
+                    <span className="ml-2 text-muted-foreground text-xs hidden sm:inline">
                       {s.desc}
                     </span>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 shrink-0">
                     <span className="font-semibold">{formatGMD(s.value)}</span>
                     <Badge variant="secondary" className="text-xs">
                       {s.pct.toFixed(1)}%
@@ -264,236 +262,331 @@ function FinancePage() {
       </Header>
 
       <Main>
-        {/* Page Header */}
-        <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight">
-              Finance Overview
-            </h1>
-            <p className="text-sm text-muted-foreground mt-1">
-              All revenue streams and platform earnings at a glance
-            </p>
-          </div>
-          <div className="flex items-center gap-2">
-            <Select
-              value={period}
-              onValueChange={(v) => setPeriod(v as Period)}
-            >
-              <SelectTrigger className="w-36">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="today">Today</SelectItem>
-                <SelectItem value="week">This Week</SelectItem>
-                <SelectItem value="month">This Month</SelectItem>
-                <SelectItem value="year">This Year</SelectItem>
-                <SelectItem value="all">All Time</SelectItem>
-              </SelectContent>
-            </Select>
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => refetch()}
-              disabled={isRefetching}
-            >
-              <RefreshCw
-                className={`h-4 w-4 ${isRefetching ? "animate-spin" : ""}`}
-              />
-            </Button>
-          </div>
-        </div>
-
-        {/* Net Revenue Hero Card */}
-        <Card className="mb-6 border-0 bg-linear-to-br from-violet-600 to-violet-800 text-white shadow-lg">
-          <CardContent className="pt-6">
-            <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
-              <div>
-                <p className="text-sm font-medium text-violet-200">
-                  Total TeranGO Revenue ({periodLabel[period]})
-                </p>
-                {isLoading ? (
-                  <Skeleton className="h-12 w-48 bg-violet-500 mt-2" />
-                ) : (
-                  <p className="mt-1 text-4xl font-bold tracking-tight">
-                    {formatGMD(ov?.totalRevenue ?? 0)}
-                  </p>
-                )}
-                <p className="text-xs text-violet-300 mt-1">
-                  Net platform earnings across all revenue streams
-                </p>
-              </div>
-              <div className="flex items-center gap-2 text-violet-200">
-                <Activity className="h-5 w-5" />
-                <span className="text-sm">
-                  {isLoading ? "—" : ov?.deliveredOrderCount} delivered orders
-                </span>
-              </div>
+        <div className="space-y-6">
+          {/* Page Header */}
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-bold tracking-tight">
+                Finance Overview
+              </h1>
+              <p className="text-sm text-muted-foreground mt-1">
+                All revenue streams and platform earnings at a glance
+              </p>
             </div>
+            <div className="flex items-center gap-2">
+              <Select
+                value={period}
+                onValueChange={(v) => setPeriod(v as Period)}
+              >
+                <SelectTrigger className="h-9 w-[140px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="today">Today</SelectItem>
+                  <SelectItem value="week">This Week</SelectItem>
+                  <SelectItem value="month">This Month</SelectItem>
+                  <SelectItem value="year">This Year</SelectItem>
+                  <SelectItem value="all">All Time</SelectItem>
+                </SelectContent>
+              </Select>
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-9 w-9"
+                onClick={() => refetch()}
+                disabled={isRefetching}
+              >
+                <RefreshCw
+                  className={`h-4 w-4 ${isRefetching ? "animate-spin" : ""}`}
+                />
+              </Button>
+            </div>
+          </div>
 
-            {/* Mini breakdown row */}
-            {!isLoading && ov && (
-              <div className="mt-6 grid grid-cols-2 sm:grid-cols-4 divide-x divide-y sm:divide-y-0 divide-violet-500 border-t border-violet-500 pt-4">
-                <div className="px-3 first:pl-0 pb-3 sm:pb-0">
-                  <p className="text-xs text-violet-300">Service Fees</p>
-                  <p className="text-lg font-semibold">
-                    {formatGMD(ov.serviceFee)}
+          {/* Net Revenue Hero Card */}
+          <Card className="border-0 bg-gradient-to-br from-violet-600 to-violet-800 text-white shadow-lg">
+            <CardContent className="pt-6">
+              <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+                <div>
+                  <p className="text-sm font-medium text-violet-200">
+                    Total TeranGO Revenue ({periodLabel[period]})
+                  </p>
+                  {isLoading ? (
+                    <Skeleton className="h-12 w-48 bg-violet-500 mt-2" />
+                  ) : (
+                    <p className="mt-1 text-4xl font-bold tracking-tight">
+                      {formatGMD(ov?.totalRevenue ?? 0)}
+                    </p>
+                  )}
+                  <p className="text-xs text-violet-300 mt-1">
+                    Net platform earnings across all revenue streams
                   </p>
                 </div>
-                <div className="px-3 pb-3 sm:pb-0">
-                  <p className="text-xs text-violet-300">Delivery Commission</p>
-                  <p className="text-lg font-semibold">
-                    {formatGMD(ov.driverPlatformShare)}
-                  </p>
-                </div>
-                <div className="px-3">
-                  <p className="text-xs text-violet-300">Vendor Commission</p>
-                  <p className="text-lg font-semibold">
-                    {formatGMD(ov.vendorPlatformShare)}
-                  </p>
-                </div>
-                <div className="px-3">
-                  <p className="text-xs text-violet-300">Express &amp; Custom</p>
-                  <p className="text-lg font-semibold">
-                    {formatGMD(ov.expressTotalRevenue)}
-                  </p>
+                <div className="flex items-center gap-2 text-violet-200">
+                  <Activity className="h-5 w-5" />
+                  <span className="text-sm">
+                    {isLoading ? "—" : ov?.deliveredOrderCount} delivered orders
+                  </span>
                 </div>
               </div>
-            )}
-          </CardContent>
-        </Card>
 
-        {/* Stat cards row */}
-        <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <StatCard
-            title="Gross Merchandise Value"
-            value={formatGMD(ov?.gmv ?? 0)}
-            subtitle="Total value of delivered orders"
-            icon={ShoppingBag}
-            color="bg-slate-700"
-            loading={isLoading}
-          />
-          <StatCard
-            title="Total Delivery Fees Collected"
-            value={formatGMD(ov?.totalDeliveryFee ?? 0)}
-            subtitle={`Drivers kept ${formatGMD(ov?.driverPaid ?? 0)}`}
-            icon={Truck}
-            color="bg-blue-600"
-            loading={isLoading}
-          />
-          <StatCard
-            title="Vendor Sales Processed"
-            value={formatGMD(ov?.vendorPaid ?? 0)}
-            subtitle="Total paid out to vendors"
-            icon={Package}
-            color="bg-emerald-600"
-            loading={isLoading}
-          />
-          <StatCard
-            title="Express & Custom Delivery"
-            value={formatGMD(ov?.expressGMV ?? 0)}
-            subtitle={`${ov?.expressDeliveredCount ?? 0} delivered • Drivers kept ${formatGMD(ov?.expressDriverPaid ?? 0)}`}
-            icon={Zap}
-            color="bg-amber-600"
-            loading={isLoading}
-          />
-          <StatCard
-            title="Total Orders"
-            value={String(ov?.totalOrderCount ?? 0)}
-            subtitle={`${ov?.deliveredOrderCount ?? 0} successfully delivered`}
-            icon={DollarSign}
-            color="bg-violet-600"
-            loading={isLoading}
-          />
-        </div>
-
-        {/* Charts + Breakdown grid */}
-        <div className="grid gap-6 lg:grid-cols-3">
-          {/* Area chart — spans 2 cols */}
-          <Card className="lg:col-span-2">
-            <CardHeader>
-              <CardTitle className="text-base font-semibold">
-                Revenue Trend (Last 6 Months)
-              </CardTitle>
-              <CardDescription>
-                Service fees, delivery commission, and Express revenue over
-                time
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {isLoading ? (
-                <Skeleton className="h-64 w-full" />
-              ) : chart.length === 0 ? (
-                <div className="flex h-64 items-center justify-center text-muted-foreground">
-                  <div className="text-center">
-                    <TrendingUp className="mx-auto h-10 w-10 mb-2 opacity-30" />
-                    <p className="text-sm">No chart data available yet</p>
+              {/* Mini breakdown row */}
+              {!isLoading && ov && (
+                <div className="mt-6 grid grid-cols-2 sm:grid-cols-4 divide-x divide-y sm:divide-y-0 divide-violet-500 border-t border-violet-500 pt-4">
+                  <div className="px-3 first:pl-0 pb-3 sm:pb-0">
+                    <p className="text-xs text-violet-300">Service Fees</p>
+                    <p className="text-lg font-semibold">
+                      {formatGMD(ov.serviceFee)}
+                    </p>
+                  </div>
+                  <div className="px-3 pb-3 sm:pb-0">
+                    <p className="text-xs text-violet-300">Delivery Commission</p>
+                    <p className="text-lg font-semibold">
+                      {formatGMD(ov.driverPlatformShare)}
+                    </p>
+                  </div>
+                  <div className="px-3">
+                    <p className="text-xs text-violet-300">Vendor Commission</p>
+                    <p className="text-lg font-semibold">
+                      {formatGMD(ov.vendorPlatformShare)}
+                    </p>
+                  </div>
+                  <div className="px-3">
+                    <p className="text-xs text-violet-300">Express &amp; Custom</p>
+                    <p className="text-lg font-semibold">
+                      {formatGMD(ov.expressTotalRevenue)}
+                    </p>
                   </div>
                 </div>
-              ) : (
-                <ResponsiveContainer width="100%" height={260}>
-                  <AreaChart
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Stat cards row */}
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5">
+            <StatCard
+              title="Gross Merchandise Value"
+              value={formatGMD(ov?.gmv ?? 0)}
+              subtitle="Total value of delivered orders"
+              icon={ShoppingBag}
+              color="border-l-primary"
+              loading={isLoading}
+            />
+            <StatCard
+              title="Total Delivery Fees Collected"
+              value={formatGMD(ov?.totalDeliveryFee ?? 0)}
+              subtitle={`Drivers kept ${formatGMD(ov?.driverPaid ?? 0)}`}
+              icon={Truck}
+              color="border-l-blue-500"
+              loading={isLoading}
+            />
+            <StatCard
+              title="Vendor Sales Processed"
+              value={formatGMD(ov?.vendorPaid ?? 0)}
+              subtitle="Total paid out to vendors"
+              icon={Package}
+              color="border-l-emerald-500"
+              loading={isLoading}
+            />
+            <StatCard
+              title="Express & Custom Delivery"
+              value={formatGMD(ov?.expressGMV ?? 0)}
+              subtitle={`${ov?.expressDeliveredCount ?? 0} delivered • Drivers kept ${formatGMD(ov?.expressDriverPaid ?? 0)}`}
+              icon={Zap}
+              color="border-l-orange-500"
+              loading={isLoading}
+            />
+            <StatCard
+              title="Total Orders"
+              value={String(ov?.totalOrderCount ?? 0)}
+              subtitle={`${ov?.deliveredOrderCount ?? 0} successfully delivered`}
+              icon={DollarSign}
+              color="border-l-violet-500"
+              loading={isLoading}
+            />
+          </div>
+
+          {/* Charts + Breakdown grid */}
+          <div className="grid gap-6 lg:grid-cols-3">
+            {/* Area chart — spans 2 cols */}
+            <Card className="lg:col-span-2 shadow-sm">
+              <CardHeader className="border-b pb-4">
+                <CardTitle className="text-base font-semibold">
+                  Revenue Trend (Last 6 Months)
+                </CardTitle>
+                <CardDescription>
+                  Service fees, delivery commission, and Express revenue over
+                  time
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="pt-4">
+                {isLoading ? (
+                  <Skeleton className="h-64 w-full" />
+                ) : chart.length === 0 ? (
+                  <div className="flex h-64 flex-col items-center justify-center py-20 text-center">
+                    <TrendingUp className="h-12 w-12 text-muted-foreground mb-4 opacity-50" />
+                    <p className="text-lg font-medium">No chart data yet</p>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Revenue chart will appear once orders are processed.
+                    </p>
+                  </div>
+                ) : (
+                  <ResponsiveContainer width="100%" height={260}>
+                    <AreaChart
+                      data={chart}
+                      margin={{ top: 4, right: 4, left: 0, bottom: 0 }}
+                    >
+                      <defs>
+                        <linearGradient
+                          id="colorServiceFee"
+                          x1="0"
+                          y1="0"
+                          x2="0"
+                          y2="1"
+                        >
+                          <stop
+                            offset="5%"
+                            stopColor="#7c3aed"
+                            stopOpacity={0.3}
+                          />
+                          <stop
+                            offset="95%"
+                            stopColor="#7c3aed"
+                            stopOpacity={0}
+                          />
+                        </linearGradient>
+                        <linearGradient
+                          id="colorDriver"
+                          x1="0"
+                          y1="0"
+                          x2="0"
+                          y2="1"
+                        >
+                          <stop
+                            offset="5%"
+                            stopColor="#2563eb"
+                            stopOpacity={0.3}
+                          />
+                          <stop
+                            offset="95%"
+                            stopColor="#2563eb"
+                            stopOpacity={0}
+                          />
+                        </linearGradient>
+                        <linearGradient
+                          id="colorExpress"
+                          x1="0"
+                          y1="0"
+                          x2="0"
+                          y2="1"
+                        >
+                          <stop
+                            offset="5%"
+                            stopColor="#d97706"
+                            stopOpacity={0.3}
+                          />
+                          <stop
+                            offset="95%"
+                            stopColor="#d97706"
+                            stopOpacity={0}
+                          />
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid
+                        strokeDasharray="3 3"
+                        className="stroke-muted"
+                      />
+                      <XAxis
+                        dataKey="month"
+                        tick={{ fontSize: 12 }}
+                        tickLine={false}
+                        axisLine={false}
+                      />
+                      <YAxis
+                        tick={{ fontSize: 11 }}
+                        tickLine={false}
+                        axisLine={false}
+                        tickFormatter={(v: number) =>
+                          `D${(v / 1000).toFixed(0)}k`
+                        }
+                      />
+                      <Tooltip
+                        formatter={(value, name) => [
+                          formatGMD(Number(value)),
+                          name === "serviceFee"
+                            ? "Service Fee"
+                            : name === "driverPlatformShare"
+                              ? "Delivery Commission"
+                              : "Express Revenue",
+                        ]}
+                      />
+                      <Legend
+                        formatter={(v: string) =>
+                          v === "serviceFee"
+                            ? "Service Fee"
+                            : v === "driverPlatformShare"
+                              ? "Delivery Commission"
+                              : "Express Revenue"
+                        }
+                      />
+                      <Area
+                        type="monotone"
+                        dataKey="serviceFee"
+                        stroke="#7c3aed"
+                        strokeWidth={2}
+                        fill="url(#colorServiceFee)"
+                      />
+                      <Area
+                        type="monotone"
+                        dataKey="driverPlatformShare"
+                        stroke="#2563eb"
+                        strokeWidth={2}
+                        fill="url(#colorDriver)"
+                      />
+                      <Area
+                        type="monotone"
+                        dataKey="expressRevenue"
+                        stroke="#d97706"
+                        strokeWidth={2}
+                        fill="url(#colorExpress)"
+                      />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Revenue breakdown — 1 col */}
+            <RevenueBreakdownCard
+              serviceFee={ov?.serviceFee ?? 0}
+              driverPlatformShare={ov?.driverPlatformShare ?? 0}
+              vendorPlatformShare={ov?.vendorPlatformShare ?? 0}
+              expressTotalRevenue={ov?.expressTotalRevenue ?? 0}
+              loading={isLoading}
+            />
+          </div>
+
+          {/* Orders bar chart */}
+          {!isLoading && chart.length > 0 && (
+            <Card className="shadow-sm">
+              <CardHeader className="border-b pb-4">
+                <CardTitle className="text-base font-semibold">
+                  Order Volume (Last 6 Months)
+                </CardTitle>
+                <CardDescription>
+                  Number of delivered orders per month
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="pt-4">
+                <ResponsiveContainer width="100%" height={200}>
+                  <BarChart
                     data={chart}
                     margin={{ top: 4, right: 4, left: 0, bottom: 0 }}
                   >
-                    <defs>
-                      <linearGradient
-                        id="colorServiceFee"
-                        x1="0"
-                        y1="0"
-                        x2="0"
-                        y2="1"
-                      >
-                        <stop
-                          offset="5%"
-                          stopColor="#7c3aed"
-                          stopOpacity={0.3}
-                        />
-                        <stop
-                          offset="95%"
-                          stopColor="#7c3aed"
-                          stopOpacity={0}
-                        />
-                      </linearGradient>
-                      <linearGradient
-                        id="colorDriver"
-                        x1="0"
-                        y1="0"
-                        x2="0"
-                        y2="1"
-                      >
-                        <stop
-                          offset="5%"
-                          stopColor="#2563eb"
-                          stopOpacity={0.3}
-                        />
-                        <stop
-                          offset="95%"
-                          stopColor="#2563eb"
-                          stopOpacity={0}
-                        />
-                      </linearGradient>
-                      <linearGradient
-                        id="colorExpress"
-                        x1="0"
-                        y1="0"
-                        x2="0"
-                        y2="1"
-                      >
-                        <stop
-                          offset="5%"
-                          stopColor="#d97706"
-                          stopOpacity={0.3}
-                        />
-                        <stop
-                          offset="95%"
-                          stopColor="#d97706"
-                          stopOpacity={0}
-                        />
-                      </linearGradient>
-                    </defs>
                     <CartesianGrid
                       strokeDasharray="3 3"
                       className="stroke-muted"
+                      vertical={false}
                     />
                     <XAxis
                       dataKey="month"
@@ -505,238 +598,147 @@ function FinancePage() {
                       tick={{ fontSize: 11 }}
                       tickLine={false}
                       axisLine={false}
-                      tickFormatter={(v: number) =>
-                        `D${(v / 1000).toFixed(0)}k`
-                      }
                     />
-                    <Tooltip
-                      formatter={(value, name) => [
-                        formatGMD(Number(value)),
-                        name === "serviceFee"
-                          ? "Service Fee"
-                          : name === "driverPlatformShare"
-                            ? "Delivery Commission"
-                            : "Express Revenue",
-                      ]}
+                    <Tooltip />
+                    <Bar
+                      dataKey="orders"
+                      fill="#7c3aed"
+                      radius={[4, 4, 0, 0]}
+                      name="Orders"
                     />
-                    <Legend
-                      formatter={(v: string) =>
-                        v === "serviceFee"
-                          ? "Service Fee"
-                          : v === "driverPlatformShare"
-                            ? "Delivery Commission"
-                            : "Express Revenue"
-                      }
-                    />
-                    <Area
-                      type="monotone"
-                      dataKey="serviceFee"
-                      stroke="#7c3aed"
-                      strokeWidth={2}
-                      fill="url(#colorServiceFee)"
-                    />
-                    <Area
-                      type="monotone"
-                      dataKey="driverPlatformShare"
-                      stroke="#2563eb"
-                      strokeWidth={2}
-                      fill="url(#colorDriver)"
-                    />
-                    <Area
-                      type="monotone"
-                      dataKey="expressRevenue"
-                      stroke="#d97706"
-                      strokeWidth={2}
-                      fill="url(#colorExpress)"
-                    />
-                  </AreaChart>
+                  </BarChart>
                 </ResponsiveContainer>
-              )}
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          )}
 
-          {/* Revenue breakdown — 1 col */}
-          <RevenueBreakdownCard
-            serviceFee={ov?.serviceFee ?? 0}
-            driverPlatformShare={ov?.driverPlatformShare ?? 0}
-            vendorPlatformShare={ov?.vendorPlatformShare ?? 0}
-            expressTotalRevenue={ov?.expressTotalRevenue ?? 0}
-            loading={isLoading}
-          />
+          {/* Platform split summary */}
+          {!isLoading && ov && (
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              <Card className="shadow-sm">
+                <CardHeader className="pb-3 border-b">
+                  <div className="flex items-center gap-2">
+                    <div className="rounded-lg bg-blue-100 p-2 dark:bg-blue-900">
+                      <Truck className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                    </div>
+                    <CardTitle className="text-sm font-semibold">
+                      Driver Split Summary
+                    </CardTitle>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-2.5 text-sm pt-4">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">
+                      Total delivery fees collected
+                    </span>
+                    <span className="font-medium">
+                      {formatGMD(ov.totalDeliveryFee)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">
+                      Paid to drivers (75%)
+                    </span>
+                    <span className="font-medium text-blue-600">
+                      {formatGMD(ov.driverPaid)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between border-t pt-2.5">
+                    <span className="font-medium">TeranGO keeps (25%)</span>
+                    <span className="font-bold text-violet-600">
+                      {formatGMD(ov.driverPlatformShare)}
+                    </span>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="shadow-sm">
+                <CardHeader className="pb-3 border-b">
+                  <div className="flex items-center gap-2">
+                    <div className="rounded-lg bg-emerald-100 p-2 dark:bg-emerald-900">
+                      <Package className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                    </div>
+                    <CardTitle className="text-sm font-semibold">
+                      Vendor Split Summary
+                    </CardTitle>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-2.5 text-sm pt-4">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">
+                      Total vendor sales (GMV items)
+                    </span>
+                    <span className="font-medium">
+                      {formatGMD(ov.vendorPaid + ov.vendorPlatformShare)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">
+                      Paid to vendors (100%)
+                    </span>
+                    <span className="font-medium text-emerald-600">
+                      {formatGMD(ov.vendorPaid)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between border-t pt-2.5">
+                    <span className="font-medium">TeranGO keeps</span>
+                    <span className="font-bold text-violet-600">
+                      {formatGMD(ov.vendorPlatformShare)}
+                      {ov.vendorPlatformShare === 0 && (
+                        <span className="ml-2 text-xs text-muted-foreground font-normal">
+                          (100% vendor rate active)
+                        </span>
+                      )}
+                    </span>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="shadow-sm">
+                <CardHeader className="pb-3 border-b">
+                  <div className="flex items-center gap-2">
+                    <div className="rounded-lg bg-amber-100 p-2 dark:bg-amber-900">
+                      <Zap className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                    </div>
+                    <CardTitle className="text-sm font-semibold">
+                      Express Split Summary
+                    </CardTitle>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-2.5 text-sm pt-4">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">
+                      Total Express/custom delivery sales
+                    </span>
+                    <span className="font-medium">{formatGMD(ov.expressGMV)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">
+                      Paid to drivers (75% of transport)
+                    </span>
+                    <span className="font-medium text-amber-600">
+                      {formatGMD(ov.expressDriverPaid)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">
+                      Booking + service fees
+                    </span>
+                    <span className="font-medium">
+                      {formatGMD(ov.expressBookingServiceFee)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between border-t pt-2.5">
+                    <span className="font-medium">TeranGO keeps</span>
+                    <span className="font-bold text-violet-600">
+                      {formatGMD(ov.expressTotalRevenue)}
+                    </span>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          )}
         </div>
-
-        {/* Orders bar chart */}
-        {!isLoading && chart.length > 0 && (
-          <Card className="mt-6">
-            <CardHeader>
-              <CardTitle className="text-base font-semibold">
-                Order Volume (Last 6 Months)
-              </CardTitle>
-              <CardDescription>
-                Number of delivered orders per month
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <ResponsiveContainer width="100%" height={200}>
-                <BarChart
-                  data={chart}
-                  margin={{ top: 4, right: 4, left: 0, bottom: 0 }}
-                >
-                  <CartesianGrid
-                    strokeDasharray="3 3"
-                    className="stroke-muted"
-                    vertical={false}
-                  />
-                  <XAxis
-                    dataKey="month"
-                    tick={{ fontSize: 12 }}
-                    tickLine={false}
-                    axisLine={false}
-                  />
-                  <YAxis
-                    tick={{ fontSize: 11 }}
-                    tickLine={false}
-                    axisLine={false}
-                  />
-                  <Tooltip />
-                  <Bar
-                    dataKey="orders"
-                    fill="#7c3aed"
-                    radius={[4, 4, 0, 0]}
-                    name="Orders"
-                  />
-                </BarChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Platform split summary */}
-        {!isLoading && ov && (
-          <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            <Card>
-              <CardHeader className="pb-3">
-                <div className="flex items-center gap-2">
-                  <div className="rounded-lg bg-blue-100 p-2 dark:bg-blue-900">
-                    <Truck className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-                  </div>
-                  <CardTitle className="text-sm font-semibold">
-                    Driver Split Summary
-                  </CardTitle>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">
-                    Total delivery fees collected
-                  </span>
-                  <span className="font-medium">
-                    {formatGMD(ov.totalDeliveryFee)}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">
-                    Paid to drivers (75%)
-                  </span>
-                  <span className="font-medium text-blue-600">
-                    {formatGMD(ov.driverPaid)}
-                  </span>
-                </div>
-                <div className="flex justify-between border-t pt-2">
-                  <span className="font-medium">TeranGO keeps (25%)</span>
-                  <span className="font-bold text-violet-600">
-                    {formatGMD(ov.driverPlatformShare)}
-                  </span>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="pb-3">
-                <div className="flex items-center gap-2">
-                  <div className="rounded-lg bg-emerald-100 p-2 dark:bg-emerald-900">
-                    <Package className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-                  </div>
-                  <CardTitle className="text-sm font-semibold">
-                    Vendor Split Summary
-                  </CardTitle>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">
-                    Total vendor sales (GMV items)
-                  </span>
-                  <span className="font-medium">
-                    {formatGMD(ov.vendorPaid + ov.vendorPlatformShare)}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">
-                    Paid to vendors (100%)
-                  </span>
-                  <span className="font-medium text-emerald-600">
-                    {formatGMD(ov.vendorPaid)}
-                  </span>
-                </div>
-                <div className="flex justify-between border-t pt-2">
-                  <span className="font-medium">TeranGO keeps</span>
-                  <span className="font-bold text-violet-600">
-                    {formatGMD(ov.vendorPlatformShare)}
-                    {ov.vendorPlatformShare === 0 && (
-                      <span className="ml-2 text-xs text-muted-foreground font-normal">
-                        (100% vendor rate active)
-                      </span>
-                    )}
-                  </span>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="pb-3">
-                <div className="flex items-center gap-2">
-                  <div className="rounded-lg bg-amber-100 p-2 dark:bg-amber-900">
-                    <Zap className="h-4 w-4 text-amber-600 dark:text-amber-400" />
-                  </div>
-                  <CardTitle className="text-sm font-semibold">
-                    Express Split Summary
-                  </CardTitle>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">
-                    Total Express/custom delivery sales
-                  </span>
-                  <span className="font-medium">{formatGMD(ov.expressGMV)}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">
-                    Paid to drivers (75% of transport)
-                  </span>
-                  <span className="font-medium text-amber-600">
-                    {formatGMD(ov.expressDriverPaid)}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">
-                    Booking + service fees
-                  </span>
-                  <span className="font-medium">
-                    {formatGMD(ov.expressBookingServiceFee)}
-                  </span>
-                </div>
-                <div className="flex justify-between border-t pt-2">
-                  <span className="font-medium">TeranGO keeps</span>
-                  <span className="font-bold text-violet-600">
-                    {formatGMD(ov.expressTotalRevenue)}
-                  </span>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        )}
       </Main>
     </>
   );

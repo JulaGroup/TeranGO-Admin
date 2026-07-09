@@ -18,6 +18,12 @@ const SOCKET_URL = import.meta.env.VITE_API_URL || "http://localhost:8080";
 let sharedConnected = false;
 const connectionListeners = new Set<() => void>();
 
+// Module-level flag — survives connect/disconnect cycles and component
+// remounts. Once the warning toast is shown we never show it again until
+// the page is reloaded, avoiding the repeated "unavailable" toast that
+// appeared every time the socket briefly connected then dropped.
+let connectErrorToastShown = false;
+
 function publishConnected(value: boolean) {
   if (sharedConnected === value) return;
   sharedConnected = value;
@@ -65,7 +71,6 @@ export function useOrderNotifications({
 }: UseOrderNotificationsOptions) {
   const socketRef = useRef<Socket | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
-  const connectErrorNotified = useRef(false);
   const queryClient = useQueryClient();
   const [isConnected, setIsConnected] = useState(false);
 
@@ -206,7 +211,6 @@ export function useOrderNotifications({
     socket.on("connect", () => {
       setIsConnected(true);
       publishConnected(true);
-      connectErrorNotified.current = false;
 
       if (adminMode) {
         // Join admin room for global notifications
@@ -225,10 +229,11 @@ export function useOrderNotifications({
     socket.on("connect_error", (err) => {
       setIsConnected(false);
       publishConnected(false);
-      // Surface the failure once instead of silently living without
-      // real-time notifications (e.g. Socket.IO CORS or server down)
-      if (!connectErrorNotified.current) {
-        connectErrorNotified.current = true;
+      // Show the warning toast only once per page load — using a module-level
+      // flag so connect/disconnect cycles and component remounts don't
+      // repeatedly re-trigger the toast.
+      if (!connectErrorToastShown) {
+        connectErrorToastShown = true;
         console.error(
           "[notifications] Socket connection failed — real-time alerts are OFF:",
           err?.message || err,

@@ -248,12 +248,14 @@ function VendorApplicationsPage() {
     value,
     icon,
     color,
+    borderColor,
     onClick,
   }: {
     title: string;
     value: number;
     icon: React.ElementType;
     color: string;
+    borderColor: string;
     onClick: () => void;
   }) => {
     const Icon = icon;
@@ -261,25 +263,18 @@ function VendorApplicationsPage() {
     return (
       <Card
         className={cn(
-          "cursor-pointer transition-all hover:shadow-md hover:-translate-y-1",
-          isActive && `ring-2 ${color.replace("bg", "ring")}`,
+          "border-l-4 shadow-sm cursor-pointer transition-all hover:shadow-md",
+          borderColor,
+          isActive && "ring-2 ring-offset-1 ring-primary/30",
         )}
         onClick={onClick}
       >
-        <CardContent className="p-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <p
-                className={`text-sm font-medium ${color.replace("bg", "text")}`}
-              >
-                {title}
-              </p>
-              <p className="text-2xl font-bold">{value}</p>
-            </div>
-            <div className={`rounded-full p-3 ${color}`}>
-              <Icon className="h-6 w-6 text-white" />
-            </div>
-          </div>
+        <CardHeader className="flex flex-row items-center justify-between pb-2">
+          <CardTitle className="text-sm font-medium text-muted-foreground">{title}</CardTitle>
+          <Icon className={cn("h-4 w-4", color)} />
+        </CardHeader>
+        <CardContent>
+          <div className="text-2xl font-bold">{value}</div>
         </CardContent>
       </Card>
     );
@@ -288,9 +283,9 @@ function VendorApplicationsPage() {
   if (isLoading) {
     return (
       <div className="flex h-[60vh] items-center justify-center">
-        <div className="text-center">
-          <div className="border-primary mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-b-2"></div>
-          <p className="text-muted-foreground">Loading applications...</p>
+        <div className="flex flex-col items-center gap-3 text-center">
+          <RefreshCw className="h-8 w-8 animate-spin text-muted-foreground" />
+          <p className="text-muted-foreground text-sm">Loading applications...</p>
         </div>
       </div>
     );
@@ -300,25 +295,28 @@ function VendorApplicationsPage() {
     <TooltipProvider>
       <div className="container mx-auto space-y-6 p-4 md:p-6">
         {/* Header */}
-        <header className="flex flex-col items-start justify-between gap-4 md:flex-row md:items-center">
+        <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">
+            <h1 className="text-2xl font-bold tracking-tight">
               Vendor Applications
             </h1>
-            <p className="text-muted-foreground">
+            <p className="text-muted-foreground text-sm mt-1">
               Review and manage new vendor partnerships.
             </p>
           </div>
-          <Button
-            onClick={() => refetch()}
-            variant="outline"
-            className="flex items-center gap-2"
-            disabled={isLoading}
-          >
-            <RefreshCw className={cn("h-4 w-4", isLoading && "animate-spin")} />
-            Refresh
-          </Button>
-        </header>
+          <div className="flex gap-2">
+            <Button
+              onClick={() => refetch()}
+              variant="outline"
+              size="sm"
+              className="shadow-sm"
+              disabled={isLoading}
+            >
+              <RefreshCw className={cn("mr-2 h-4 w-4", isLoading && "animate-spin")} />
+              Refresh
+            </Button>
+          </div>
+        </div>
 
         {/* Stats */}
         <div className="grid grid-cols-2 gap-4 md:grid-cols-5">
@@ -326,84 +324,87 @@ function VendorApplicationsPage() {
             title="Total"
             value={stats.total}
             icon={FileText}
-            color="bg-gray-500"
+            color="text-primary"
+            borderColor="border-l-primary"
             onClick={() => setStatusFilter("all")}
           />
           <StatCard
             title="Pending"
             value={stats.pending}
             icon={Clock}
-            color="bg-yellow-500"
+            color="text-amber-500"
+            borderColor="border-l-amber-500"
             onClick={() => setStatusFilter("pending")}
           />
           <StatCard
             title="Waiting List"
             value={stats.waitingList}
             icon={Eye}
-            color="bg-blue-500"
+            color="text-blue-500"
+            borderColor="border-l-blue-500"
             onClick={() => setStatusFilter("waiting_list")}
           />
           <StatCard
             title="Approved"
             value={stats.approved}
             icon={CheckCircle}
-            color="bg-green-500"
+            color="text-emerald-500"
+            borderColor="border-l-emerald-500"
             onClick={() => setStatusFilter("approved")}
           />
           <StatCard
             title="Rejected"
             value={stats.rejected}
             icon={XCircle}
-            color="bg-red-500"
+            color="text-destructive"
+            borderColor="border-l-destructive"
             onClick={() => setStatusFilter("rejected")}
           />
         </div>
 
         {/* Filters & View Toggle */}
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-              <div className="relative flex-1">
-                <Search className="text-muted-foreground absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 transform" />
+        <Card className="shadow-sm overflow-hidden">
+          <CardHeader className="border-b pb-4">
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
                 <Input
                   placeholder="Search by business, applicant, email..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10"
+                  className="pl-9 h-9 w-[260px]"
                 />
               </div>
-              <div className="flex items-center gap-2">
-                <Select value={statusFilter} onValueChange={setStatusFilter}>
-                  <SelectTrigger className="w-full md:w-[200px]">
-                    <SelectValue placeholder="Filter by status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Statuses</SelectItem>
-                    <SelectItem value="PENDING">Pending</SelectItem>
-                    <SelectItem value="WAITING_LIST">Waiting List</SelectItem>
-                    <SelectItem value="APPROVED">Approved</SelectItem>
-                    <SelectItem value="REJECTED">Rejected</SelectItem>
-                  </SelectContent>
-                </Select>
-                <div className="flex items-center rounded-md bg-gray-100 p-1">
-                  <Button
-                    variant={viewLayout === "grid" ? "secondary" : "ghost"}
-                    size="sm"
-                    onClick={() => setViewLayout("grid")}
-                  >
-                    <LayoutGrid className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant={viewLayout === "list" ? "secondary" : "ghost"}
-                    size="sm"
-                    onClick={() => setViewLayout("list")}
-                  >
-                    <List className="h-4 w-4" />
-                  </Button>
-                </div>
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="h-9 w-[180px]">
+                  <SelectValue placeholder="Filter by status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Statuses</SelectItem>
+                  <SelectItem value="PENDING">Pending</SelectItem>
+                  <SelectItem value="WAITING_LIST">Waiting List</SelectItem>
+                  <SelectItem value="APPROVED">Approved</SelectItem>
+                  <SelectItem value="REJECTED">Rejected</SelectItem>
+                </SelectContent>
+              </Select>
+              <div className="flex items-center rounded-md bg-muted p-1">
+                <Button
+                  variant={viewLayout === "grid" ? "secondary" : "ghost"}
+                  size="sm"
+                  onClick={() => setViewLayout("grid")}
+                >
+                  <LayoutGrid className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant={viewLayout === "list" ? "secondary" : "ghost"}
+                  size="sm"
+                  onClick={() => setViewLayout("list")}
+                >
+                  <List className="h-4 w-4" />
+                </Button>
               </div>
             </div>
-          </CardContent>
+          </CardHeader>
         </Card>
 
         {/* Applications List/Grid */}
@@ -427,12 +428,10 @@ function VendorApplicationsPage() {
             ))}
           </div>
         ) : (
-          <div className="flex h-64 flex-col items-center justify-center rounded-lg border-2 border-dashed bg-gray-50">
-            <Inbox className="h-12 w-12 text-gray-400" />
-            <h3 className="mt-4 text-lg font-semibold">
-              No Applications Found
-            </h3>
-            <p className="text-muted-foreground mt-1">
+          <div className="flex flex-col items-center justify-center py-20 text-center">
+            <Inbox className="h-12 w-12 text-muted-foreground mb-4 opacity-50" />
+            <p className="text-lg font-medium">No Applications Found</p>
+            <p className="text-sm text-muted-foreground mt-1">
               Try adjusting your search or filter criteria.
             </p>
           </div>
@@ -483,11 +482,11 @@ const ApplicationCard = ({
   layout: "grid" | "list";
 }) => {
   const StatusBadge = ({ status }: { status: VendorApplication["status"] }) => {
-    const variants = {
-      APPROVED: "bg-green-100 text-green-800",
-      REJECTED: "bg-red-100 text-red-800",
-      WAITING_LIST: "bg-blue-100 text-blue-800",
-      PENDING: "bg-yellow-100 text-yellow-800",
+    const variants: Record<VendorApplication["status"], string> = {
+      APPROVED: "bg-emerald-500 hover:bg-emerald-600 text-white shadow-sm",
+      REJECTED: "bg-destructive text-destructive-foreground shadow-sm",
+      WAITING_LIST: "border-blue-400 text-blue-600 bg-blue-50 dark:bg-blue-950/20",
+      PENDING: "border-amber-400 text-amber-600 bg-amber-50 dark:bg-amber-950/20",
     };
     const icons = {
       APPROVED: CheckCircle,
@@ -496,8 +495,9 @@ const ApplicationCard = ({
       PENDING: Clock,
     };
     const Icon = icons[status];
+    const isOutline = status === "WAITING_LIST" || status === "PENDING";
     return (
-      <Badge className={cn("flex items-center gap-1.5", variants[status])}>
+      <Badge variant={isOutline ? "outline" : undefined} className={cn("flex items-center gap-1.5", variants[status])}>
         <Icon className="h-3 w-3" />
         {status.replace("_", " ")}
       </Badge>
@@ -609,7 +609,7 @@ const ApplicationCard = ({
 
   if (layout === "list") {
     return (
-      <Card className="transition-all hover:shadow-md">
+      <Card className="shadow-sm transition-all hover:shadow-md">
         <div className="flex items-center justify-between">
           <div className="flex flex-1 items-center">
             <div className="p-4">
@@ -677,7 +677,7 @@ const ApplicationCard = ({
   }
 
   return (
-    <Card className="flex flex-col justify-between transition-all hover:shadow-lg">
+    <Card className="flex flex-col justify-between shadow-sm transition-all hover:shadow-md">
       {content}
     </Card>
   );
@@ -837,7 +837,7 @@ const ApplicationDetailsDialog = ({
               <div className="space-y-2">
                 <Button
                   onClick={() => onAction("approve", application)}
-                  className="w-full bg-green-600 hover:bg-green-700"
+                  className="w-full bg-emerald-500 hover:bg-emerald-600 shadow-sm"
                   disabled={isUpdating}
                 >
                   <CheckCircle className="mr-2 h-4 w-4" />

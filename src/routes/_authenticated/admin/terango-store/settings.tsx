@@ -335,10 +335,12 @@ function TerangoStoreSettings() {
           </div>
         </Header>
         <Main>
-          <Card className='mx-auto max-w-md'>
+          <Card className='mx-auto max-w-md shadow-sm'>
             <CardContent className='pt-6'>
               <div className='flex flex-col items-center text-center'>
-                <XCircle className='mb-4 h-12 w-12 text-red-500' />
+                <div className='rounded-full bg-red-50 dark:bg-red-950/20 p-4 mb-4'>
+                  <XCircle className='h-10 w-10 text-red-500' />
+                </div>
                 <h2 className='text-lg font-semibold'>Store not set up</h2>
                 <p className='text-muted-foreground mt-2 text-sm'>
                   Initialize the TeranGO Official Store to configure settings.
@@ -426,9 +428,9 @@ function TerangoStoreSettings() {
 
           <div className='grid gap-6 lg:grid-cols-2'>
             {/* Store Images */}
-            <Card>
-              <CardHeader>
-                <CardTitle className='flex items-center gap-2'>
+            <Card className='shadow-sm'>
+              <CardHeader className='border-b'>
+                <CardTitle className='text-base font-semibold flex items-center gap-2'>
                   <ImageIcon className='h-5 w-5' />
                   Store Images
                 </CardTitle>
@@ -436,7 +438,7 @@ function TerangoStoreSettings() {
                   Upload your store logo and banner
                 </CardDescription>
               </CardHeader>
-              <CardContent className='space-y-6'>
+              <CardContent className='pt-6 space-y-6'>
                 {/* Logo */}
                 <div className='space-y-2'>
                   <Label>Store Logo</Label>
@@ -533,9 +535,9 @@ function TerangoStoreSettings() {
             </Card>
 
             {/* Basic Information */}
-            <Card>
-              <CardHeader>
-                <CardTitle className='flex items-center gap-2'>
+            <Card className='shadow-sm'>
+              <CardHeader className='border-b'>
+                <CardTitle className='text-base font-semibold flex items-center gap-2'>
                   <Store className='h-5 w-5' />
                   Basic Information
                 </CardTitle>
@@ -543,7 +545,7 @@ function TerangoStoreSettings() {
                   Store name, description, and contact details
                 </CardDescription>
               </CardHeader>
-              <CardContent className='space-y-4'>
+              <CardContent className='pt-6 space-y-4'>
                 <div className='space-y-2'>
                   <Label htmlFor='name'>Store Name</Label>
                   <Input
@@ -617,15 +619,15 @@ function TerangoStoreSettings() {
             </Card>
 
             {/* Location */}
-            <Card>
-              <CardHeader>
-                <CardTitle className='flex items-center gap-2'>
+            <Card className='shadow-sm'>
+              <CardHeader className='border-b'>
+                <CardTitle className='text-base font-semibold flex items-center gap-2'>
                   <MapPin className='h-5 w-5' />
                   Location
                 </CardTitle>
                 <CardDescription>Store address and city</CardDescription>
               </CardHeader>
-              <CardContent className='space-y-4'>
+              <CardContent className='pt-6 space-y-4'>
                 <div className='space-y-2'>
                   <Label htmlFor='address'>Address</Label>
                   <Input
@@ -657,9 +659,9 @@ function TerangoStoreSettings() {
             </Card>
 
             {/* Store Status */}
-            <Card>
-              <CardHeader>
-                <CardTitle className='flex items-center gap-2'>
+            <Card className='shadow-sm'>
+              <CardHeader className='border-b'>
+                <CardTitle className='text-base font-semibold flex items-center gap-2'>
                   <CheckCircle className='h-5 w-5' />
                   Store Status
                 </CardTitle>
@@ -667,7 +669,7 @@ function TerangoStoreSettings() {
                   Control store visibility and order acceptance
                 </CardDescription>
               </CardHeader>
-              <CardContent className='space-y-4'>
+              <CardContent className='pt-6 space-y-4'>
                 <div className='flex items-center justify-between'>
                   <div>
                     <Label>Store Active</Label>
@@ -705,9 +707,9 @@ function TerangoStoreSettings() {
             </Card>
 
             {/* Business Hours */}
-            <Card className='lg:col-span-2'>
-              <CardHeader>
-                <CardTitle className='flex items-center gap-2'>
+            <Card className='lg:col-span-2 shadow-sm'>
+              <CardHeader className='border-b'>
+                <CardTitle className='text-base font-semibold flex items-center gap-2'>
                   <Clock className='h-5 w-5' />
                   Business Hours
                 </CardTitle>
@@ -715,12 +717,12 @@ function TerangoStoreSettings() {
                   Set your store opening and closing times
                 </CardDescription>
               </CardHeader>
-              <CardContent>
+              <CardContent className='pt-6'>
                 <div className='space-y-3'>
                   {businessHours.map((day, index) => (
                     <div
                       key={day.day}
-                      className='flex items-center gap-4 rounded-lg border p-3'
+                      className='flex items-center gap-4 rounded-lg border p-3 hover:bg-muted/20 transition-colors'
                     >
                       <div className='w-24'>
                         <span className='font-medium'>{day.day}</span>

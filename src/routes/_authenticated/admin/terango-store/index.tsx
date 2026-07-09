@@ -89,6 +89,7 @@ function TerangoStoreDashboard() {
       color: 'text-blue-600',
       bgColor: 'bg-blue-100 dark:bg-blue-900/20',
       description: 'All time orders',
+      borderColor: 'border-l-blue-500',
     },
     {
       title: 'Pending Orders',
@@ -98,6 +99,7 @@ function TerangoStoreDashboard() {
       bgColor: 'bg-orange-100 dark:bg-orange-900/20',
       description: 'Needs attention',
       urgent: (stats?.pendingOrders || 0) > 0,
+      borderColor: 'border-l-orange-500',
     },
     {
       title: 'Completed Orders',
@@ -106,6 +108,7 @@ function TerangoStoreDashboard() {
       color: 'text-green-600',
       bgColor: 'bg-green-100 dark:bg-green-900/20',
       description: 'Successfully delivered',
+      borderColor: 'border-l-emerald-500',
     },
     {
       title: 'Total Revenue',
@@ -114,6 +117,7 @@ function TerangoStoreDashboard() {
       color: 'text-purple-600',
       bgColor: 'bg-purple-100 dark:bg-purple-900/20',
       description: 'All time earnings',
+      borderColor: 'border-l-violet-500',
     },
     {
       title: "Today's Orders",
@@ -122,6 +126,7 @@ function TerangoStoreDashboard() {
       color: 'text-emerald-600',
       bgColor: 'bg-emerald-100 dark:bg-emerald-900/20',
       description: `D${(stats?.todayRevenue || 0).toLocaleString()} revenue`,
+      borderColor: 'border-l-primary',
     },
     {
       title: 'Total Products',
@@ -130,6 +135,7 @@ function TerangoStoreDashboard() {
       color: 'text-indigo-600',
       bgColor: 'bg-indigo-100 dark:bg-indigo-900/20',
       description: `${stats?.featuredProducts || 0} featured`,
+      borderColor: 'border-l-blue-500',
     },
     {
       title: 'Low Stock',
@@ -139,6 +145,7 @@ function TerangoStoreDashboard() {
       bgColor: 'bg-red-100 dark:bg-red-900/20',
       description: 'Products need restocking',
       urgent: (stats?.lowStockProducts || 0) > 0,
+      borderColor: 'border-l-orange-500',
     },
     {
       title: 'Avg Order Value',
@@ -147,6 +154,7 @@ function TerangoStoreDashboard() {
       color: 'text-yellow-600',
       bgColor: 'bg-yellow-100 dark:bg-yellow-900/20',
       description: 'Per order average',
+      borderColor: 'border-l-emerald-500',
     },
   ]
 
@@ -158,13 +166,13 @@ function TerangoStoreDashboard() {
         color: string
       }
     > = {
-      PENDING: { variant: 'secondary', color: 'bg-yellow-100 text-yellow-700' },
-      ACCEPTED: { variant: 'default', color: 'bg-blue-100 text-blue-700' },
-      PREPARING: { variant: 'default', color: 'bg-purple-100 text-purple-700' },
-      READY: { variant: 'default', color: 'bg-green-100 text-green-700' },
-      DISPATCHED: { variant: 'default', color: 'bg-indigo-100 text-indigo-700' },
-      DELIVERED: { variant: 'default', color: 'bg-green-100 text-green-700' },
-      CANCELLED: { variant: 'destructive', color: 'bg-red-100 text-red-700' },
+      PENDING: { variant: 'outline', color: 'border-amber-400 text-amber-600 bg-amber-50 dark:bg-amber-950/20' },
+      ACCEPTED: { variant: 'outline', color: 'border-blue-400 text-blue-600 bg-blue-50 dark:bg-blue-950/20' },
+      PREPARING: { variant: 'outline', color: 'border-violet-400 text-violet-600 bg-violet-50 dark:bg-violet-950/20' },
+      READY: { variant: 'default', color: 'bg-emerald-500 hover:bg-emerald-600 text-white shadow-sm' },
+      DISPATCHED: { variant: 'outline', color: 'border-blue-400 text-blue-600 bg-blue-50 dark:bg-blue-950/20' },
+      DELIVERED: { variant: 'default', color: 'bg-emerald-500 hover:bg-emerald-600 text-white shadow-sm' },
+      CANCELLED: { variant: 'destructive', color: '' },
     }
     const config = variants[status] || { variant: 'outline', color: '' }
     return (
@@ -185,10 +193,12 @@ function TerangoStoreDashboard() {
           </div>
         </Header>
         <Main>
-          <Card className='mx-auto max-w-md'>
+          <Card className='mx-auto max-w-md shadow-sm'>
             <CardContent className='pt-6'>
               <div className='flex flex-col items-center text-center'>
-                <XCircle className='mb-4 h-12 w-12 text-red-500' />
+                <div className='rounded-full bg-red-50 dark:bg-red-950/20 p-4 mb-4'>
+                  <XCircle className='h-10 w-10 text-red-500' />
+                </div>
                 <h2 className='text-lg font-semibold'>
                   Store not set up
                 </h2>
@@ -252,14 +262,10 @@ function TerangoStoreDashboard() {
             {statCards.map((stat) => (
               <Card
                 key={stat.title}
-                className={
-                  stat.urgent
-                    ? 'border-orange-200 bg-orange-50/50 dark:border-orange-800 dark:bg-orange-900/10'
-                    : ''
-                }
+                className={`border-l-4 ${stat.borderColor} shadow-sm`}
               >
-                <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2'>
-                  <CardTitle className='text-sm font-medium'>
+                <CardHeader className='flex flex-row items-center justify-between pb-2'>
+                  <CardTitle className='text-sm font-medium text-muted-foreground'>
                     {stat.title}
                   </CardTitle>
                   <div className={`rounded-lg p-2 ${stat.bgColor}`}>
@@ -272,7 +278,7 @@ function TerangoStoreDashboard() {
                   ) : (
                     <>
                       <div className='text-2xl font-bold'>{stat.value}</div>
-                      <p className='text-muted-foreground text-xs'>
+                      <p className='text-muted-foreground text-xs mt-1'>
                         {stat.description}
                       </p>
                     </>
@@ -285,14 +291,14 @@ function TerangoStoreDashboard() {
           {/* Quick Actions & Recent Orders */}
           <div className='grid gap-6 md:grid-cols-2'>
             {/* Quick Actions */}
-            <Card>
-              <CardHeader>
+            <Card className='shadow-sm'>
+              <CardHeader className='border-b pb-4'>
                 <CardTitle>Quick Actions</CardTitle>
                 <CardDescription>
                   Common tasks for your store
                 </CardDescription>
               </CardHeader>
-              <CardContent className='grid gap-3'>
+              <CardContent className='grid gap-3 pt-4'>
                 <Link to='/admin/terango-store/orders'>
                   <Button
                     variant='outline'
@@ -333,8 +339,8 @@ function TerangoStoreDashboard() {
             </Card>
 
             {/* Recent Orders */}
-            <Card>
-              <CardHeader className='flex flex-row items-center justify-between'>
+            <Card className='shadow-sm'>
+              <CardHeader className='flex flex-row items-center justify-between border-b pb-4'>
                 <div>
                   <CardTitle>Recent Orders</CardTitle>
                   <CardDescription>Latest customer orders</CardDescription>
@@ -346,7 +352,7 @@ function TerangoStoreDashboard() {
                   </Button>
                 </Link>
               </CardHeader>
-              <CardContent>
+              <CardContent className='pt-4'>
                 {isLoading ? (
                   <div className='space-y-3'>
                     {[1, 2, 3].map((i) => (
@@ -358,7 +364,7 @@ function TerangoStoreDashboard() {
                     {stats.recentOrders.slice(0, 5).map((order) => (
                       <div
                         key={order.id}
-                        className='flex items-center justify-between rounded-lg border p-3'
+                        className='flex items-center justify-between rounded-lg border p-3 hover:bg-muted/30 transition-colors'
                       >
                         <div>
                           <p className='font-medium'>
@@ -381,8 +387,9 @@ function TerangoStoreDashboard() {
                     ))}
                   </div>
                 ) : (
-                  <div className='text-muted-foreground py-8 text-center'>
-                    No orders yet
+                  <div className='flex flex-col items-center justify-center py-12 text-center'>
+                    <ShoppingBag className='h-10 w-10 text-muted-foreground mb-3 opacity-50' />
+                    <p className='text-sm font-medium text-muted-foreground'>No orders yet</p>
                   </div>
                 )}
               </CardContent>
