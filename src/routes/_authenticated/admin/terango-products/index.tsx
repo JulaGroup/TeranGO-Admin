@@ -75,6 +75,7 @@ interface TerangoProduct {
   name: string;
   price: number;
   discountedPrice?: number;
+  costPrice?: number;
   imageUrl?: string;
   subCategoryId?: string;
   category?: string;
@@ -146,6 +147,7 @@ function TerangoProductsPage() {
     name: "",
     price: "",
     discountedPrice: "",
+    costPrice: "",
     imageUrl: "",
     subCategoryId: "",
     category: "",
@@ -233,6 +235,7 @@ function TerangoProductsPage() {
         discountedPrice: data.discountedPrice
           ? parseFloat(data.discountedPrice)
           : undefined,
+        costPrice: data.costPrice ? parseFloat(data.costPrice) : undefined,
         stock: parseInt(data.stock),
         priority: parseInt(data.priority),
         weightKg: data.weightKg ? parseFloat(data.weightKg) : undefined,
@@ -259,6 +262,7 @@ function TerangoProductsPage() {
         discountedPrice: data.discountedPrice
           ? parseFloat(data.discountedPrice)
           : null,
+        costPrice: data.costPrice ? parseFloat(data.costPrice) : null,
         stock: parseInt(data.stock),
         priority: parseInt(data.priority),
         weightKg: data.weightKg ? parseFloat(data.weightKg) : null,
@@ -365,6 +369,7 @@ function TerangoProductsPage() {
       name: "",
       price: "",
       discountedPrice: "",
+      costPrice: "",
       imageUrl: "",
       subCategoryId: "",
       category: "",
@@ -386,6 +391,7 @@ function TerangoProductsPage() {
       name: product.name,
       price: product.price.toString(),
       discountedPrice: product.discountedPrice?.toString() || "",
+      costPrice: product.costPrice?.toString() || "",
       imageUrl: product.imageUrl || "",
       subCategoryId: product.subCategoryId || "",
       category: product.category || "",
@@ -807,6 +813,15 @@ function TerangoProductsPage() {
                             Sale: GMD {product.discountedPrice.toLocaleString()}
                           </div>
                         )}
+                        {product.costPrice != null && (
+                          <div className="text-muted-foreground text-xs">
+                            Profit: GMD{" "}
+                            {(
+                              (product.discountedPrice ?? product.price) -
+                              product.costPrice
+                            ).toLocaleString()}
+                          </div>
+                        )}
                       </div>
                     </TableCell>
                     <TableCell>
@@ -1097,6 +1112,49 @@ function TerangoProductsPage() {
                   placeholder="0"
                 />
               </div>
+            </div>
+
+            {/* Cost / Profit tracking — optional, for products sourced from other stores */}
+            <div className="space-y-2 rounded-lg border p-3">
+              <Label htmlFor="costPrice">
+                Cost Price (GMD){" "}
+                <span className="text-muted-foreground font-normal">
+                  — optional
+                </span>
+              </Label>
+              <Input
+                id="costPrice"
+                type="number"
+                value={formData.costPrice}
+                onChange={(e) =>
+                  setFormData({ ...formData, costPrice: e.target.value })
+                }
+                placeholder="What TeranGO pays the source vendor"
+              />
+              <p className="text-muted-foreground text-xs">
+                If this product is sourced from another store, enter what you
+                pay for it here. Leave blank if TeranGO earns the full price.
+              </p>
+              {formData.price && formData.costPrice && (
+                <p className="text-sm font-medium">
+                  Profit per unit:{" "}
+                  <span
+                    className={
+                      parseFloat(formData.price) -
+                        parseFloat(formData.costPrice) >=
+                      0
+                        ? "text-emerald-600"
+                        : "text-destructive"
+                    }
+                  >
+                    GMD{" "}
+                    {(
+                      parseFloat(formData.price) -
+                      parseFloat(formData.costPrice)
+                    ).toLocaleString()}
+                  </span>
+                </p>
+              )}
             </div>
 
             {/* Weight */}

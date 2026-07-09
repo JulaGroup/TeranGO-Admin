@@ -147,6 +147,12 @@ interface CatalogItem {
   isAvailable?: boolean;
   description?: string | null;
   dosage?: string | null;
+  subCategoryId?: string | null;
+}
+
+interface SubCategoryOption {
+  id: string;
+  name: string;
 }
 
 interface EarningsSummary {
@@ -410,9 +416,18 @@ function VendorDetailPage() {
     description: "",
     dosage: "",
     price: "",
+    subCategoryId: "",
   });
   const [itemImageFile, setItemImageFile] = useState<File | null>(null);
   const [itemImagePreview, setItemImagePreview] = useState("");
+
+  const { data: subCategories } = useQuery<SubCategoryOption[]>({
+    queryKey: ["subcategories"],
+    queryFn: async () => {
+      const res = await api.get("/api/subcategories");
+      return res.data;
+    },
+  });
 
   const openItemDialog = (item: CatalogItem | null) => {
     setEditingItem(item);
@@ -421,6 +436,7 @@ function VendorDetailPage() {
       description: item?.description || "",
       dosage: item?.dosage || "",
       price: item != null ? String(item.price) : "",
+      subCategoryId: item?.subCategoryId || "",
     });
     setItemImageFile(null);
     setItemImagePreview(item?.imageUrl || "");
@@ -439,6 +455,9 @@ function VendorDetailPage() {
       }
       if (selectedBusiness.type === "PHARMACY" && itemForm.dosage.trim()) {
         formData.append("dosage", itemForm.dosage.trim());
+      }
+      if (itemForm.subCategoryId) {
+        formData.append("subCategoryId", itemForm.subCategoryId);
       }
       if (itemImageFile) {
         formData.append("image", itemImageFile);
@@ -1275,6 +1294,30 @@ function VendorDetailPage() {
                 }
                 placeholder="0.00"
               />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="item-subcategory">Sub Category</Label>
+              <Select
+                value={itemForm.subCategoryId || "none"}
+                onValueChange={(value) =>
+                  setItemForm((f) => ({
+                    ...f,
+                    subCategoryId: value === "none" ? "" : value,
+                  }))
+                }
+              >
+                <SelectTrigger id="item-subcategory">
+                  <SelectValue placeholder="Select a subcategory" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">None</SelectItem>
+                  {subCategories?.map((sub) => (
+                    <SelectItem key={sub.id} value={sub.id}>
+                      {sub.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div className="space-y-2">
               <Label>Image</Label>
