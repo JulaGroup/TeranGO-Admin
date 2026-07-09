@@ -22,6 +22,10 @@ import {
 } from "@/components/ui/table";
 import { toast } from "sonner";
 import { Star, Eye, TrendingUp, Calendar } from "lucide-react";
+import { Header } from "@/components/layout/header";
+import { Main } from "@/components/layout/main";
+import { ProfileDropdown } from "@/components/profile-dropdown";
+import { ThemeSwitch } from "@/components/theme-switch";
 import axios from "axios";
 import { useState } from "react";
 
@@ -153,7 +157,16 @@ function AdminFeaturedPage() {
   }
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
+    <>
+      <Header fixed>
+        <div className="ms-auto flex items-center gap-2">
+          <ThemeSwitch />
+          <ProfileDropdown />
+        </div>
+      </Header>
+
+      <Main>
+    <div className="container mx-auto space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -391,5 +404,7 @@ function AdminFeaturedPage() {
         </CardContent>
       </Card>
     </div>
+      </Main>
+    </>
   );
 }

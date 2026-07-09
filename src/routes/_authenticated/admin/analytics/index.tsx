@@ -18,6 +18,10 @@ import {
   ResponsiveContainer,
 } from 'recharts';
 import axios from 'axios';
+import { Header } from '@/components/layout/header';
+import { Main } from '@/components/layout/main';
+import { ProfileDropdown } from '@/components/profile-dropdown';
+import { ThemeSwitch } from '@/components/theme-switch';
 import {
   TrendingUp,
   DollarSign,
@@ -94,6 +98,15 @@ function AnalyticsPage() {
   }
 
   return (
+    <>
+      <Header fixed>
+        <div className='ms-auto flex items-center gap-2'>
+          <ThemeSwitch />
+          <ProfileDropdown />
+        </div>
+      </Header>
+
+      <Main>
     <div className='space-y-6'>
       {/* Header */}
       <div className='flex items-center justify-between'>
@@ -485,5 +498,7 @@ function AnalyticsPage() {
         </TabsContent>
       </Tabs>
     </div>
+      </Main>
+    </>
   );
 }

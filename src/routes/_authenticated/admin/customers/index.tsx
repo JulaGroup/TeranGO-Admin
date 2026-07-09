@@ -50,6 +50,10 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
+import { Header } from "@/components/layout/header";
+import { Main } from "@/components/layout/main";
+import { ProfileDropdown } from "@/components/profile-dropdown";
+import { ThemeSwitch } from "@/components/theme-switch";
 
 export const Route = createFileRoute("/_authenticated/admin/customers/")({
   component: CustomersPage,
@@ -154,7 +158,16 @@ function CustomersPage() {
       : 0;
 
   return (
-    <div className="container mx-auto max-w-7xl space-y-6 p-4 md:p-8">
+    <>
+      <Header fixed>
+        <div className="ms-auto flex items-center gap-2">
+          <ThemeSwitch />
+          <ProfileDropdown />
+        </div>
+      </Header>
+
+      <Main>
+    <div className="container mx-auto max-w-7xl space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -376,6 +389,8 @@ function CustomersPage() {
         />
       )}
     </div>
+      </Main>
+    </>
   );
 }
 

@@ -62,6 +62,10 @@ import {
 } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
 import { Separator } from "@/components/ui/separator";
+import { Header } from "@/components/layout/header";
+import { Main } from "@/components/layout/main";
+import { ProfileDropdown } from "@/components/profile-dropdown";
+import { ThemeSwitch } from "@/components/theme-switch";
 
 type Payment = {
   id: string;
@@ -181,7 +185,16 @@ function PaymentsPage() {
   }
 
   return (
-    <div className="space-y-6 p-4 md:p-6">
+    <>
+      <Header fixed>
+        <div className="ms-auto flex items-center gap-2">
+          <ThemeSwitch />
+          <ProfileDropdown />
+        </div>
+      </Header>
+
+      <Main>
+    <div className="space-y-6">
       {/* Page Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -364,6 +377,8 @@ function PaymentsPage() {
         />
       )}
     </div>
+      </Main>
+    </>
   );
 }
 

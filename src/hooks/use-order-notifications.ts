@@ -208,9 +208,21 @@ export function useOrderNotifications({
 
     socketRef.current = socket;
 
+    // A single connect_error (cold start, brief network blip) is common and
+    // usually self-heals within a couple of reconnect attempts. Only warn
+    // the admin if the socket is STILL disconnected after a grace period —
+    // otherwise a transient first-attempt failure shows a scary toast for a
+    // problem that resolved itself a second later.
+    let pendingErrorToast: ReturnType<typeof setTimeout> | null = null;
+
     socket.on("connect", () => {
       setIsConnected(true);
       publishConnected(true);
+
+      if (pendingErrorToast) {
+        clearTimeout(pendingErrorToast);
+        pendingErrorToast = null;
+      }
 
       if (adminMode) {
         // Join admin room for global notifications
@@ -229,20 +241,30 @@ export function useOrderNotifications({
     socket.on("connect_error", (err) => {
       setIsConnected(false);
       publishConnected(false);
+      console.warn(
+        "[notifications] Socket connect_error (may self-heal on retry):",
+        err?.message || err,
+      );
+
       // Show the warning toast only once per page load — using a module-level
       // flag so connect/disconnect cycles and component remounts don't
-      // repeatedly re-trigger the toast.
-      if (!connectErrorToastShown) {
-        connectErrorToastShown = true;
-        console.error(
-          "[notifications] Socket connection failed — real-time alerts are OFF:",
-          err?.message || err,
-        );
-        toast.warning("Real-time notifications unavailable", {
-          description:
-            "Could not connect to the notification server. New orders will not alert until this reconnects.",
-          duration: 10000,
-        });
+      // repeatedly re-trigger the toast. Wait a few seconds to give the
+      // automatic reconnect a chance to succeed first.
+      if (!connectErrorToastShown && !pendingErrorToast) {
+        pendingErrorToast = setTimeout(() => {
+          pendingErrorToast = null;
+          if (socket.connected || connectErrorToastShown) return;
+          connectErrorToastShown = true;
+          console.error(
+            "[notifications] Socket still disconnected after retry — real-time alerts are OFF:",
+            err?.message || err,
+          );
+          toast.warning("Real-time notifications unavailable", {
+            description:
+              "Could not connect to the notification server. New orders will not alert until this reconnects.",
+            duration: 10000,
+          });
+        }, 6000);
       }
     });
 
@@ -772,6 +794,9 @@ export function useOrderNotifications({
 
     // Cleanup on unmount
     return () => {
+      if (pendingErrorToast) {
+        clearTimeout(pendingErrorToast);
+      }
       if (adminMode) {
         socket.emit("leave_admin_room");
       } else if (vendorId) {

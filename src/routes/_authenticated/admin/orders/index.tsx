@@ -34,6 +34,10 @@ import { toast } from "sonner";
 import { adminApi } from "@/lib/api";
 import type { Order, Driver } from "@/lib/types";
 import { OrderLocationMap } from "@/components/order-location-map";
+import { Header } from "@/components/layout/header";
+import { Main } from "@/components/layout/main";
+import { ProfileDropdown } from "@/components/profile-dropdown";
+import { ThemeSwitch } from "@/components/theme-switch";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -403,7 +407,16 @@ function OrdersPage() {
   }, [orders, searchQuery]);
 
   return (
-    <div className="space-y-6 p-4 md:p-6">
+    <>
+      <Header fixed>
+        <div className="ms-auto flex items-center gap-2">
+          <ThemeSwitch />
+          <ProfileDropdown />
+        </div>
+      </Header>
+
+      <Main>
+    <div className="space-y-6">
       {/* Page Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -1391,5 +1404,7 @@ function OrdersPage() {
         </DialogContent>
       </Dialog>
     </div>
+      </Main>
+    </>
   );
 }

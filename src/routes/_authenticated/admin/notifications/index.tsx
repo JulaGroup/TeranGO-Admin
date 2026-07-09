@@ -3,6 +3,10 @@ import { useNotificationStore } from "@/stores/notification-store";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Bell, CheckCheck, Trash2 } from "lucide-react";
+import { Header } from "@/components/layout/header";
+import { Main } from "@/components/layout/main";
+import { ProfileDropdown } from "@/components/profile-dropdown";
+import { ThemeSwitch } from "@/components/theme-switch";
 
 export const Route = createFileRoute("/_authenticated/admin/notifications/")({
   component: NotificationsPage,
@@ -17,7 +21,16 @@ function NotificationsPage() {
   const unreadCount = notifications.filter((n) => !n.read).length;
 
   return (
-    <div className="space-y-6">
+    <>
+      <Header fixed>
+        <div className="ms-auto flex items-center gap-2">
+          <ThemeSwitch />
+          <ProfileDropdown />
+        </div>
+      </Header>
+
+      <Main>
+        <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -139,6 +152,8 @@ function NotificationsPage() {
           )}
         </div>
       )}
-    </div>
+        </div>
+      </Main>
+    </>
   );
 }

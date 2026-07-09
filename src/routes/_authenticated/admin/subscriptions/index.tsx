@@ -51,6 +51,10 @@ import {
 import { api } from "@/lib/api";
 import { useState } from "react";
 import { toast } from "sonner";
+import { Header } from "@/components/layout/header";
+import { Main } from "@/components/layout/main";
+import { ProfileDropdown } from "@/components/profile-dropdown";
+import { ThemeSwitch } from "@/components/theme-switch";
 
 interface VendorSubscription {
   id: string;
@@ -354,7 +358,16 @@ function AdminSubscriptionsPage() {
   }
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
+    <>
+      <Header fixed>
+        <div className="ms-auto flex items-center gap-2">
+          <ThemeSwitch />
+          <ProfileDropdown />
+        </div>
+      </Header>
+
+      <Main>
+    <div className="container mx-auto space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -1100,5 +1113,7 @@ function AdminSubscriptionsPage() {
         </DialogContent>
       </Dialog>
     </div>
+      </Main>
+    </>
   );
 }

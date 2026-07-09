@@ -52,6 +52,10 @@ import { cn } from "@/lib/utils";
 import { adminApi } from "@/lib/api";
 import { formatExpressDeliveryId } from "@/lib/formatExpressDeliveryId";
 import { DriverMap } from "@/components/driver-map";
+import { Header } from "@/components/layout/header";
+import { Main } from "@/components/layout/main";
+import { ProfileDropdown } from "@/components/profile-dropdown";
+import { ThemeSwitch } from "@/components/theme-switch";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -934,6 +938,15 @@ const ExpressDeliveryManagement: React.FC = () => {
   // ── Render ───────────────────────────────────────────────────────────────────
 
   return (
+    <>
+      <Header fixed>
+        <div className="ms-auto flex items-center gap-2">
+          <ThemeSwitch />
+          <ProfileDropdown />
+        </div>
+      </Header>
+
+      <Main>
     <div className="space-y-5">
       {/* Header */}
       <div className="flex items-start justify-between gap-4">
@@ -1519,6 +1532,8 @@ const ExpressDeliveryManagement: React.FC = () => {
         assignPending={assignDeliveryMutation.isPending}
       />
     </div>
+      </Main>
+    </>
   );
 };
 
