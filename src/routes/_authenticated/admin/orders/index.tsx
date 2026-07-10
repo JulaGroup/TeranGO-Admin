@@ -922,17 +922,18 @@ function OrdersPage() {
               </div>
 
               {/* Delivery */}
-              {selectedOrder.deliveryAddress && (
+              {selectedOrder.orderType !== "PICKUP" && (
                 <div>
                   <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2 flex items-center gap-2">
                     <MapPin className="h-3.5 w-3.5" />
                     Delivery Address
                   </p>
                   <div className="rounded-lg border p-3 text-sm">
-                    {typeof selectedOrder.deliveryAddress === "string"
-                      ? selectedOrder.deliveryAddress
-                      : (selectedOrder.deliveryAddress?.street ??
-                        "No address provided")}
+                    {selectedOrder.address ||
+                      (typeof selectedOrder.deliveryAddress === "string"
+                        ? selectedOrder.deliveryAddress
+                        : selectedOrder.deliveryAddress?.street) ||
+                      "No address provided"}
                   </div>
                   {/* Map: vendor (origin) → customer (delivery) */}
                   {(selectedOrder.customerLatitude != null ||
@@ -1364,7 +1365,7 @@ function OrdersPage() {
 
               {/* Status Update */}
               {(() => {
-                const isDelivery = !!selectedOrder.deliveryAddress;
+                const isDelivery = selectedOrder.orderType !== "PICKUP";
                 const isPaid =
                   selectedOrder.paymentStatus === "PAID" ||
                   selectedOrder.paymentMethod === "CASH" ||
@@ -1450,7 +1451,7 @@ function OrdersPage() {
                   bypassing the normal driver QR-scan flow (e.g. driver
                   couldn't scan, phone confirmed with customer, etc). */}
               {(() => {
-                const isDelivery = !!selectedOrder.deliveryAddress;
+                const isDelivery = selectedOrder.orderType !== "PICKUP";
                 const canOverride =
                   isDelivery &&
                   !selectedOrder.isGiftOrder &&

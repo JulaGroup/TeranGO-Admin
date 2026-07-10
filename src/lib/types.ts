@@ -123,6 +123,7 @@ export interface Order {
   };
   customerName?: string;
   customerPhone?: string;
+  address?: string;
   deliveryAddress?:
     | string
     | {
