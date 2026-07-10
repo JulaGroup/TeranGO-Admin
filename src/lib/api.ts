@@ -148,6 +148,28 @@ export const adminApi = {
   getOrderById: (id: string) => api.get(`/api/admin/orders/${id}`),
   updateOrderStatus: (id: string, status: string) =>
     api.patch(`/api/admin/orders/${id}/status`, { status }),
+  cancelOrderItems: (
+    id: string,
+    itemIds: string[],
+    reason: string,
+    note?: string,
+  ) =>
+    api.patch(`/api/admin/orders/${id}/cancel-items`, {
+      itemIds,
+      reason,
+      note,
+    }),
+  markOrderPaid: (
+    id: string,
+    sendVendorPayout: boolean,
+    reference?: string,
+    note?: string,
+  ) =>
+    api.patch(`/api/admin/orders/${id}/mark-paid`, {
+      sendVendorPayout,
+      reference,
+      note,
+    }),
   assignDriver: (orderId: string, driverId: string) =>
     api.patch(`/api/admin/orders/${orderId}/assign-driver`, { driverId }),
 

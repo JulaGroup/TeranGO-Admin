@@ -136,6 +136,7 @@ export interface Order {
   totalAmount: number;
   deliveryFee?: number;
   serviceFee?: number;
+  refundOwedAmount?: number;
   items: OrderItem[];
   restaurant?: Vendor;
   shop?: Vendor;
@@ -174,6 +175,9 @@ export interface OrderItem {
   menuItem?: { name: string; imageUrl?: string };
   product?: { _id?: string; name: string; imageUrl?: string };
   medicine?: { name: string; imageUrl?: string };
+  status?: "ACTIVE" | "CANCELLED";
+  cancelReason?: "OUT_OF_STOCK" | "PRODUCT_UNAVAILABLE" | "VENDOR_CLOSED" | "OTHER";
+  cancelNote?: string;
 }
 
 export interface Driver {

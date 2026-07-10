@@ -52,6 +52,8 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -263,6 +265,14 @@ function OrdersPage() {
   const [isAssignDriverOpen, setIsAssignDriverOpen] = useState(false);
   const [selectedDriverId, setSelectedDriverId] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
+  const [selectedItemIds, setSelectedItemIds] = useState<string[]>([]);
+  const [isCancelItemsOpen, setIsCancelItemsOpen] = useState(false);
+  const [cancelItemsReason, setCancelItemsReason] = useState("");
+  const [cancelItemsNote, setCancelItemsNote] = useState("");
+  const [isMarkPaidOpen, setIsMarkPaidOpen] = useState(false);
+  const [markPaidReference, setMarkPaidReference] = useState("");
+  const [markPaidNote, setMarkPaidNote] = useState("");
+  const [markPaidSendPayout, setMarkPaidSendPayout] = useState(false);
 
   const {
     data: ordersResponse,
@@ -339,6 +349,77 @@ function OrdersPage() {
     },
   });
 
+  const cancelItemsMutation = useMutation({
+    mutationFn: ({
+      orderId,
+      itemIds,
+      reason,
+      note,
+    }: {
+      orderId: string;
+      itemIds: string[];
+      reason: string;
+      note?: string;
+    }) => adminApi.cancelOrderItems(orderId, itemIds, reason, note),
+    onSuccess: (response) => {
+      toast.success(
+        response?.data?.fullyCancelled
+          ? "All items cancelled — order has been cancelled"
+          : "Selected items cancelled and customer notified",
+      );
+      queryClient.invalidateQueries({ queryKey: ["orders"] });
+      setSelectedItemIds([]);
+      setIsCancelItemsOpen(false);
+      setCancelItemsReason("");
+      setCancelItemsNote("");
+    },
+    onError: (error: AxiosError<{ error: string }>) => {
+      const message =
+        error?.response?.data?.error ||
+        error.message ||
+        "Failed to cancel items";
+      toast.error(message);
+    },
+  });
+
+  const markPaidMutation = useMutation({
+    mutationFn: ({
+      orderId,
+      sendVendorPayout,
+      reference,
+      note,
+    }: {
+      orderId: string;
+      sendVendorPayout: boolean;
+      reference?: string;
+      note?: string;
+    }) => adminApi.markOrderPaid(orderId, sendVendorPayout, reference, note),
+    onSuccess: (response) => {
+      const payout = response?.data?.payout;
+      toast.success("Order marked as paid — customer and vendor notified");
+      if (payout?.attempted) {
+        if (payout.success) {
+          toast.success(payout.message);
+        } else {
+          toast.warning(payout.message);
+        }
+      }
+      queryClient.invalidateQueries({ queryKey: ["orders"] });
+      setIsMarkPaidOpen(false);
+      setIsDetailsOpen(false);
+      setMarkPaidReference("");
+      setMarkPaidNote("");
+      setMarkPaidSendPayout(false);
+    },
+    onError: (error: AxiosError<{ error: string }>) => {
+      const message =
+        error?.response?.data?.error ||
+        error.message ||
+        "Failed to mark order as paid";
+      toast.error(message);
+    },
+  });
+
   const assignDriverMutation = useMutation({
     mutationFn: ({
       orderId,
@@ -365,6 +446,26 @@ function OrdersPage() {
   const handleViewDetails = (order) => {
     setSelectedOrder(order);
     setIsDetailsOpen(true);
+    setSelectedItemIds([]);
+  };
+
+  const toggleItemSelected = (itemId: string) => {
+    setSelectedItemIds((prev) =>
+      prev.includes(itemId)
+        ? prev.filter((id) => id !== itemId)
+        : [...prev, itemId],
+    );
+  };
+
+  const handleConfirmCancelItems = () => {
+    if (!selectedOrder || selectedItemIds.length === 0 || !cancelItemsReason)
+      return;
+    cancelItemsMutation.mutate({
+      orderId: selectedOrder._id || selectedOrder.id,
+      itemIds: selectedItemIds,
+      reason: cancelItemsReason,
+      note: cancelItemsNote || undefined,
+    });
   };
 
   const handleStatusUpdate = (status) => {
@@ -868,6 +969,13 @@ function OrdersPage() {
                     {selectedOrder.items?.length !== 1 ? "s" : ""}
                   </span>
                 </p>
+                {!["CANCELLED", "DELIVERED"].includes(
+                  selectedOrder.status,
+                ) && (
+                  <p className="text-xs text-muted-foreground mb-2">
+                    Select unavailable products to cancel them individually.
+                  </p>
+                )}
                 <div className="space-y-2">
                   {selectedOrder.items?.map((item, idx) => {
                     const name =
@@ -878,11 +986,26 @@ function OrdersPage() {
                       "Product";
                     const imageUrl =
                       item.product?.imageUrl || item.menuItem?.imageUrl;
+                    const itemId = item.id || item._id;
+                    const isCancelled = item.status === "CANCELLED";
+                    const canSelect =
+                      !isCancelled &&
+                      !["CANCELLED", "DELIVERED"].includes(
+                        selectedOrder.status,
+                      );
                     return (
                       <div
-                        key={item.product?._id || item._id || idx}
-                        className="flex items-center gap-3 rounded-lg border p-3 bg-muted/30"
+                        key={itemId || idx}
+                        className={`flex items-center gap-3 rounded-lg border p-3 ${
+                          isCancelled ? "bg-destructive/5 opacity-60" : "bg-muted/30"
+                        }`}
                       >
+                        {canSelect && (
+                          <Checkbox
+                            checked={selectedItemIds.includes(itemId)}
+                            onCheckedChange={() => toggleItemSelected(itemId)}
+                          />
+                        )}
                         {imageUrl ? (
                           <img
                             src={imageUrl}
@@ -895,12 +1018,22 @@ function OrdersPage() {
                           </div>
                         )}
                         <div className="flex-1 min-w-0">
-                          <p className="font-medium text-sm leading-snug">
+                          <p
+                            className={`font-medium text-sm leading-snug ${isCancelled ? "line-through" : ""}`}
+                          >
                             {name}
                           </p>
                           <p className="text-muted-foreground text-xs mt-0.5">
                             {item.quantity} × D{item.price?.toFixed(2)}
                           </p>
+                          {isCancelled && (
+                            <p className="text-destructive text-xs mt-0.5">
+                              Cancelled
+                              {item.cancelReason
+                                ? ` — ${item.cancelReason.replace(/_/g, " ").toLowerCase()}`
+                                : ""}
+                            </p>
+                          )}
                         </div>
                         <p className="font-semibold text-sm text-right shrink-0">
                           D{(item.price * item.quantity).toFixed(2)}
@@ -909,6 +1042,18 @@ function OrdersPage() {
                     );
                   })}
                 </div>
+                {selectedItemIds.length > 0 && (
+                  <div className="mt-3">
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={() => setIsCancelItemsOpen(true)}
+                    >
+                      Cancel {selectedItemIds.length} selected item
+                      {selectedItemIds.length !== 1 ? "s" : ""}
+                    </Button>
+                  </div>
+                )}
               </div>
 
               {/* Promo Code Banner */}
@@ -1078,6 +1223,18 @@ function OrdersPage() {
                     )}
                     {selectedOrder.paymentStatus || "PENDING"}
                   </Badge>
+                  {selectedOrder.paymentStatus !== "PAID" &&
+                    selectedOrder.status !== "CANCELLED" && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="w-full mt-2 border-emerald-300 text-emerald-700 hover:bg-emerald-50"
+                        onClick={() => setIsMarkPaidOpen(true)}
+                      >
+                        <Check className="h-3.5 w-3.5 mr-1" />
+                        Mark as Paid
+                      </Button>
+                    )}
                 </div>
                 <div className="rounded-lg border p-3 space-y-1">
                   <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
@@ -1399,6 +1556,149 @@ function OrdersPage() {
               {assignDriverMutation.isPending
                 ? "Assigning..."
                 : "Assign Driver"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isCancelItemsOpen} onOpenChange={setIsCancelItemsOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Cancel {selectedItemIds.length} item{selectedItemIds.length !== 1 ? "s" : ""}</DialogTitle>
+            <DialogDescription>
+              The customer will be notified with the reason below. Their
+              refund will be tracked automatically.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Reason</Label>
+              <Select
+                value={cancelItemsReason}
+                onValueChange={setCancelItemsReason}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a reason" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="OUT_OF_STOCK">Out of stock</SelectItem>
+                  <SelectItem value="PRODUCT_UNAVAILABLE">
+                    Product unavailable
+                  </SelectItem>
+                  <SelectItem value="VENDOR_CLOSED">Vendor closed</SelectItem>
+                  <SelectItem value="OTHER">Other</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Note (optional)</Label>
+              <Textarea
+                value={cancelItemsNote}
+                onChange={(e) => setCancelItemsNote(e.target.value)}
+                placeholder="Add any extra detail for this cancellation..."
+                rows={3}
+              />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setIsCancelItemsOpen(false)}
+            >
+              Back
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleConfirmCancelItems}
+              disabled={!cancelItemsReason || cancelItemsMutation.isPending}
+            >
+              {cancelItemsMutation.isPending
+                ? "Cancelling..."
+                : "Confirm Cancellation"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isMarkPaidOpen} onOpenChange={setIsMarkPaidOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Mark Order as Paid</DialogTitle>
+            <DialogDescription>
+              Use this when the customer paid outside the app (e.g. direct
+              Wave transfer). The order will continue through the normal flow
+              and the customer and vendor will be notified.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="rounded-lg border p-3 text-sm flex items-center justify-between">
+              <span className="text-muted-foreground">Amount</span>
+              <span className="font-semibold">
+                D{selectedOrder?.totalAmount?.toFixed(2)}
+              </span>
+            </div>
+            <div className="space-y-2">
+              <Label>Payment reference (optional)</Label>
+              <Input
+                value={markPaidReference}
+                onChange={(e) => setMarkPaidReference(e.target.value)}
+                placeholder="e.g. Wave transaction ID"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Note (optional)</Label>
+              <Textarea
+                value={markPaidNote}
+                onChange={(e) => setMarkPaidNote(e.target.value)}
+                placeholder="How was this payment received?"
+                rows={2}
+              />
+            </div>
+            <div className="flex items-start gap-3 rounded-lg border p-3">
+              <Checkbox
+                checked={markPaidSendPayout}
+                onCheckedChange={(checked) =>
+                  setMarkPaidSendPayout(checked === true)
+                }
+                className="mt-0.5"
+              />
+              <div
+                className="space-y-1 cursor-pointer"
+                onClick={() => setMarkPaidSendPayout((v) => !v)}
+              >
+                <p className="text-sm font-medium leading-none">
+                  Send vendor their share via Wave payout
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Check this if the money came to TeranGO's account. Leave
+                  unchecked if the vendor was already paid directly.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsMarkPaidOpen(false)}>
+              Back
+            </Button>
+            <Button
+              onClick={() => {
+                if (!selectedOrder) return;
+                markPaidMutation.mutate({
+                  orderId: selectedOrder._id || selectedOrder.id,
+                  sendVendorPayout: markPaidSendPayout,
+                  reference: markPaidReference || undefined,
+                  note: markPaidNote || undefined,
+                });
+              }}
+              disabled={markPaidMutation.isPending}
+            >
+              {markPaidMutation.isPending
+                ? "Confirming..."
+                : "Confirm Payment"}
             </Button>
           </DialogFooter>
         </DialogContent>
