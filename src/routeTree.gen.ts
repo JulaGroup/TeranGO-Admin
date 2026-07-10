@@ -47,6 +47,7 @@ import { Route as AuthenticatedAdminTerangoStoreIndexRouteImport } from './route
 import { Route as AuthenticatedAdminTerangoProductsIndexRouteImport } from './routes/_authenticated/admin/terango-products/index'
 import { Route as AuthenticatedAdminSubscriptionsIndexRouteImport } from './routes/_authenticated/admin/subscriptions/index'
 import { Route as AuthenticatedAdminSubcategoriesIndexRouteImport } from './routes/_authenticated/admin/subcategories/index'
+import { Route as AuthenticatedAdminStaffAdvancesIndexRouteImport } from './routes/_authenticated/admin/staff-advances/index'
 import { Route as AuthenticatedAdminShopsIndexRouteImport } from './routes/_authenticated/admin/shops/index'
 import { Route as AuthenticatedAdminSettlementsIndexRouteImport } from './routes/_authenticated/admin/settlements/index'
 import { Route as AuthenticatedAdminSettingsIndexRouteImport } from './routes/_authenticated/admin/settings/index'
@@ -282,6 +283,12 @@ const AuthenticatedAdminSubcategoriesIndexRoute =
     path: '/admin/subcategories/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedAdminStaffAdvancesIndexRoute =
+  AuthenticatedAdminStaffAdvancesIndexRouteImport.update({
+    id: '/admin/staff-advances/',
+    path: '/admin/staff-advances/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedAdminShopsIndexRoute =
   AuthenticatedAdminShopsIndexRouteImport.update({
     id: '/admin/shops/',
@@ -506,6 +513,7 @@ export interface FileRoutesByFullPath {
   '/admin/settings/': typeof AuthenticatedAdminSettingsIndexRoute
   '/admin/settlements/': typeof AuthenticatedAdminSettlementsIndexRoute
   '/admin/shops/': typeof AuthenticatedAdminShopsIndexRoute
+  '/admin/staff-advances/': typeof AuthenticatedAdminStaffAdvancesIndexRoute
   '/admin/subcategories/': typeof AuthenticatedAdminSubcategoriesIndexRoute
   '/admin/subscriptions/': typeof AuthenticatedAdminSubscriptionsIndexRoute
   '/admin/terango-products/': typeof AuthenticatedAdminTerangoProductsIndexRoute
@@ -572,6 +580,7 @@ export interface FileRoutesByTo {
   '/admin/settings': typeof AuthenticatedAdminSettingsIndexRoute
   '/admin/settlements': typeof AuthenticatedAdminSettlementsIndexRoute
   '/admin/shops': typeof AuthenticatedAdminShopsIndexRoute
+  '/admin/staff-advances': typeof AuthenticatedAdminStaffAdvancesIndexRoute
   '/admin/subcategories': typeof AuthenticatedAdminSubcategoriesIndexRoute
   '/admin/subscriptions': typeof AuthenticatedAdminSubscriptionsIndexRoute
   '/admin/terango-products': typeof AuthenticatedAdminTerangoProductsIndexRoute
@@ -641,6 +650,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/settings/': typeof AuthenticatedAdminSettingsIndexRoute
   '/_authenticated/admin/settlements/': typeof AuthenticatedAdminSettlementsIndexRoute
   '/_authenticated/admin/shops/': typeof AuthenticatedAdminShopsIndexRoute
+  '/_authenticated/admin/staff-advances/': typeof AuthenticatedAdminStaffAdvancesIndexRoute
   '/_authenticated/admin/subcategories/': typeof AuthenticatedAdminSubcategoriesIndexRoute
   '/_authenticated/admin/subscriptions/': typeof AuthenticatedAdminSubscriptionsIndexRoute
   '/_authenticated/admin/terango-products/': typeof AuthenticatedAdminTerangoProductsIndexRoute
@@ -709,6 +719,7 @@ export interface FileRouteTypes {
     | '/admin/settings/'
     | '/admin/settlements/'
     | '/admin/shops/'
+    | '/admin/staff-advances/'
     | '/admin/subcategories/'
     | '/admin/subscriptions/'
     | '/admin/terango-products/'
@@ -775,6 +786,7 @@ export interface FileRouteTypes {
     | '/admin/settings'
     | '/admin/settlements'
     | '/admin/shops'
+    | '/admin/staff-advances'
     | '/admin/subcategories'
     | '/admin/subscriptions'
     | '/admin/terango-products'
@@ -843,6 +855,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/settings/'
     | '/_authenticated/admin/settlements/'
     | '/_authenticated/admin/shops/'
+    | '/_authenticated/admin/staff-advances/'
     | '/_authenticated/admin/subcategories/'
     | '/_authenticated/admin/subscriptions/'
     | '/_authenticated/admin/terango-products/'
@@ -1135,6 +1148,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminSubcategoriesIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/admin/staff-advances/': {
+      id: '/_authenticated/admin/staff-advances/'
+      path: '/admin/staff-advances'
+      fullPath: '/admin/staff-advances/'
+      preLoaderRoute: typeof AuthenticatedAdminStaffAdvancesIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/admin/shops/': {
       id: '/_authenticated/admin/shops/'
       path: '/admin/shops'
@@ -1374,6 +1394,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdminSettingsIndexRoute: typeof AuthenticatedAdminSettingsIndexRoute
   AuthenticatedAdminSettlementsIndexRoute: typeof AuthenticatedAdminSettlementsIndexRoute
   AuthenticatedAdminShopsIndexRoute: typeof AuthenticatedAdminShopsIndexRoute
+  AuthenticatedAdminStaffAdvancesIndexRoute: typeof AuthenticatedAdminStaffAdvancesIndexRoute
   AuthenticatedAdminSubcategoriesIndexRoute: typeof AuthenticatedAdminSubcategoriesIndexRoute
   AuthenticatedAdminSubscriptionsIndexRoute: typeof AuthenticatedAdminSubscriptionsIndexRoute
   AuthenticatedAdminTerangoProductsIndexRoute: typeof AuthenticatedAdminTerangoProductsIndexRoute
@@ -1440,6 +1461,8 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAdminSettlementsIndexRoute:
     AuthenticatedAdminSettlementsIndexRoute,
   AuthenticatedAdminShopsIndexRoute: AuthenticatedAdminShopsIndexRoute,
+  AuthenticatedAdminStaffAdvancesIndexRoute:
+    AuthenticatedAdminStaffAdvancesIndexRoute,
   AuthenticatedAdminSubcategoriesIndexRoute:
     AuthenticatedAdminSubcategoriesIndexRoute,
   AuthenticatedAdminSubscriptionsIndexRoute:

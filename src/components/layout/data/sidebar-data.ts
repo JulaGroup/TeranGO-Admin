@@ -110,6 +110,11 @@ export const sidebarData: SidebarData = {
             { title: "Driver Settlements", url: "/admin/settlements",         icon: DollarSign },
           ],
         },
+        {
+          title: "Staff Advances",
+          url: "/admin/staff-advances",
+          icon: Wallet,
+        },
       ],
     },
 

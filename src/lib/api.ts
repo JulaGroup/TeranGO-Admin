@@ -173,6 +173,21 @@ export const adminApi = {
   assignDriver: (orderId: string, driverId: string) =>
     api.patch(`/api/admin/orders/${orderId}/assign-driver`, { driverId }),
 
+  // Staff Advances (IOUs)
+  getStaffAdvances: (params?: Record<string, unknown>) =>
+    api.get("/api/admin/staff-advances", { params }),
+  createStaffAdvance: (data: {
+    personName: string;
+    amount: number;
+    category: string;
+    reason: string;
+    relatedOrderId?: string;
+  }) => api.post("/api/admin/staff-advances", data),
+  settleStaffAdvance: (id: string) =>
+    api.patch(`/api/admin/staff-advances/${id}/settle`),
+  deleteStaffAdvance: (id: string) =>
+    api.delete(`/api/admin/staff-advances/${id}`),
+
   // Payments
   getPayments: (params?: Record<string, unknown>) =>
     api.get("/api/admin/payments", { params }),
