@@ -118,6 +118,8 @@ export interface Order {
     businessName?: string;
     phoneNumber?: string;
     phone?: string;
+    latitude?: number;
+    longitude?: number;
   };
   customerName?: string;
   customerPhone?: string;

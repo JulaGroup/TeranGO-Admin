@@ -1,11 +1,13 @@
 /**
- * Small embedded Google Map showing where an order is being delivered
- * (customer's coordinates captured at checkout). Renders nothing when the
- * order has no coordinates; shows a friendly placeholder when the Maps key
- * is not configured.
+ * Small embedded Google Map for an order. Shows the customer's delivery
+ * location, and — when vendor coordinates are provided — the vendor (origin)
+ * marker too, with the viewport fitted around both points. Renders nothing
+ * when the order has no coordinates; shows a friendly placeholder when the
+ * Maps key is not configured.
  */
 
-import { GoogleMap, Marker } from "@react-google-maps/api";
+import { useCallback } from "react";
+import { GoogleMap, Marker, Polyline } from "@react-google-maps/api";
 import { useGoogleMaps } from "@/lib/googleMaps";
 
 interface OrderLocationMapProps {
@@ -13,6 +15,9 @@ interface OrderLocationMapProps {
   longitude?: number | null;
   label?: string;
   height?: number;
+  originLatitude?: number | null;
+  originLongitude?: number | null;
+  originLabel?: string;
 }
 
 export function OrderLocationMap({
@@ -20,14 +25,39 @@ export function OrderLocationMap({
   longitude,
   label = "Delivery location",
   height = 220,
+  originLatitude,
+  originLongitude,
+  originLabel = "Vendor location",
 }: OrderLocationMapProps) {
   const { isLoaded, loadError, hasKey } = useGoogleMaps();
 
-  if (latitude == null || longitude == null) {
+  const hasDestination = latitude != null && longitude != null;
+  const hasOrigin = originLatitude != null && originLongitude != null;
+
+  const destination = hasDestination
+    ? { lat: latitude!, lng: longitude! }
+    : null;
+  const origin = hasOrigin
+    ? { lat: originLatitude!, lng: originLongitude! }
+    : null;
+
+  const onLoad = useCallback(
+    (map: google.maps.Map) => {
+      if (origin && destination) {
+        const bounds = new google.maps.LatLngBounds();
+        bounds.extend(origin);
+        bounds.extend(destination);
+        map.fitBounds(bounds, 48);
+      }
+    },
+    [origin?.lat, origin?.lng, destination?.lat, destination?.lng],
+  );
+
+  if (!hasDestination && !hasOrigin) {
     return null;
   }
 
-  const position = { lat: latitude, lng: longitude };
+  const center = destination || origin!;
 
   return (
     <div
@@ -50,15 +80,38 @@ export function OrderLocationMap({
       ) : (
         <GoogleMap
           mapContainerStyle={{ height: "100%", width: "100%" }}
-          center={position}
+          center={center}
           zoom={15}
+          onLoad={onLoad}
           options={{
             streetViewControl: false,
             mapTypeControl: false,
             fullscreenControl: true,
           }}
         >
-          <Marker position={position} title={label} />
+          {origin && (
+            <Marker
+              position={origin}
+              title={originLabel}
+              label={{
+                text: "V",
+                color: "#ffffff",
+                fontSize: "12px",
+                fontWeight: "bold",
+              }}
+            />
+          )}
+          {destination && <Marker position={destination} title={label} />}
+          {origin && destination && (
+            <Polyline
+              path={[origin, destination]}
+              options={{
+                strokeColor: "#7c3aed",
+                strokeOpacity: 0.8,
+                strokeWeight: 3,
+              }}
+            />
+          )}
         </GoogleMap>
       )}
     </div>

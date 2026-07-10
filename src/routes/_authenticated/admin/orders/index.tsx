@@ -82,9 +82,27 @@ interface RawOrder {
   userId: string;
   customerName: string;
   customerPhone: string;
-  restaurant?: { id: string; name: string; phone: string };
-  shop?: { id: string; name: string; phone: string };
-  pharmacy?: { id: string; name: string; phone: string };
+  restaurant?: {
+    id: string;
+    name: string;
+    phone: string;
+    latitude?: number;
+    longitude?: number;
+  };
+  shop?: {
+    id: string;
+    name: string;
+    phone: string;
+    latitude?: number;
+    longitude?: number;
+  };
+  pharmacy?: {
+    id: string;
+    name: string;
+    phone: string;
+    latitude?: number;
+    longitude?: number;
+  };
   [key: string]: unknown;
 }
 
@@ -107,6 +125,8 @@ const normalizeOrder = (order: RawOrder): Order => {
       shopName: vendor?.name,
       businessName: vendor?.name,
       phoneNumber: vendor?.phone,
+      latitude: vendor?.latitude,
+      longitude: vendor?.longitude,
     },
     restaurant: order.restaurant,
     shop: order.shop,
@@ -914,21 +934,41 @@ function OrdersPage() {
                       : (selectedOrder.deliveryAddress?.street ??
                         "No address provided")}
                   </div>
-                  {/* Map of where the order is being delivered */}
-                  {selectedOrder.customerLatitude != null &&
-                    selectedOrder.customerLongitude != null && (
-                      <div className="mt-2">
-                        <OrderLocationMap
-                          latitude={selectedOrder.customerLatitude}
-                          longitude={selectedOrder.customerLongitude}
-                          label={`Order #${selectedOrder.id?.slice(-6)?.toUpperCase?.() || ""} delivery location`}
-                        />
-                        <p className="text-muted-foreground mt-1 text-xs">
-                          📍 {Number(selectedOrder.customerLatitude).toFixed(6)},{" "}
-                          {Number(selectedOrder.customerLongitude).toFixed(6)}
-                        </p>
+                  {/* Map: vendor (origin) → customer (delivery) */}
+                  {(selectedOrder.customerLatitude != null ||
+                    selectedOrder.vendor?.latitude != null) && (
+                    <div className="mt-2">
+                      <OrderLocationMap
+                        latitude={selectedOrder.customerLatitude}
+                        longitude={selectedOrder.customerLongitude}
+                        label={`Order #${selectedOrder.id?.slice(-6)?.toUpperCase?.() || ""} delivery location`}
+                        originLatitude={selectedOrder.vendor?.latitude}
+                        originLongitude={selectedOrder.vendor?.longitude}
+                        originLabel={
+                          selectedOrder.vendor?.shopName ||
+                          selectedOrder.vendor?.businessName ||
+                          "Vendor location"
+                        }
+                        height={260}
+                      />
+                      <div className="text-muted-foreground mt-1 text-xs flex flex-wrap gap-x-4">
+                        {selectedOrder.vendor?.latitude != null && (
+                          <span>
+                            🏪 From:{" "}
+                            {Number(selectedOrder.vendor.latitude).toFixed(6)},{" "}
+                            {Number(selectedOrder.vendor.longitude).toFixed(6)}
+                          </span>
+                        )}
+                        {selectedOrder.customerLatitude != null && (
+                          <span>
+                            📍 To:{" "}
+                            {Number(selectedOrder.customerLatitude).toFixed(6)},{" "}
+                            {Number(selectedOrder.customerLongitude).toFixed(6)}
+                          </span>
+                        )}
                       </div>
-                    )}
+                    </div>
+                  )}
                 </div>
               )}
 
