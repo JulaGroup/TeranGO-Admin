@@ -52,6 +52,7 @@ import { cn } from "@/lib/utils";
 import { adminApi } from "@/lib/api";
 import { formatExpressDeliveryId } from "@/lib/formatExpressDeliveryId";
 import { DriverMap } from "@/components/driver-map";
+import { OrderLocationMap } from "@/components/order-location-map";
 import { Header } from "@/components/layout/header";
 import { Main } from "@/components/layout/main";
 import { ProfileDropdown } from "@/components/profile-dropdown";
@@ -87,6 +88,8 @@ interface ExpressDelivery {
   vehicleType?: "BIKE" | "KEKE_CARGO" | "CAR" | "VAN" | "LORRY";
   pickupLatitude?: number | null;
   pickupLongitude?: number | null;
+  dropoffLatitude?: number | null;
+  dropoffLongitude?: number | null;
   expressMultiplier: number;
   createdAt: string;
   verificationStatus: string;
@@ -94,6 +97,8 @@ interface ExpressDelivery {
   paymentStatus?: "UNPAID" | "PAID" | "FAILED" | "REFUNDED";
   adminApprovedForPayment?: boolean;
   driverName?: string;
+  driverEarningAmount?: number | null;
+  driverSplitRate?: number | null;
   senderName?: string;
   senderPhone?: string;
   receiverName?: string;
@@ -290,7 +295,11 @@ function DeliveryDetailDialog({
   const status = STATUS_CONFIG[delivery.status];
   const transport = delivery.driverTransportFee ?? delivery.estimatedFee;
   const platformFees = delivery.estimatedFee - transport;
-  const driverEarns = Math.round(transport * 0.75);
+  // Server-computed: actual DriverEarning record when delivered, otherwise a
+  // projection from the assigned driver's split rate (0 for salaried drivers).
+  const driverEarns =
+    delivery.driverEarningAmount ?? Math.round(transport * 0.75);
+  const driverRatePct = Math.round((delivery.driverSplitRate ?? 0.75) * 100);
   const terango = transport - driverEarns + platformFees;
 
   return (
@@ -355,6 +364,19 @@ function DeliveryDetailDialog({
                 <p className="text-sm">{delivery.dropoffAddress}</p>
               </div>
             </div>
+            {(delivery.pickupLatitude != null ||
+              delivery.dropoffLatitude != null) && (
+              <OrderLocationMap
+                originLatitude={delivery.pickupLatitude}
+                originLongitude={delivery.pickupLongitude}
+                originLabel={`Pickup: ${delivery.pickupAddress}`}
+                originMarkerText="P"
+                latitude={delivery.dropoffLatitude}
+                longitude={delivery.dropoffLongitude}
+                label={`Dropoff: ${delivery.dropoffAddress}`}
+                height={200}
+              />
+            )}
           </div>
 
           {/* Contacts */}
@@ -432,7 +454,12 @@ function DeliveryDetailDialog({
               </span>
             </div>
             <div className="flex justify-between text-xs text-emerald-600 dark:text-emerald-400 mt-1">
-              <span>Driver earns (75% of transport)</span>
+              <span>
+                Driver earns
+                {driverRatePct > 0
+                  ? ` (${driverRatePct}% of transport)`
+                  : " (salaried driver)"}
+              </span>
               <span className="font-mono font-semibold">
                 {formatCurrency(driverEarns)}
               </span>

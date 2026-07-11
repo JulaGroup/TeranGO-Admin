@@ -6,7 +6,7 @@
  * Maps key is not configured.
  */
 
-import { useCallback } from "react";
+import { useCallback, useMemo } from "react";
 import { GoogleMap, Marker, Polyline } from "@react-google-maps/api";
 import { useGoogleMaps } from "@/lib/googleMaps";
 
@@ -18,6 +18,7 @@ interface OrderLocationMapProps {
   originLatitude?: number | null;
   originLongitude?: number | null;
   originLabel?: string;
+  originMarkerText?: string;
 }
 
 export function OrderLocationMap({
@@ -28,18 +29,25 @@ export function OrderLocationMap({
   originLatitude,
   originLongitude,
   originLabel = "Vendor location",
+  originMarkerText = "V",
 }: OrderLocationMapProps) {
   const { isLoaded, loadError, hasKey } = useGoogleMaps();
 
   const hasDestination = latitude != null && longitude != null;
   const hasOrigin = originLatitude != null && originLongitude != null;
 
-  const destination = hasDestination
-    ? { lat: latitude!, lng: longitude! }
-    : null;
-  const origin = hasOrigin
-    ? { lat: originLatitude!, lng: originLongitude! }
-    : null;
+  // Memoize by value: a new object identity on every parent re-render (e.g.
+  // pages polling for fresh data) would make GoogleMap call setCenter and
+  // yank the viewport away from the user's zoom/pan.
+  const destination = useMemo(
+    () => (hasDestination ? { lat: latitude!, lng: longitude! } : null),
+    [hasDestination, latitude, longitude],
+  );
+  const origin = useMemo(
+    () =>
+      hasOrigin ? { lat: originLatitude!, lng: originLongitude! } : null,
+    [hasOrigin, originLatitude, originLongitude],
+  );
 
   const onLoad = useCallback(
     (map: google.maps.Map) => {
@@ -94,7 +102,7 @@ export function OrderLocationMap({
               position={origin}
               title={originLabel}
               label={{
-                text: "V",
+                text: originMarkerText,
                 color: "#ffffff",
                 fontSize: "12px",
                 fontWeight: "bold",

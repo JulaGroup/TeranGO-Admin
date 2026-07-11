@@ -106,18 +106,42 @@ export function DriverMap({
     ? drivers.filter((d) => d.isAvailable)
     : drivers;
 
+  const filteredDriversRef = useRef(filteredDrivers);
+  filteredDriversRef.current = filteredDrivers;
+
+  // Auto-fit the viewport around the drivers only once per view (and again
+  // when the availability filter changes) — refitting on every 10s location
+  // poll would throw away the user's manual zoom/pan.
+  const didAutoFitRef = useRef(false);
+
   useEffect(() => {
-    if (!mapRef.current || filteredDrivers.length === 0) return;
+    didAutoFitRef.current = false;
+  }, [filterAvailable]);
+
+  const fitToDrivers = useCallback((driversToFit: Driver[]) => {
+    if (!mapRef.current || driversToFit.length === 0) return;
     const bounds = new google.maps.LatLngBounds();
-    filteredDrivers.forEach((d) =>
+    driversToFit.forEach((d) =>
       bounds.extend({ lat: d.currentLatitude, lng: d.currentLongitude }),
     );
     mapRef.current.fitBounds(bounds, 50);
-  }, [filteredDrivers]);
-
-  const onMapLoad = useCallback((map: google.maps.Map) => {
-    mapRef.current = map;
+    didAutoFitRef.current = true;
   }, []);
+
+  useEffect(() => {
+    if (didAutoFitRef.current) return;
+    fitToDrivers(filteredDrivers);
+  }, [filteredDrivers, fitToDrivers]);
+
+  const onMapLoad = useCallback(
+    (map: google.maps.Map) => {
+      mapRef.current = map;
+      if (!didAutoFitRef.current) {
+        fitToDrivers(filteredDriversRef.current);
+      }
+    },
+    [fitToDrivers],
+  );
 
   const getVehicleIcon = (type: string) => {
     switch (type) {
