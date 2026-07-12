@@ -319,6 +319,46 @@ function TerangoProductsPage() {
     },
   });
 
+  // Toggle availability mutation
+  const toggleAvailabilityMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const response = await api.patch(
+        `/api/admin/terango-products/${id}/toggle-availability`,
+      );
+      return response.data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["terango-products"] });
+      queryClient.invalidateQueries({ queryKey: ["terango-products-stats"] });
+      toast.success(
+        data.product.isAvailable
+          ? "Product marked as available"
+          : "Product marked as unavailable",
+      );
+    },
+    onError: () => {
+      toast.error("Failed to toggle availability");
+    },
+  });
+
+  // Make all products available mutation
+  const makeAllAvailableMutation = useMutation({
+    mutationFn: async () => {
+      const response = await api.patch(
+        "/api/admin/terango-products/bulk/make-all-available",
+      );
+      return response.data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["terango-products"] });
+      queryClient.invalidateQueries({ queryKey: ["terango-products-stats"] });
+      toast.success(data.message || "All products marked as available");
+    },
+    onError: () => {
+      toast.error("Failed to make all products available");
+    },
+  });
+
   // Setup TeranGO store mutation
   const setupMutation = useMutation({
     mutationFn: async () => {
@@ -481,6 +521,22 @@ function TerangoProductsPage() {
           </p>
         </div>
         <div className="flex gap-2">
+          <Button
+            variant="outline"
+            onClick={() => {
+              if (
+                confirm(
+                  "Mark every official store product as available?",
+                )
+              ) {
+                makeAllAvailableMutation.mutate();
+              }
+            }}
+            disabled={makeAllAvailableMutation.isPending}
+          >
+            <CheckCircle className="mr-2 h-4 w-4" />
+            Make All Available
+          </Button>
           <Button variant="outline" onClick={() => setupMutation.mutate()}>
             <RefreshCw className="mr-2 h-4 w-4" />
             Setup Store
@@ -860,12 +916,25 @@ function TerangoProductsPage() {
                       </div>
                     </TableCell>
                     <TableCell>
-                      <Badge
-                        className={product.isAvailable ? "bg-emerald-500 hover:bg-emerald-600 text-white shadow-sm" : ""}
-                        variant={product.isAvailable ? "default" : "secondary"}
-                      >
-                        {product.isAvailable ? "Available" : "Unavailable"}
-                      </Badge>
+                      <div className="flex items-center gap-2">
+                        <Switch
+                          checked={product.isAvailable}
+                          onCheckedChange={() =>
+                            toggleAvailabilityMutation.mutate(product.id)
+                          }
+                          disabled={toggleAvailabilityMutation.isPending}
+                          aria-label={`Toggle availability for ${product.name}`}
+                        />
+                        <span
+                          className={
+                            product.isAvailable
+                              ? "text-xs font-medium text-emerald-600"
+                              : "text-xs text-muted-foreground"
+                          }
+                        >
+                          {product.isAvailable ? "Available" : "Unavailable"}
+                        </span>
+                      </div>
                     </TableCell>
                     <TableCell>
                       <div className="text-muted-foreground text-xs">
