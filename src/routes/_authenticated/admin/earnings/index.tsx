@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import {
   TrendingUp,
@@ -10,6 +10,10 @@ import {
   RefreshCw,
   Activity,
   Zap,
+  Store,
+  Megaphone,
+  Wallet,
+  ArrowRight,
 } from "lucide-react";
 import {
   AreaChart,
@@ -113,17 +117,25 @@ function RevenueBreakdownCard({
   driverPlatformShare,
   vendorPlatformShare,
   expressTotalRevenue,
+  tmartProfit,
+  advertRevenue,
   loading,
 }: {
   serviceFee: number;
   driverPlatformShare: number;
   vendorPlatformShare: number;
   expressTotalRevenue: number;
+  tmartProfit: number;
+  advertRevenue: number;
   loading?: boolean;
 }) {
   const total =
-    serviceFee + driverPlatformShare + vendorPlatformShare + expressTotalRevenue ||
-    1;
+    serviceFee +
+      driverPlatformShare +
+      vendorPlatformShare +
+      expressTotalRevenue +
+      tmartProfit +
+      advertRevenue || 1;
   const streams = [
     {
       label: "Service Fees",
@@ -144,7 +156,14 @@ function RevenueBreakdownCard({
       value: vendorPlatformShare,
       pct: (vendorPlatformShare / total) * 100,
       color: "bg-emerald-500",
-      desc: "Platform cut on vendor sales",
+      desc: "Platform cut on 3rd-party vendor sales",
+    },
+    {
+      label: "TMart Profit",
+      value: tmartProfit,
+      pct: (tmartProfit / total) * 100,
+      color: "bg-pink-500",
+      desc: "TeranGO Store — sale price minus cost price",
     },
     {
       label: "Express & Custom Delivery",
@@ -152,6 +171,13 @@ function RevenueBreakdownCard({
       pct: (expressTotalRevenue / total) * 100,
       color: "bg-amber-500",
       desc: "Booking + service fees, plus 25% of transport fee",
+    },
+    {
+      label: "Advertising",
+      value: advertRevenue,
+      pct: (advertRevenue / total) * 100,
+      color: "bg-cyan-500",
+      desc: "Paid ad placements",
     },
   ];
 
@@ -226,6 +252,13 @@ function FinancePage() {
           expressTotalRevenue: number;
           expressDeliveredCount: number;
           expressTotalCount: number;
+          tmartGMV: number;
+          tmartProfit: number;
+          advertRevenue: number;
+          paidAdCount: number;
+          staffAdvancesOwed: number;
+          staffAdvancesOwedCount: number;
+          netRevenueAfterAdvances: number;
         };
         chart: Array<{
           month: string;
@@ -332,7 +365,7 @@ function FinancePage() {
 
               {/* Mini breakdown row */}
               {!isLoading && ov && (
-                <div className="mt-6 grid grid-cols-2 sm:grid-cols-4 divide-x divide-y sm:divide-y-0 divide-violet-500 border-t border-violet-500 pt-4">
+                <div className="mt-6 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 divide-x divide-y sm:divide-y-0 divide-violet-500 border-t border-violet-500 pt-4">
                   <div className="px-3 first:pl-0 pb-3 sm:pb-0">
                     <p className="text-xs text-violet-300">Service Fees</p>
                     <p className="text-lg font-semibold">
@@ -345,25 +378,50 @@ function FinancePage() {
                       {formatGMD(ov.driverPlatformShare)}
                     </p>
                   </div>
-                  <div className="px-3">
+                  <div className="px-3 pb-3 sm:pb-0">
                     <p className="text-xs text-violet-300">Vendor Commission</p>
                     <p className="text-lg font-semibold">
                       {formatGMD(ov.vendorPlatformShare)}
                     </p>
                   </div>
-                  <div className="px-3">
+                  <div className="px-3 pb-3 lg:pb-0">
+                    <p className="text-xs text-violet-300">TMart Profit</p>
+                    <p className="text-lg font-semibold">
+                      {formatGMD(ov.tmartProfit)}
+                    </p>
+                  </div>
+                  <div className="px-3 pb-3 lg:pb-0">
                     <p className="text-xs text-violet-300">Express &amp; Custom</p>
                     <p className="text-lg font-semibold">
                       {formatGMD(ov.expressTotalRevenue)}
                     </p>
                   </div>
+                  <div className="px-3">
+                    <p className="text-xs text-violet-300">Advertising</p>
+                    <p className="text-lg font-semibold">
+                      {formatGMD(ov.advertRevenue)}
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* Net after outstanding staff advances */}
+              {!isLoading && ov && ov.staffAdvancesOwed > 0 && (
+                <div className="mt-4 flex flex-wrap items-center justify-between gap-2 rounded-lg bg-violet-900/40 px-4 py-2.5 text-sm">
+                  <span className="text-violet-200">
+                    Net after {formatGMD(ov.staffAdvancesOwed)} owed in
+                    outstanding staff advances
+                  </span>
+                  <span className="font-semibold">
+                    {formatGMD(ov.netRevenueAfterAdvances)}
+                  </span>
                 </div>
               )}
             </CardContent>
           </Card>
 
           {/* Stat cards row */}
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
             <StatCard
               title="Gross Merchandise Value"
               value={formatGMD(ov?.gmv ?? 0)}
@@ -383,9 +441,17 @@ function FinancePage() {
             <StatCard
               title="Vendor Sales Processed"
               value={formatGMD(ov?.vendorPaid ?? 0)}
-              subtitle="Total paid out to vendors"
+              subtitle="Total paid out to 3rd-party vendors"
               icon={Package}
               color="border-l-emerald-500"
+              loading={isLoading}
+            />
+            <StatCard
+              title="TMart Sales"
+              value={formatGMD(ov?.tmartGMV ?? 0)}
+              subtitle={`Profit: ${formatGMD(ov?.tmartProfit ?? 0)}`}
+              icon={Store}
+              color="border-l-pink-500"
               loading={isLoading}
             />
             <StatCard
@@ -562,6 +628,8 @@ function FinancePage() {
               driverPlatformShare={ov?.driverPlatformShare ?? 0}
               vendorPlatformShare={ov?.vendorPlatformShare ?? 0}
               expressTotalRevenue={ov?.expressTotalRevenue ?? 0}
+              tmartProfit={ov?.tmartProfit ?? 0}
+              advertRevenue={ov?.advertRevenue ?? 0}
               loading={isLoading}
             />
           </div>
@@ -734,6 +802,107 @@ function FinancePage() {
                       {formatGMD(ov.expressTotalRevenue)}
                     </span>
                   </div>
+                </CardContent>
+              </Card>
+
+              <Card className="shadow-sm">
+                <CardHeader className="pb-3 border-b">
+                  <div className="flex items-center gap-2">
+                    <div className="rounded-lg bg-pink-100 p-2 dark:bg-pink-900">
+                      <Store className="h-4 w-4 text-pink-600 dark:text-pink-400" />
+                    </div>
+                    <CardTitle className="text-sm font-semibold">
+                      TMart Split Summary
+                    </CardTitle>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-2.5 text-sm pt-4">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">
+                      Gross sales (TeranGO Store)
+                    </span>
+                    <span className="font-medium">{formatGMD(ov.tmartGMV)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">
+                      Cost of goods sold
+                    </span>
+                    <span className="font-medium text-pink-600">
+                      {formatGMD(ov.tmartGMV - ov.tmartProfit)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between border-t pt-2.5">
+                    <span className="font-medium">TeranGO keeps (profit)</span>
+                    <span className="font-bold text-violet-600">
+                      {formatGMD(ov.tmartProfit)}
+                      {ov.tmartGMV > 0 && (
+                        <span className="ml-2 text-xs text-muted-foreground font-normal">
+                          ({((ov.tmartProfit / ov.tmartGMV) * 100).toFixed(0)}%
+                          margin)
+                        </span>
+                      )}
+                    </span>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="shadow-sm">
+                <CardHeader className="pb-3 border-b">
+                  <div className="flex items-center gap-2">
+                    <div className="rounded-lg bg-cyan-100 p-2 dark:bg-cyan-900">
+                      <Megaphone className="h-4 w-4 text-cyan-600 dark:text-cyan-400" />
+                    </div>
+                    <CardTitle className="text-sm font-semibold">
+                      Advertising Summary
+                    </CardTitle>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-2.5 text-sm pt-4">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Paid placements</span>
+                    <span className="font-medium">{ov.paidAdCount}</span>
+                  </div>
+                  <div className="flex justify-between border-t pt-2.5">
+                    <span className="font-medium">TeranGO keeps (100%)</span>
+                    <span className="font-bold text-violet-600">
+                      {formatGMD(ov.advertRevenue)}
+                    </span>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="shadow-sm border-amber-200 dark:border-amber-900">
+                <CardHeader className="pb-3 border-b">
+                  <div className="flex items-center gap-2">
+                    <div className="rounded-lg bg-amber-100 p-2 dark:bg-amber-900">
+                      <Wallet className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                    </div>
+                    <CardTitle className="text-sm font-semibold">
+                      Staff Advances (Outstanding)
+                    </CardTitle>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-2.5 text-sm pt-4">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">
+                      Owed to staff ({ov.staffAdvancesOwedCount} advance
+                      {ov.staffAdvancesOwedCount !== 1 ? "s" : ""})
+                    </span>
+                    <span className="font-bold text-amber-600">
+                      {formatGMD(ov.staffAdvancesOwed)}
+                    </span>
+                  </div>
+                  <p className="text-xs text-muted-foreground pt-1">
+                    Money staff fronted on TeranGO's behalf (vendor
+                    settlements, TMart stock) not yet reimbursed.
+                  </p>
+                  <Link
+                    to="/admin/staff-advances"
+                    className="flex items-center justify-between border-t pt-2.5 text-violet-600 hover:text-violet-700"
+                  >
+                    <span className="font-medium">View Staff Advances</span>
+                    <ArrowRight className="h-3.5 w-3.5" />
+                  </Link>
                 </CardContent>
               </Card>
             </div>
