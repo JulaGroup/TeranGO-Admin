@@ -230,6 +230,42 @@ const ORDER_STATUSES = [
   { value: "CANCELLED", label: "Cancelled", icon: XCircle },
 ];
 
+// Vehicle metadata — labels, emoji, and a rough max carrying weight (kg) used
+// only to *recommend* a vehicle. It never restricts the choice: admins can
+// still assign any driver to any order.
+const VEHICLE_META: Record<
+  string,
+  { label: string; emoji: string; maxKg: number }
+> = {
+  BIKE: { label: "Motorbike", emoji: "🏍️", maxKg: 20 },
+  CAR: { label: "Car", emoji: "🚗", maxKg: 40 },
+  KEKE_CARGO: { label: "Keke Cargo", emoji: "🛺", maxKg: 250 },
+  VAN: { label: "Van", emoji: "🚐", maxKg: 1000 },
+  LORRY: { label: "Lorry", emoji: "🚚", maxKg: Infinity },
+};
+
+// Ascending carrying-capacity order, used to rank vehicles against an order.
+const VEHICLE_CAPACITY_ORDER = ["BIKE", "CAR", "KEKE_CARGO", "VAN", "LORRY"];
+
+const vehicleRank = (type?: string) => {
+  const i = VEHICLE_CAPACITY_ORDER.indexOf(type || "");
+  return i === -1 ? 0 : i;
+};
+
+// Suggest the smallest vehicle that can comfortably carry the order. Prefers an
+// explicit requiredVehicleType from the backend, otherwise derives one from the
+// order weight (e.g. a 50kg order → Keke Cargo).
+const getRecommendedVehicleType = (order?: Order | null): string | null => {
+  if (!order) return null;
+  if (order.requiredVehicleType) return order.requiredVehicleType;
+  const weight = Number(order.totalWeightKg);
+  if (!weight || Number.isNaN(weight)) return null;
+  return (
+    VEHICLE_CAPACITY_ORDER.find((t) => weight <= VEHICLE_META[t].maxKg) ||
+    "LORRY"
+  );
+};
+
 const getStatusBadge = (status: string) => {
   const s = status?.toUpperCase();
   const statusConfig = ORDER_STATUSES.find((os) => os.value === s);
@@ -338,19 +374,55 @@ function OrdersPage() {
     };
   }, [ordersResponse?.stats, orders, paginationInfo.total]);
 
+  // Fetch ALL approved drivers so the admin can freely assign any of them.
+  // The recommendation (by vehicle type/weight) is applied on top for guidance
+  // only — it never removes a driver from the list.
   const { data: driversData } = useQuery<Driver[]>({
-    queryKey: ["compatible-drivers", selectedOrder?._id],
+    queryKey: ["assignable-drivers"],
     queryFn: async () => {
-      if (!selectedOrder?._id) return [];
-      const response = await adminApi.getCompatibleDriversForOrder(
-        selectedOrder._id,
-      );
-      return Array.isArray(response?.data) ? response.data : [];
+      const response = await adminApi.getDrivers({ status: "approved" });
+      const list = Array.isArray(response?.data)
+        ? response.data
+        : response?.data?.data || response?.data?.drivers || [];
+      return Array.isArray(list) ? list : [];
     },
     enabled: isAssignDriverOpen,
   });
 
   const drivers: Driver[] = driversData || [];
+
+  // Recommended vehicle for the order being assigned, plus drivers sorted so
+  // suitable vehicles come first (recommended type → larger capacity → smaller).
+  const recommendedVehicleType = useMemo(
+    () => getRecommendedVehicleType(selectedOrder),
+    [selectedOrder],
+  );
+
+  const sortedDrivers = useMemo(() => {
+    if (!recommendedVehicleType) return drivers;
+    const recRank = vehicleRank(recommendedVehicleType);
+    const score = (d: Driver) => {
+      const vt = d.vehicleType || "BIKE";
+      if (vt === recommendedVehicleType) return 0; // exact recommendation
+      if (vehicleRank(vt) >= recRank) return 1; // bigger, still capable
+      return 2; // under recommended capacity
+    };
+    return [...drivers].sort((a, b) => {
+      const s = score(a) - score(b);
+      if (s !== 0) return s;
+      return (b.isAvailable ? 1 : 0) - (a.isAvailable ? 1 : 0);
+    });
+  }, [drivers, recommendedVehicleType]);
+
+  // Whether the currently picked driver's vehicle is below the recommendation.
+  const selectedDriverUnderCapacity = useMemo(() => {
+    if (!recommendedVehicleType || !selectedDriverId) return false;
+    const d = drivers.find((dr) => dr.id === selectedDriverId);
+    if (!d) return false;
+    return vehicleRank(d.vehicleType || "BIKE") < vehicleRank(
+      recommendedVehicleType,
+    );
+  }, [drivers, selectedDriverId, recommendedVehicleType]);
 
   const updateStatusMutation = useMutation({
     mutationFn: ({ orderId, status }: { orderId: string; status: string }) =>
@@ -1514,8 +1586,27 @@ function OrdersPage() {
           </DialogHeader>
 
           <div className="space-y-4">
+            {/* Recommendation banner — guidance only, not a restriction */}
+            {recommendedVehicleType && (
+              <div className="rounded-lg border border-amber-200 bg-amber-50 dark:border-amber-900 dark:bg-amber-950/20 p-3">
+                <p className="text-sm font-medium text-amber-800 dark:text-amber-300 flex items-center gap-2">
+                  <Truck className="h-4 w-4" />
+                  Recommended:{" "}
+                  {VEHICLE_META[recommendedVehicleType]?.emoji}{" "}
+                  {VEHICLE_META[recommendedVehicleType]?.label ||
+                    recommendedVehicleType}
+                </p>
+                <p className="text-xs text-amber-700 dark:text-amber-400 mt-1">
+                  {selectedOrder?.totalWeightKg
+                    ? `This order weighs about ${selectedOrder.totalWeightKg}kg. `
+                    : ""}
+                  Suitable vehicles are listed first — you're still free to
+                  assign any driver.
+                </p>
+              </div>
+            )}
             <div className="space-y-2">
-              <Label>Available Drivers</Label>
+              <Label>All Drivers</Label>
               <Select
                 value={selectedDriverId}
                 onValueChange={setSelectedDriverId}
@@ -1524,12 +1615,19 @@ function OrdersPage() {
                   <SelectValue placeholder="Select a driver" />
                 </SelectTrigger>
                 <SelectContent>
-                  {drivers.map((driver) => {
+                  {sortedDrivers.map((driver) => {
                     const driverName =
                       driver.name ||
                       driver.user?.fullName ||
                       driver.user?.name ||
                       "Unknown";
+                    const vt = driver.vehicleType || "BIKE";
+                    const isRecommended =
+                      recommendedVehicleType &&
+                      vt === recommendedVehicleType;
+                    const isUnderCapacity =
+                      recommendedVehicleType &&
+                      vehicleRank(vt) < vehicleRank(recommendedVehicleType);
                     return (
                       <SelectItem
                         key={driver.id}
@@ -1549,16 +1647,22 @@ function OrdersPage() {
                             </div>
                           )}
                           <div>
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-2 flex-wrap">
                               <span className="font-medium">{driverName}</span>
                               {driver.vehicleType && (
                                 <span className="text-xs bg-muted px-2 py-0.5 rounded">
-                                  {driver.vehicleType === "BIKE" && "🏍️ Bike"}
-                                  {driver.vehicleType === "KEKE_CARGO" &&
-                                    "🛺 Keke"}
-                                  {driver.vehicleType === "CAR" && "🚗 Car"}
-                                  {driver.vehicleType === "VAN" && "🚐 Van"}
-                                  {driver.vehicleType === "LORRY" && "🚛 Lorry"}
+                                  {VEHICLE_META[vt]?.emoji}{" "}
+                                  {VEHICLE_META[vt]?.label || vt}
+                                </span>
+                              )}
+                              {isRecommended && (
+                                <span className="text-xs bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 px-2 py-0.5 rounded font-medium">
+                                  ✓ Recommended
+                                </span>
+                              )}
+                              {isUnderCapacity && (
+                                <span className="text-xs bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300 px-2 py-0.5 rounded font-medium">
+                                  ⚠ May be too small
                                 </span>
                               )}
                               {driver.isAvailable && (
@@ -1580,6 +1684,15 @@ function OrdersPage() {
                   })}
                 </SelectContent>
               </Select>
+              {selectedDriverUnderCapacity && (
+                <p className="text-xs text-amber-600 dark:text-amber-400 flex items-center gap-1">
+                  ⚠ This vehicle may be too small for a{" "}
+                  {selectedOrder?.totalWeightKg
+                    ? `${selectedOrder.totalWeightKg}kg `
+                    : ""}
+                  order. You can still assign it if you're sure.
+                </p>
+              )}
             </div>
           </div>
 
