@@ -4,10 +4,19 @@
  * marker too, with the viewport fitted around both points. Renders nothing
  * when the order has no coordinates; shows a friendly placeholder when the
  * Maps key is not configured.
+ *
+ * The connecting line follows real roads via Google's DirectionsService,
+ * falling back to a straight line while directions are loading or if the
+ * request fails (no through-route, quota, etc).
  */
 
-import { useCallback, useMemo } from "react";
-import { GoogleMap, Marker, Polyline } from "@react-google-maps/api";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  GoogleMap,
+  Marker,
+  Polyline,
+  DirectionsRenderer,
+} from "@react-google-maps/api";
 import { useGoogleMaps } from "@/lib/googleMaps";
 
 interface OrderLocationMapProps {
@@ -48,6 +57,38 @@ export function OrderLocationMap({
       hasOrigin ? { lat: originLatitude!, lng: originLongitude! } : null,
     [hasOrigin, originLatitude, originLongitude],
   );
+
+  // Road-following route between origin and destination, when both are set.
+  const [directions, setDirections] =
+    useState<google.maps.DirectionsResult | null>(null);
+
+  useEffect(() => {
+    setDirections(null);
+    if (!isLoaded || !origin || !destination) return;
+
+    let cancelled = false;
+    const directionsService = new google.maps.DirectionsService();
+    directionsService.route(
+      {
+        origin,
+        destination,
+        travelMode: google.maps.TravelMode.DRIVING,
+      },
+      (result, status) => {
+        if (cancelled) return;
+        if (status === google.maps.DirectionsStatus.OK && result) {
+          setDirections(result);
+        } else {
+          // Falls back to the straight-line Polyline rendered below.
+          setDirections(null);
+        }
+      },
+    );
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isLoaded, origin?.lat, origin?.lng, destination?.lat, destination?.lng]);
 
   const onLoad = useCallback(
     (map: google.maps.Map) => {
@@ -110,15 +151,37 @@ export function OrderLocationMap({
             />
           )}
           {destination && <Marker position={destination} title={label} />}
-          {origin && destination && (
-            <Polyline
-              path={[origin, destination]}
+          {origin && destination && directions ? (
+            <DirectionsRenderer
+              directions={directions}
               options={{
-                strokeColor: "#7c3aed",
-                strokeOpacity: 0.8,
-                strokeWeight: 3,
+                suppressMarkers: true,
+                polylineOptions: {
+                  strokeColor: "#7c3aed",
+                  strokeOpacity: 0.8,
+                  strokeWeight: 4,
+                },
               }}
             />
+          ) : (
+            origin &&
+            destination && (
+              <Polyline
+                path={[origin, destination]}
+                options={{
+                  strokeColor: "#7c3aed",
+                  strokeOpacity: 0.5,
+                  strokeWeight: 3,
+                  icons: [
+                    {
+                      icon: { path: "M 0,-1 0,1", strokeOpacity: 0.6, scale: 3 },
+                      offset: "0",
+                      repeat: "12px",
+                    },
+                  ],
+                }}
+              />
+            )
           )}
         </GoogleMap>
       )}
