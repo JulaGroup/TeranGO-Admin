@@ -170,6 +170,19 @@ export const adminApi = {
       reference,
       note,
     }),
+  refundOrder: (
+    id: string,
+    amount?: number,
+    reason?: string,
+    reference?: string,
+    note?: string,
+  ) =>
+    api.patch(`/api/admin/orders/${id}/refund`, {
+      amount,
+      reason,
+      reference,
+      note,
+    }),
   assignDriver: (orderId: string, driverId: string) =>
     api.patch(`/api/admin/orders/${orderId}/assign-driver`, { driverId }),
 

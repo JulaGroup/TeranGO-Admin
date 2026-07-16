@@ -29,6 +29,7 @@ import {
   Calendar,
   ChevronLeft,
   ChevronRight,
+  Undo2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { adminApi } from "@/lib/api";
@@ -329,6 +330,11 @@ function OrdersPage() {
   const [markPaidReference, setMarkPaidReference] = useState("");
   const [markPaidNote, setMarkPaidNote] = useState("");
   const [markPaidSendPayout, setMarkPaidSendPayout] = useState(false);
+  const [isRefundOpen, setIsRefundOpen] = useState(false);
+  const [refundAmount, setRefundAmount] = useState("");
+  const [refundReason, setRefundReason] = useState("");
+  const [refundReference, setRefundReference] = useState("");
+  const [refundNote, setRefundNote] = useState("");
 
   const {
     data: ordersResponse,
@@ -508,6 +514,50 @@ function OrdersPage() {
         error?.response?.data?.error ||
         error.message ||
         "Failed to mark order as paid";
+      toast.error(message);
+    },
+  });
+
+  const refundMutation = useMutation({
+    mutationFn: ({
+      orderId,
+      amount,
+      reason,
+      reference,
+      note,
+    }: {
+      orderId: string;
+      amount?: number;
+      reason?: string;
+      reference?: string;
+      note?: string;
+    }) => adminApi.refundOrder(orderId, amount, reason, reference, note),
+    onSuccess: (response) => {
+      const warnings = response?.data?.warnings;
+      toast.success("Order marked as refunded");
+      if (warnings?.vendorAlreadySettled) {
+        toast.warning(
+          "Vendor was already paid for this order — recover that money manually.",
+        );
+      }
+      if (warnings?.driverAlreadySettled) {
+        toast.warning(
+          "Driver was already paid for this order — recover that money manually.",
+        );
+      }
+      queryClient.invalidateQueries({ queryKey: ["orders"] });
+      setIsRefundOpen(false);
+      setIsDetailsOpen(false);
+      setRefundAmount("");
+      setRefundReason("");
+      setRefundReference("");
+      setRefundNote("");
+    },
+    onError: (error: AxiosError<{ error: string }>) => {
+      const message =
+        error?.response?.data?.error ||
+        error.message ||
+        "Failed to mark order as refunded";
       toast.error(message);
     },
   });
@@ -805,11 +855,15 @@ function OrdersPage() {
                             className={`text-xs ${
                               order.paymentStatus === "PAID"
                                 ? "border-emerald-300 bg-emerald-50 text-emerald-700 dark:bg-emerald-950/20"
-                                : "border-amber-300 bg-amber-50 text-amber-700 dark:bg-amber-950/20"
+                                : order.paymentStatus === "REFUNDED"
+                                  ? "border-slate-300 bg-slate-50 text-slate-700 dark:bg-slate-900/20"
+                                  : "border-amber-300 bg-amber-50 text-amber-700 dark:bg-amber-950/20"
                             }`}
                           >
                             {order.paymentStatus === "PAID" ? (
                               <Check className="h-3 w-3 mr-1" />
+                            ) : order.paymentStatus === "REFUNDED" ? (
+                              <Undo2 className="h-3 w-3 mr-1" />
                             ) : (
                               <Clock className="h-3 w-3 mr-1" />
                             )}
@@ -927,11 +981,15 @@ function OrdersPage() {
                   className={`text-xs ${
                     selectedOrder?.paymentStatus === "PAID"
                       ? "border-emerald-300 bg-emerald-50 text-emerald-700"
-                      : "border-amber-300 bg-amber-50 text-amber-700"
+                      : selectedOrder?.paymentStatus === "REFUNDED"
+                        ? "border-slate-300 bg-slate-50 text-slate-700"
+                        : "border-amber-300 bg-amber-50 text-amber-700"
                   }`}
                 >
                   {selectedOrder?.paymentStatus === "PAID" ? (
                     <Check className="h-3 w-3 mr-1" />
+                  ) : selectedOrder?.paymentStatus === "REFUNDED" ? (
+                    <Undo2 className="h-3 w-3 mr-1" />
                   ) : (
                     <Clock className="h-3 w-3 mr-1" />
                   )}
@@ -1326,17 +1384,22 @@ function OrdersPage() {
                     className={`text-xs ${
                       selectedOrder.paymentStatus === "PAID"
                         ? "border-emerald-300 bg-emerald-50 text-emerald-700"
-                        : "border-amber-300 bg-amber-50 text-amber-700"
+                        : selectedOrder.paymentStatus === "REFUNDED"
+                          ? "border-slate-300 bg-slate-50 text-slate-700"
+                          : "border-amber-300 bg-amber-50 text-amber-700"
                     }`}
                   >
                     {selectedOrder.paymentStatus === "PAID" ? (
                       <Check className="h-3 w-3 mr-1" />
+                    ) : selectedOrder.paymentStatus === "REFUNDED" ? (
+                      <Undo2 className="h-3 w-3 mr-1" />
                     ) : (
                       <Clock className="h-3 w-3 mr-1" />
                     )}
                     {selectedOrder.paymentStatus || "PENDING"}
                   </Badge>
                   {selectedOrder.paymentStatus !== "PAID" &&
+                    selectedOrder.paymentStatus !== "REFUNDED" &&
                     selectedOrder.status !== "CANCELLED" && (
                       <Button
                         variant="outline"
@@ -1348,6 +1411,20 @@ function OrdersPage() {
                         Mark as Paid
                       </Button>
                     )}
+                  {selectedOrder.paymentStatus === "PAID" && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="w-full mt-2 border-slate-300 text-slate-700 hover:bg-slate-50"
+                      onClick={() => {
+                        setRefundAmount(String(selectedOrder.totalAmount ?? ""));
+                        setIsRefundOpen(true);
+                      }}
+                    >
+                      <Undo2 className="h-3.5 w-3.5 mr-1" />
+                      Mark as Refunded
+                    </Button>
+                  )}
                 </div>
                 <div className="rounded-lg border p-3 space-y-1">
                   <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
@@ -1853,6 +1930,104 @@ function OrdersPage() {
               {markPaidMutation.isPending
                 ? "Confirming..."
                 : "Confirm Payment"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isRefundOpen} onOpenChange={setIsRefundOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Mark Order as Refunded</DialogTitle>
+            <DialogDescription>
+              Use this once the customer has actually been refunded outside
+              the app (e.g. a manual Wave refund). This removes the order
+              from all revenue figures and notifies the customer.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Refund amount</Label>
+              <Input
+                type="number"
+                min={0}
+                max={selectedOrder?.totalAmount ?? undefined}
+                step="0.01"
+                value={refundAmount}
+                onChange={(e) => setRefundAmount(e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground">
+                Order total: D{selectedOrder?.totalAmount?.toFixed(2)}
+              </p>
+            </div>
+            <div className="space-y-2">
+              <Label>Reason</Label>
+              <Select value={refundReason} onValueChange={setRefundReason}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a reason" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="CUSTOMER_REQUEST">
+                    Customer request
+                  </SelectItem>
+                  <SelectItem value="QUALITY_ISSUE">Quality issue</SelectItem>
+                  <SelectItem value="ORDER_ISSUE">
+                    Order problem (wrong/missing items)
+                  </SelectItem>
+                  <SelectItem value="DUPLICATE_CHARGE">
+                    Duplicate charge
+                  </SelectItem>
+                  <SelectItem value="OTHER">Other</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Refund reference (optional)</Label>
+              <Input
+                value={refundReference}
+                onChange={(e) => setRefundReference(e.target.value)}
+                placeholder="e.g. Wave refund transaction ID"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Note (optional)</Label>
+              <Textarea
+                value={refundNote}
+                onChange={(e) => setRefundNote(e.target.value)}
+                placeholder="Any extra detail for this refund..."
+                rows={2}
+              />
+            </div>
+            <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800 dark:border-amber-900 dark:bg-amber-950/20 dark:text-amber-300">
+              This only marks the order refunded in TeranGO's records — it
+              does not send the refund itself, and it does not automatically
+              reclaim money already paid out to the vendor or driver for this
+              order.
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsRefundOpen(false)}>
+              Back
+            </Button>
+            <Button
+              onClick={() => {
+                if (!selectedOrder) return;
+                const parsedAmount = parseFloat(refundAmount);
+                refundMutation.mutate({
+                  orderId: selectedOrder._id || selectedOrder.id,
+                  amount: Number.isFinite(parsedAmount)
+                    ? parsedAmount
+                    : undefined,
+                  reason: refundReason || undefined,
+                  reference: refundReference || undefined,
+                  note: refundNote || undefined,
+                });
+              }}
+              disabled={refundMutation.isPending || !refundReason}
+            >
+              {refundMutation.isPending ? "Confirming..." : "Confirm Refund"}
             </Button>
           </DialogFooter>
         </DialogContent>
