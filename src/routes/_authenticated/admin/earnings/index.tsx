@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import {
   TrendingUp,
   DollarSign,
@@ -14,6 +15,7 @@ import {
   Megaphone,
   Wallet,
   ArrowRight,
+  Wrench,
 } from "lucide-react";
 import {
   AreaChart,
@@ -228,6 +230,28 @@ function RevenueBreakdownCard({
 
 function FinancePage() {
   const [period, setPeriod] = useState<Period>("month");
+  const queryClient = useQueryClient();
+
+  // Maintenance: create missing VendorEarning ledger records for orders
+  // marked delivered from the admin panel before that path recorded them.
+  // Idempotent — safe to run any number of times.
+  const backfillMutation = useMutation({
+    mutationFn: async () => (await adminApi.backfillVendorEarnings()).data,
+    onSuccess: (result) => {
+      if (result.created > 0) {
+        toast.success(
+          `Backfilled ${result.created} missing vendor earning(s) — D${result.totalVendorShare.toFixed(2)} added to the ledger`,
+        );
+      } else {
+        toast.info("No missing vendor earnings found — ledger is complete");
+      }
+      if (result.errors?.length) {
+        toast.warning(`${result.errors.length} order(s) failed — check server logs`);
+      }
+      queryClient.invalidateQueries({ queryKey: ["finance-overview"] });
+    },
+    onError: () => toast.error("Backfill failed — check server logs"),
+  });
 
   const { data, isLoading, refetch, isRefetching } = useQuery({
     queryKey: ["finance-overview", period],
@@ -332,6 +356,27 @@ function FinancePage() {
                 <RefreshCw
                   className={`h-4 w-4 ${isRefetching ? "animate-spin" : ""}`}
                 />
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-9"
+                onClick={() => {
+                  if (
+                    window.confirm(
+                      "Scan for delivered orders missing from the vendor earnings ledger and create their records? Safe to run — already-recorded orders are skipped.",
+                    )
+                  ) {
+                    backfillMutation.mutate();
+                  }
+                }}
+                disabled={backfillMutation.isPending}
+                title="Create missing vendor earning records for delivered orders"
+              >
+                <Wrench
+                  className={`h-4 w-4 mr-1.5 ${backfillMutation.isPending ? "animate-spin" : ""}`}
+                />
+                {backfillMutation.isPending ? "Fixing…" : "Fix Earnings"}
               </Button>
             </div>
           </div>

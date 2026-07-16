@@ -217,6 +217,10 @@ export const adminApi = {
     api.get("/api/admin/finance/overview", {
       params: period ? { period } : {},
     }),
+  // Maintenance: create missing VendorEarning ledger records for DELIVERED
+  // orders that never got one. Idempotent — safe to run repeatedly.
+  backfillVendorEarnings: () =>
+    api.post("/api/admin/finance/backfill-vendor-earnings"),
 
   // Drivers
   getDrivers: (params?: Record<string, unknown>) =>
