@@ -43,6 +43,13 @@ import {
 } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 export const Route = createFileRoute("/_vendor/vendor/orders")({
   component: VendorOrders,
@@ -153,9 +160,23 @@ const STATUS_CONFIG: Record<
 };
 
 const TABS = [
+  { key: "ALL", label: "All" },
   { key: "active", label: "Active" },
   { key: "completed", label: "Completed" },
 ];
+
+// "active" / "completed" are groups of fulfillment statuses, not literal
+// Order.status values — the tab filter below matches against these groups
+// rather than comparing activeTab directly to o.status.
+const ACTIVE_ORDER_STATUSES = [
+  "PENDING",
+  "ACCEPTED",
+  "PROCESSING",
+  "PREPARING",
+  "READY",
+  "DISPATCHED",
+];
+const COMPLETED_ORDER_STATUSES = ["DELIVERED", "CANCELLED"];
 
 const PAID_STATES = [
   "PREPARING",
@@ -163,6 +184,14 @@ const PAID_STATES = [
   "READY",
   "DISPATCHED",
   "DELIVERED",
+];
+
+const PAYMENT_FILTERS = [
+  { key: "ALL", label: "All Payments" },
+  { key: "PAID", label: "Paid" },
+  { key: "UNPAID", label: "Unpaid" },
+  { key: "REFUNDED", label: "Refunded" },
+  { key: "FAILED", label: "Failed" },
 ];
 
 function getAllowedTransitions(
@@ -235,6 +264,7 @@ export default function VendorOrders() {
   const { vendor } = useVendorProfile();
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState("ALL");
+  const [paymentFilter, setPaymentFilter] = useState("ALL");
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [detailsLoading, setDetailsLoading] = useState(false);
@@ -280,7 +310,19 @@ export default function VendorOrders() {
 
   const filteredOrders = useMemo(() => {
     return orders
-      .filter((o) => activeTab === "ALL" || o.status === activeTab)
+      .filter((o) => {
+        if (activeTab === "ALL") return true;
+        if (activeTab === "active")
+          return ACTIVE_ORDER_STATUSES.includes(o.status);
+        if (activeTab === "completed")
+          return COMPLETED_ORDER_STATUSES.includes(o.status);
+        return true;
+      })
+      .filter(
+        (o) =>
+          paymentFilter === "ALL" ||
+          (o.paymentStatus || "UNPAID") === paymentFilter,
+      )
       .filter((o) => {
         const s = searchQuery.toLowerCase();
         return (
@@ -293,7 +335,7 @@ export default function VendorOrders() {
         (a, b) =>
           new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
       );
-  }, [orders, searchQuery, activeTab]);
+  }, [orders, searchQuery, activeTab, paymentFilter]);
 
   const handleViewDetails = async (order: Order) => {
     setDetailsLoading(true);
@@ -321,15 +363,25 @@ export default function VendorOrders() {
     ).length,
     ready: orders.filter((o) => o.status === "READY").length,
     done: orders.filter((o) => o.status === "DELIVERED").length,
+    paid: orders.filter((o) => o.paymentStatus === "PAID").length,
   };
 
-  const tabCounts = useMemo(() => {
-    const counts: Record<string, number> = { ALL: orders.length };
-    orders.forEach((o) => {
-      counts[o.status] = (counts[o.status] || 0) + 1;
-    });
-    return counts;
-  }, [orders]);
+  // "active"/"completed" are status GROUPS (see ACTIVE_ORDER_STATUSES /
+  // COMPLETED_ORDER_STATUSES above) — counting by literal o.status here
+  // previously meant the tab buttons showed a count but selecting them
+  // always returned zero orders, since "active"/"completed" never equal a
+  // real Order.status value.
+  const tabCounts = useMemo(
+    () => ({
+      ALL: orders.length,
+      active: orders.filter((o) => ACTIVE_ORDER_STATUSES.includes(o.status))
+        .length,
+      completed: orders.filter((o) =>
+        COMPLETED_ORDER_STATUSES.includes(o.status),
+      ).length,
+    }),
+    [orders],
+  );
 
   return (
     <div className="flex-1 p-6 md:p-8 bg-zinc-50 dark:bg-zinc-950 min-h-screen">
@@ -372,12 +424,18 @@ export default function VendorOrders() {
         </div>
 
         {/* ── Stats ── */}
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
           <StatCard
             label="Total Orders"
             value={stats.total}
             icon={<Package className="w-5 h-5 text-gray-600" />}
             accent="bg-gray-100"
+          />
+          <StatCard
+            label="Paid Orders"
+            value={stats.paid}
+            icon={<CreditCard className="w-5 h-5 text-green-600" />}
+            accent="bg-green-50"
           />
           <StatCard
             label="Pending"
@@ -407,8 +465,8 @@ export default function VendorOrders() {
 
         {/* ── Search + Tabs ── */}
         <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
-          <div className="px-4 pt-4 pb-3 border-b border-gray-100">
-            <div className="relative max-w-sm">
+          <div className="px-4 pt-4 pb-3 border-b border-gray-100 flex flex-wrap items-center gap-3">
+            <div className="relative max-w-sm flex-1 min-w-[200px]">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
               <Input
                 placeholder="Search by ID, name or phone…"
@@ -419,6 +477,18 @@ export default function VendorOrders() {
                 className="pl-9 h-9 text-sm border-gray-200 bg-gray-50 focus:bg-white"
               />
             </div>
+            <Select value={paymentFilter} onValueChange={setPaymentFilter}>
+              <SelectTrigger className="h-9 w-[160px] text-sm border-gray-200 bg-gray-50">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {PAYMENT_FILTERS.map((f) => (
+                  <SelectItem key={f.key} value={f.key}>
+                    {f.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           {/* Tab bar */}
@@ -569,7 +639,9 @@ export default function VendorOrders() {
                             className={`text-xs font-semibold ${
                               order.paymentStatus === "PAID"
                                 ? "text-green-600"
-                                : "text-amber-600"
+                                : order.paymentStatus === "REFUNDED"
+                                  ? "text-gray-500"
+                                  : "text-amber-600"
                             }`}
                           >
                             {order.paymentStatus || "UNPAID"}
@@ -649,7 +721,9 @@ export default function VendorOrders() {
                       className={`inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-full border ${
                         selectedOrder.paymentStatus === "PAID"
                           ? "bg-green-50 border-green-200 text-green-700"
-                          : "bg-amber-50 border-amber-200 text-amber-700"
+                          : selectedOrder.paymentStatus === "REFUNDED"
+                            ? "bg-gray-50 border-gray-200 text-gray-600"
+                            : "bg-amber-50 border-amber-200 text-amber-700"
                       }`}
                     >
                       <CreditCard className="w-3 h-3" />
