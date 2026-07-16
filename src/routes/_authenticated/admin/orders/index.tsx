@@ -1662,6 +1662,48 @@ function OrdersPage() {
                   </div>
                 );
               })()}
+
+              {/* Admin override: cancel an order that's already been
+                  refunded but is still stuck mid-fulfillment — e.g. it was
+                  refunded before the cancel-on-refund option existed, or
+                  refunded without checking that box. Super admin only,
+                  same gate as cancelling during a refund. */}
+              {isSuperAdmin &&
+                selectedOrder.paymentStatus === "REFUNDED" &&
+                !["CANCELLED", "DELIVERED"].includes(selectedOrder.status) && (
+                  <div className="rounded-xl border border-red-200 bg-red-50 overflow-hidden mt-3 dark:border-red-900 dark:bg-red-950/20">
+                    <div className="px-4 py-2.5 border-b border-red-200 dark:border-red-900">
+                      <p className="text-xs font-semibold text-red-800 dark:text-red-300 uppercase tracking-wide">
+                        Cancel Refunded Order (Super Admin)
+                      </p>
+                    </div>
+                    <div className="px-4 py-3">
+                      <p className="text-xs text-red-800 dark:text-red-300 mb-2">
+                        This order was refunded but is still marked "
+                        {ADMIN_STATUS_CONFIG[selectedOrder.status]?.label ??
+                          selectedOrder.status}
+                        ". Cancel it so it stops moving through the
+                        vendor/driver flow.
+                      </p>
+                      <button
+                        onClick={() => {
+                          if (
+                            window.confirm(
+                              "Cancel this order? It's already been refunded — this just stops it from progressing any further.",
+                            )
+                          ) {
+                            handleStatusUpdate("CANCELLED");
+                          }
+                        }}
+                        disabled={updateStatusMutation.isPending}
+                        className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold border border-red-400 bg-red-600 text-white hover:bg-red-700 transition-all disabled:opacity-50"
+                      >
+                        <XCircle className="w-3.5 h-3.5" />
+                        Cancel Order
+                      </button>
+                    </div>
+                  </div>
+                )}
             </div>
           )}
         </DialogContent>
