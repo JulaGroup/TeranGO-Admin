@@ -335,6 +335,16 @@ function OrdersPage() {
   const [refundReason, setRefundReason] = useState("");
   const [refundReference, setRefundReference] = useState("");
   const [refundNote, setRefundNote] = useState("");
+  const [cancelOrderOnRefund, setCancelOrderOnRefund] = useState(false);
+
+  // Only the super admin can cancel an order while refunding it — the
+  // server enforces this independently, this just gates the checkbox.
+  const { data: meData } = useQuery({
+    queryKey: ["admin-me"],
+    queryFn: async () => (await adminApi.getMe()).data,
+    staleTime: 10 * 60 * 1000,
+  });
+  const isSuperAdmin = !!meData?.isSuperAdmin;
 
   const {
     data: ordersResponse,
@@ -525,16 +535,23 @@ function OrdersPage() {
       reason,
       reference,
       note,
+      cancelOrder,
     }: {
       orderId: string;
       amount?: number;
       reason?: string;
       reference?: string;
       note?: string;
-    }) => adminApi.refundOrder(orderId, amount, reason, reference, note),
+      cancelOrder?: boolean;
+    }) =>
+      adminApi.refundOrder(orderId, amount, reason, reference, note, cancelOrder),
     onSuccess: (response) => {
       const warnings = response?.data?.warnings;
-      toast.success("Order marked as refunded");
+      toast.success(
+        response?.data?.cancelled
+          ? "Order marked as refunded and cancelled"
+          : "Order marked as refunded",
+      );
       if (warnings?.vendorAlreadySettled) {
         toast.warning(
           "Vendor was already paid for this order — recover that money manually.",
@@ -552,6 +569,7 @@ function OrdersPage() {
       setRefundReason("");
       setRefundReference("");
       setRefundNote("");
+      setCancelOrderOnRefund(false);
     },
     onError: (error: AxiosError<{ error: string }>) => {
       const message =
@@ -1418,6 +1436,7 @@ function OrdersPage() {
                       className="w-full mt-2 border-slate-300 text-slate-700 hover:bg-slate-50"
                       onClick={() => {
                         setRefundAmount(String(selectedOrder.totalAmount ?? ""));
+                        setCancelOrderOnRefund(false);
                         setIsRefundOpen(true);
                       }}
                     >
@@ -1999,6 +2018,29 @@ function OrdersPage() {
                 rows={2}
               />
             </div>
+            {isSuperAdmin && (
+              <div className="flex items-start gap-3 rounded-lg border border-red-200 bg-red-50 p-3 dark:border-red-900 dark:bg-red-950/20">
+                <Checkbox
+                  checked={cancelOrderOnRefund}
+                  onCheckedChange={(checked) =>
+                    setCancelOrderOnRefund(checked === true)
+                  }
+                  className="mt-0.5"
+                />
+                <div
+                  className="space-y-1 cursor-pointer"
+                  onClick={() => setCancelOrderOnRefund((v) => !v)}
+                >
+                  <p className="text-sm font-medium leading-none text-red-800 dark:text-red-300">
+                    Also cancel this order (super admin only)
+                  </p>
+                  <p className="text-xs text-red-700 dark:text-red-400">
+                    Stops the order from progressing any further — the
+                    vendor and driver flow ends here.
+                  </p>
+                </div>
+              </div>
+            )}
             <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800 dark:border-amber-900 dark:bg-amber-950/20 dark:text-amber-300">
               This only marks the order refunded in TeranGO's records — it
               does not send the refund itself, and it does not automatically
@@ -2023,11 +2065,17 @@ function OrdersPage() {
                   reason: refundReason || undefined,
                   reference: refundReference || undefined,
                   note: refundNote || undefined,
+                  cancelOrder: isSuperAdmin ? cancelOrderOnRefund : undefined,
                 });
               }}
               disabled={refundMutation.isPending || !refundReason}
+              variant={cancelOrderOnRefund ? "destructive" : "default"}
             >
-              {refundMutation.isPending ? "Confirming..." : "Confirm Refund"}
+              {refundMutation.isPending
+                ? "Confirming..."
+                : cancelOrderOnRefund
+                  ? "Confirm Refund & Cancel"
+                  : "Confirm Refund"}
             </Button>
           </DialogFooter>
         </DialogContent>

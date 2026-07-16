@@ -176,13 +176,18 @@ export const adminApi = {
     reason?: string,
     reference?: string,
     note?: string,
+    cancelOrder?: boolean,
   ) =>
     api.patch(`/api/admin/orders/${id}/refund`, {
       amount,
       reason,
       reference,
       note,
+      cancelOrder,
     }),
+  // Current admin's own privileges (e.g. super admin) — used to gate
+  // actions client-side; the server independently enforces the same check.
+  getMe: () => api.get("/api/admin/me"),
   assignDriver: (orderId: string, driverId: string) =>
     api.patch(`/api/admin/orders/${orderId}/assign-driver`, { driverId }),
 
