@@ -371,7 +371,7 @@ export default function VendorOrders() {
   // previously meant the tab buttons showed a count but selecting them
   // always returned zero orders, since "active"/"completed" never equal a
   // real Order.status value.
-  const tabCounts = useMemo(
+  const tabCounts = useMemo<Record<string, number>>(
     () => ({
       ALL: orders.length,
       active: orders.filter((o) => ACTIVE_ORDER_STATUSES.includes(o.status))
