@@ -118,8 +118,16 @@ export interface Order {
     businessName?: string;
     phoneNumber?: string;
     phone?: string;
+    address?: string;
     latitude?: number;
     longitude?: number;
+  };
+  // Delivery-fee split between the driver and TeranGO (from the backend).
+  earningsSplit?: {
+    driverShare: number;
+    platformShare: number;
+    splitRate: number;
+    source: "actual" | "projected";
   };
   customerName?: string;
   customerPhone?: string;

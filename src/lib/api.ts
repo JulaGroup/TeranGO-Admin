@@ -217,6 +217,12 @@ export const adminApi = {
     api.get("/api/admin/finance/overview", {
       params: period ? { period } : {},
     }),
+  getFinanceTransactions: (params: {
+    period?: string;
+    type?: "orders" | "express";
+    page?: number;
+    limit?: number;
+  }) => api.get("/api/admin/finance/transactions", { params }),
   // Maintenance: create missing VendorEarning ledger records for DELIVERED
   // orders that never got one. Idempotent — safe to run repeatedly.
   backfillVendorEarnings: () =>

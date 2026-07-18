@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -46,12 +46,23 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableFooter,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Header } from "@/components/layout/header";
 import { Main } from "@/components/layout/main";
 import { TopNav } from "@/components/layout/top-nav";
 import { ProfileDropdown } from "@/components/profile-dropdown";
 import { ThemeSwitch } from "@/components/theme-switch";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ChevronLeft, ChevronRight, Receipt } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/admin/earnings/")({
   component: FinancePage,
@@ -224,6 +235,216 @@ function RevenueBreakdownCard({
               </div>
             ))}
       </CardContent>
+    </Card>
+  );
+}
+
+interface LedgerRow {
+  id: string;
+  kind: "ORDER" | "EXPRESS";
+  date: string;
+  customer: string;
+  vendor: string;
+  driver: string | null;
+  gross: number;
+  serviceFee: number;
+  deliveryFee?: number;
+  driverPaid: number;
+  deliveryCommission: number;
+  vendorCommission: number;
+  tmartProfit: number;
+  terangoEarned: number;
+}
+
+function TransactionsLedger({ period }: { period: Period }) {
+  const [type, setType] = useState<"orders" | "express">("orders");
+  const [page, setPage] = useState(1);
+
+  // Reset to first page whenever the period or transaction type changes.
+  useEffect(() => {
+    setPage(1);
+  }, [period, type]);
+
+  const { data, isLoading, isFetching } = useQuery({
+    queryKey: ["finance-transactions", period, type, page],
+    queryFn: async () => {
+      const res = await adminApi.getFinanceTransactions({
+        period,
+        type,
+        page,
+        limit: 20,
+      });
+      return res.data as {
+        transactions: LedgerRow[];
+        pagination: {
+          page: number;
+          limit: number;
+          total: number;
+          pages: number;
+        };
+      };
+    },
+    staleTime: 60 * 1000,
+  });
+
+  const rows = data?.transactions ?? [];
+  const pg = data?.pagination;
+  const pageEarned = rows.reduce((s, r) => s + r.terangoEarned, 0);
+  const pageGross = rows.reduce((s, r) => s + r.gross, 0);
+
+  return (
+    <Card className="shadow-sm">
+      <CardHeader className="border-b pb-4">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <CardTitle className="flex items-center gap-2 text-base font-semibold">
+              <Receipt className="h-4 w-4" />
+              Transactions Ledger
+            </CardTitle>
+            <CardDescription>
+              What TeranGO earned on each order and delivery
+            </CardDescription>
+          </div>
+          <Tabs value={type} onValueChange={(v) => setType(v as typeof type)}>
+            <TabsList>
+              <TabsTrigger value="orders">Orders</TabsTrigger>
+              <TabsTrigger value="express">Express &amp; Custom</TabsTrigger>
+            </TabsList>
+          </Tabs>
+        </div>
+      </CardHeader>
+      <CardContent className="p-0">
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Date</TableHead>
+                <TableHead>Ref</TableHead>
+                <TableHead>Customer</TableHead>
+                <TableHead>
+                  {type === "express" ? "Pickup" : "Vendor"}
+                </TableHead>
+                <TableHead className="text-right">Gross</TableHead>
+                <TableHead className="text-right">
+                  {type === "express" ? "Booking + Svc" : "Service Fee"}
+                </TableHead>
+                <TableHead className="text-right">Delivery Comm.</TableHead>
+                {type === "orders" && (
+                  <TableHead className="text-right">Vendor / TMart</TableHead>
+                )}
+                <TableHead className="text-right">Driver Paid</TableHead>
+                <TableHead className="text-right">TeranGO Earned</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {isLoading ? (
+                Array.from({ length: 6 }).map((_, i) => (
+                  <TableRow key={i}>
+                    <TableCell colSpan={type === "orders" ? 10 : 9}>
+                      <Skeleton className="h-6 w-full" />
+                    </TableCell>
+                  </TableRow>
+                ))
+              ) : rows.length === 0 ? (
+                <TableRow>
+                  <TableCell
+                    colSpan={type === "orders" ? 10 : 9}
+                    className="py-12 text-center text-muted-foreground"
+                  >
+                    No transactions for this period.
+                  </TableCell>
+                </TableRow>
+              ) : (
+                rows.map((r) => (
+                  <TableRow key={r.id}>
+                    <TableCell className="whitespace-nowrap text-xs text-muted-foreground">
+                      {new Date(r.date).toLocaleDateString("en-GB", {
+                        day: "2-digit",
+                        month: "short",
+                        year: "2-digit",
+                      })}
+                    </TableCell>
+                    <TableCell className="font-mono text-xs">
+                      #{r.id.slice(-6).toUpperCase()}
+                    </TableCell>
+                    <TableCell className="max-w-[140px] truncate">
+                      {r.customer}
+                    </TableCell>
+                    <TableCell className="max-w-[160px] truncate text-muted-foreground">
+                      {r.vendor}
+                    </TableCell>
+                    <TableCell className="text-right tabular-nums">
+                      {formatGMD(r.gross)}
+                    </TableCell>
+                    <TableCell className="text-right tabular-nums text-muted-foreground">
+                      {formatGMD(r.serviceFee)}
+                    </TableCell>
+                    <TableCell className="text-right tabular-nums text-muted-foreground">
+                      {formatGMD(r.deliveryCommission)}
+                    </TableCell>
+                    {type === "orders" && (
+                      <TableCell className="text-right tabular-nums text-muted-foreground">
+                        {formatGMD(r.tmartProfit || r.vendorCommission)}
+                      </TableCell>
+                    )}
+                    <TableCell className="text-right tabular-nums text-blue-600">
+                      {formatGMD(r.driverPaid)}
+                    </TableCell>
+                    <TableCell className="text-right tabular-nums font-semibold text-emerald-700 dark:text-emerald-400">
+                      {formatGMD(r.terangoEarned)}
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+            {rows.length > 0 && (
+              <TableFooter>
+                <TableRow>
+                  <TableCell colSpan={4} className="text-xs font-medium">
+                    Page subtotal ({rows.length} rows)
+                  </TableCell>
+                  <TableCell className="text-right tabular-nums font-medium">
+                    {formatGMD(pageGross)}
+                  </TableCell>
+                  <TableCell
+                    colSpan={type === "orders" ? 3 : 2}
+                  />
+                  <TableCell className="text-right tabular-nums font-bold text-emerald-700 dark:text-emerald-400">
+                    {formatGMD(pageEarned)}
+                  </TableCell>
+                </TableRow>
+              </TableFooter>
+            )}
+          </Table>
+        </div>
+      </CardContent>
+      {pg && pg.pages > 1 && (
+        <div className="flex items-center justify-between border-t px-4 py-3">
+          <p className="text-sm text-muted-foreground">
+            Page {pg.page} of {pg.pages} · {pg.total} total
+          </p>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={page <= 1 || isFetching}
+              onClick={() => setPage((p) => p - 1)}
+            >
+              <ChevronLeft className="mr-1 h-4 w-4" />
+              Previous
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={page >= pg.pages || isFetching}
+              onClick={() => setPage((p) => p + 1)}
+            >
+              Next
+              <ChevronRight className="ml-1 h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      )}
     </Card>
   );
 }
@@ -952,6 +1173,9 @@ function FinancePage() {
               </Card>
             </div>
           )}
+
+          {/* Per-transaction earnings ledger */}
+          <TransactionsLedger period={period} />
         </div>
       </Main>
     </>

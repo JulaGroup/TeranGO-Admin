@@ -87,6 +87,7 @@ interface RawOrder {
     id: string;
     name: string;
     phone: string;
+    address?: string;
     latitude?: number;
     longitude?: number;
   };
@@ -94,6 +95,7 @@ interface RawOrder {
     id: string;
     name: string;
     phone: string;
+    address?: string;
     latitude?: number;
     longitude?: number;
   };
@@ -101,6 +103,7 @@ interface RawOrder {
     id: string;
     name: string;
     phone: string;
+    address?: string;
     latitude?: number;
     longitude?: number;
   };
@@ -126,6 +129,7 @@ const normalizeOrder = (order: RawOrder): Order => {
       shopName: vendor?.name,
       businessName: vendor?.name,
       phoneNumber: vendor?.phone,
+      address: vendor?.address,
       latitude: vendor?.latitude,
       longitude: vendor?.longitude,
     },
@@ -1044,26 +1048,43 @@ function OrdersPage() {
                 </div>
               </div>
 
-              {/* Vendor Info */}
+              {/* Vendor Info — where the order is coming from (pickup) */}
               <div>
                 <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2 flex items-center gap-2">
                   <Store className="h-3.5 w-3.5" />
-                  Vendor
+                  Coming From (Pickup)
                 </p>
-                <div className="grid grid-cols-2 gap-3 text-sm rounded-lg border p-3">
-                  <div>
-                    <p className="text-xs text-muted-foreground">Name</p>
-                    <p className="font-medium">
-                      {selectedOrder.vendor?.shopName ||
-                        selectedOrder.vendor?.businessName ||
-                        "N/A"}
-                    </p>
+                <div className="rounded-lg border p-3 space-y-3">
+                  <div className="grid grid-cols-2 gap-3 text-sm">
+                    <div>
+                      <p className="text-xs text-muted-foreground">Name</p>
+                      <p className="font-medium">
+                        {selectedOrder.vendor?.shopName ||
+                          selectedOrder.vendor?.businessName ||
+                          "N/A"}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground">Phone</p>
+                      <p className="font-medium flex items-center gap-1">
+                        <Phone className="h-3 w-3" />
+                        {selectedOrder.vendor?.phoneNumber || "N/A"}
+                      </p>
+                    </div>
                   </div>
                   <div>
-                    <p className="text-xs text-muted-foreground">Phone</p>
-                    <p className="font-medium flex items-center gap-1">
-                      <Phone className="h-3 w-3" />
-                      {selectedOrder.vendor?.phoneNumber || "N/A"}
+                    <p className="text-xs text-muted-foreground">
+                      Pickup address
+                    </p>
+                    <p className="font-medium flex items-start gap-1">
+                      <MapPin className="h-3.5 w-3.5 mt-0.5 shrink-0 text-emerald-500" />
+                      {selectedOrder.vendor?.address ||
+                        (selectedOrder.restaurant as { address?: string })
+                          ?.address ||
+                        (selectedOrder.shop as { address?: string })?.address ||
+                        (selectedOrder.pharmacy as { address?: string })
+                          ?.address ||
+                        "No pickup address on file"}
                     </p>
                   </div>
                 </div>
@@ -1374,6 +1395,62 @@ function OrdersPage() {
                             cost.
                           </p>
                         )}
+
+                        {/* Delivery fee split: driver vs TeranGO */}
+                        {selectedOrder.earningsSplit &&
+                          selectedOrder.deliveryFee != null &&
+                          selectedOrder.deliveryFee > 0 && (
+                            <div className="border-t pt-2.5 space-y-1.5">
+                              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                                Delivery fee split
+                                {selectedOrder.earningsSplit.source ===
+                                  "projected" && (
+                                  <span className="ml-1.5 normal-case font-normal text-[11px] text-amber-600">
+                                    (estimated until delivered)
+                                  </span>
+                                )}
+                              </p>
+                              <div className="flex justify-between text-sm">
+                                <span className="text-muted-foreground flex items-center gap-1.5">
+                                  <Truck className="h-3 w-3 text-emerald-500" />
+                                  Driver earns
+                                  {selectedOrder.earningsSplit.splitRate >
+                                  0 ? (
+                                    <span className="text-xs text-muted-foreground">
+                                      (
+                                      {Math.round(
+                                        selectedOrder.earningsSplit.splitRate *
+                                          100,
+                                      )}
+                                      %)
+                                    </span>
+                                  ) : (
+                                    <span className="text-xs text-muted-foreground">
+                                      (salaried)
+                                    </span>
+                                  )}
+                                </span>
+                                <span className="font-semibold text-emerald-700 dark:text-emerald-400">
+                                  D
+                                  {selectedOrder.earningsSplit.driverShare.toFixed(
+                                    2,
+                                  )}
+                                </span>
+                              </div>
+                              <div className="flex justify-between text-sm">
+                                <span className="text-muted-foreground flex items-center gap-1.5">
+                                  <Store className="h-3 w-3 text-primary" />
+                                  TeranGO keeps
+                                </span>
+                                <span className="font-semibold text-primary">
+                                  D
+                                  {selectedOrder.earningsSplit.platformShare.toFixed(
+                                    2,
+                                  )}
+                                </span>
+                              </div>
+                            </div>
+                          )}
                       </>
                     );
                   })()}
