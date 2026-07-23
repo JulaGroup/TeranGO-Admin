@@ -135,6 +135,20 @@ export const adminApi = {
   setVendorMultiUser: (id: string, enabled: boolean) =>
     api.patch(`/api/admin/vendors/${id}/multi-user`, { enabled }),
 
+  // Featured vendors (admin-curated placement)
+  getFeaturedVendors: () =>
+    api.get("/api/subscriptions/admin/featured/vendors"),
+  featureVendor: (data: {
+    vendorId: string;
+    businessType: string;
+    businessId: string;
+    featureType: string;
+    priority: number;
+    durationDays: number;
+  }) => api.post("/api/subscriptions/admin/featured/vendor", data),
+  removeFeaturedVendor: (featuredId: string) =>
+    api.delete(`/api/subscriptions/admin/featured/vendor/${featuredId}`),
+
   // Vendor Applications
   getVendorApplications: (params?: Record<string, unknown>) =>
     api.get("/api/admin/vendor-applications", { params }),

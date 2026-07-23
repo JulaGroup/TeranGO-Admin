@@ -26,17 +26,15 @@ import { Header } from "@/components/layout/header";
 import { Main } from "@/components/layout/main";
 import { ProfileDropdown } from "@/components/profile-dropdown";
 import { ThemeSwitch } from "@/components/theme-switch";
-import axios from "axios";
+import { adminApi } from "@/lib/api";
 import { useState } from "react";
-
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8080";
 
 interface FeaturedVendor {
   id: string;
   vendorId: string;
   featureType: string;
   startDate: string;
-  endDate: string;
+  endDate: string | null;
   priority: number;
   isActive: boolean;
   viewCount: number;
@@ -48,11 +46,31 @@ interface FeaturedVendor {
   };
 }
 
-interface Vendor {
+// A vendor as returned by /api/admin/vendors — businesses live in typed arrays.
+interface BusinessRef {
   id: string;
-  businessName: string;
-  storeType: string;
-  email: string;
+  name: string;
+}
+interface AdminVendor {
+  id: string;
+  user?: { fullName?: string };
+  restaurants?: BusinessRef[];
+  shops?: BusinessRef[];
+  pharmacies?: BusinessRef[];
+}
+
+// Resolve the vendor's first business (restaurant → shop → pharmacy), which is
+// the one we feature. Vendors with no business can't be featured.
+function primaryBusiness(
+  v: AdminVendor,
+): { type: "RESTAURANT" | "SHOP" | "PHARMACY"; id: string; name: string } | null {
+  if (v.restaurants?.length)
+    return { type: "RESTAURANT", id: v.restaurants[0].id, name: v.restaurants[0].name };
+  if (v.shops?.length)
+    return { type: "SHOP", id: v.shops[0].id, name: v.shops[0].name };
+  if (v.pharmacies?.length)
+    return { type: "PHARMACY", id: v.pharmacies[0].id, name: v.pharmacies[0].name };
+  return null;
 }
 
 export const Route = createFileRoute("/_authenticated/admin/featured/")({
@@ -66,15 +84,13 @@ function AdminFeaturedPage() {
   const [priority, setPriority] = useState("5");
   const [durationDays, setDurationDays] = useState("30");
 
-  // Fetch all vendors
+  // Fetch all vendors (only those with a business can be featured)
   const { data: vendors } = useQuery({
-    queryKey: ["all-vendors"],
+    queryKey: ["all-vendors-featured"],
     queryFn: async () => {
-      const token = localStorage.getItem("token");
-      const response = await axios.get(`${API_URL}/api/admin/vendors`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      return response.data.vendors as Vendor[];
+      const res = await adminApi.getVendors({ limit: 500 });
+      const list = (res.data.vendors ?? res.data ?? []) as AdminVendor[];
+      return list.filter((v) => primaryBusiness(v) !== null);
     },
   });
 
@@ -82,29 +98,28 @@ function AdminFeaturedPage() {
   const { data: featuredVendors, isLoading } = useQuery({
     queryKey: ["featured-vendors"],
     queryFn: async () => {
-      const token = localStorage.getItem("token");
-      const response = await axios.get(`${API_URL}/api/subscriptions/admin/featured`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      return response.data.featured as FeaturedVendor[];
+      const res = await adminApi.getFeaturedVendors();
+      return res.data.featured as FeaturedVendor[];
     },
   });
 
   // Set featured vendor mutation
   const setFeaturedMutation = useMutation({
     mutationFn: async () => {
-      const token = localStorage.getItem("token");
-      const response = await axios.post(
-        `${API_URL}/api/subscriptions/admin/featured/vendor`,
-        {
-          vendorId: selectedVendorId,
-          featureType,
-          priority: parseInt(priority),
-          durationDays: parseInt(durationDays),
-        },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      return response.data;
+      const vendor = vendors?.find((v) => v.id === selectedVendorId);
+      const biz = vendor ? primaryBusiness(vendor) : null;
+      if (!biz) {
+        throw new Error("This vendor has no business to feature");
+      }
+      const res = await adminApi.featureVendor({
+        vendorId: selectedVendorId,
+        businessType: biz.type,
+        businessId: biz.id,
+        featureType,
+        priority: parseInt(priority),
+        durationDays: parseInt(durationDays),
+      });
+      return res.data;
     },
     onSuccess: () => {
       toast.success("Vendor featured successfully!");
@@ -115,19 +130,17 @@ function AdminFeaturedPage() {
       setDurationDays("30");
     },
     onError: (error: Error & { response?: { data?: { message?: string } } }) => {
-      toast.error(error.response?.data?.message || "Failed to feature vendor");
+      toast.error(
+        error.response?.data?.message || error.message || "Failed to feature vendor",
+      );
     },
   });
 
   // Remove featured mutation
   const removeFeaturedMutation = useMutation({
     mutationFn: async (featuredId: string) => {
-      const token = localStorage.getItem("token");
-      const response = await axios.delete(
-        `${API_URL}/api/subscriptions/admin/featured/${featuredId}`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      return response.data;
+      const res = await adminApi.removeFeaturedVendor(featuredId);
+      return res.data;
     },
     onSuccess: () => {
       toast.success("Featured status removed");
@@ -255,7 +268,9 @@ function AdminFeaturedPage() {
                 <SelectContent>
                   {vendors?.map((vendor) => (
                     <SelectItem key={vendor.id} value={vendor.id}>
-                      {vendor.businessName}
+                      {primaryBusiness(vendor)?.name ||
+                        vendor.user?.fullName ||
+                        "Vendor"}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -379,7 +394,9 @@ function AdminFeaturedPage() {
                           {new Date(featured.startDate).toLocaleDateString()}
                         </TableCell>
                         <TableCell className="text-sm text-muted-foreground">
-                          {new Date(featured.endDate).toLocaleDateString()}
+                          {featured.endDate
+                            ? new Date(featured.endDate).toLocaleDateString()
+                            : "No expiry"}
                         </TableCell>
                         <TableCell className="text-right">{featured.viewCount}</TableCell>
                         <TableCell className="text-right">{featured.clickCount}</TableCell>
