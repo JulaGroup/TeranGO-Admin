@@ -69,6 +69,7 @@ export interface VendorProfile {
   businessName?: string | null;
   userId: string;
   isActive: boolean;
+  multiUserEnabled?: boolean;
   createdAt?: string;
   updatedAt?: string;
   user?: VendorProfileUser;

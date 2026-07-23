@@ -119,6 +119,7 @@ interface BusinessWithType extends BusinessRow {
 interface VendorDetail {
   id: string;
   isActive: boolean;
+  multiUserEnabled?: boolean;
   waveNumber?: string | null;
   businessLicense?: string | null;
   user?: {
@@ -369,6 +370,26 @@ function VendorDetailPage() {
     onError: (error: any) => {
       toast.error(
         error?.response?.data?.message || "Failed to update vendor status",
+      );
+    },
+  });
+
+  const toggleMultiUserMutation = useMutation({
+    mutationFn: async (enabled: boolean) => {
+      const res = await adminApi.setVendorMultiUser(vendorId, enabled);
+      return res.data;
+    },
+    onSuccess: (_data, enabled) => {
+      queryClient.invalidateQueries({ queryKey: ["admin-vendor", vendorId] });
+      toast.success(
+        enabled
+          ? "Multiple users enabled (up to 3 staff)"
+          : "Multiple users disabled",
+      );
+    },
+    onError: (error: any) => {
+      toast.error(
+        error?.response?.data?.message || "Failed to update multi-user setting",
       );
     },
   });
@@ -719,6 +740,17 @@ function VendorDetailPage() {
                       onCheckedChange={(checked) => toggleStatusMutation.mutate(checked)}
                     />
                     <span className="text-sm font-medium">{vendor.isActive ? "Active" : "Inactive"}</span>
+                  </div>
+                  <div
+                    className="flex items-center gap-2 rounded-full border bg-muted/40 px-3.5 py-1.5"
+                    title="Allow this vendor to create up to 3 staff users (cashiers + admins)"
+                  >
+                    <Switch
+                      checked={!!vendor.multiUserEnabled}
+                      disabled={toggleMultiUserMutation.isPending}
+                      onCheckedChange={(checked) => toggleMultiUserMutation.mutate(checked)}
+                    />
+                    <span className="text-sm font-medium">Multiple users</span>
                   </div>
                   <Button variant="outline" size="sm" onClick={openEditDialog} className="shadow-sm">
                     <Edit className="mr-2 h-4 w-4" />

@@ -131,6 +131,9 @@ export const adminApi = {
   updateVendor: (id: string, data: Record<string, unknown>) =>
     api.put(`/api/admin/vendors/${id}`, data),
   deleteVendor: (id: string) => api.delete(`/api/admin/vendors/${id}`),
+  // Toggle whether a vendor can have up to 3 staff users (multi-user mode)
+  setVendorMultiUser: (id: string, enabled: boolean) =>
+    api.patch(`/api/admin/vendors/${id}/multi-user`, { enabled }),
 
   // Vendor Applications
   getVendorApplications: (params?: Record<string, unknown>) =>
@@ -418,6 +421,15 @@ export const vendorApi = {
   // payouts for the currently authenticated vendor
   getPayouts: (params?: Record<string, unknown>) =>
     api.get("/api/vendors/payouts", { params }),
+
+  // Staff management (multi-user vendors — admin only)
+  getStaff: () => api.get("/api/vendor/staff"),
+  addStaff: (data: { fullName: string; phone: string; role: string }) =>
+    api.post("/api/vendor/staff", data),
+  updateStaffRole: (staffId: string, role: string) =>
+    api.patch(`/api/vendor/staff/${staffId}`, { role }),
+  removeStaff: (staffId: string) =>
+    api.delete(`/api/vendor/staff/${staffId}`),
 };
 
 // ─── KërSpace Real Estate API ─────────────────────────────────────────────────
