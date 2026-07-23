@@ -32,6 +32,7 @@ import { Route as AuthenticatedCustomersIndexRouteImport } from './routes/_authe
 import { Route as AuthenticatedCategoriesIndexRouteImport } from './routes/_authenticated/categories/index'
 import { Route as AuthenticatedAnalyticsIndexRouteImport } from './routes/_authenticated/analytics/index'
 import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authenticated/admin/index'
+import { Route as VendorVendorStaffRouteImport } from './routes/_vendor/vendor/staff'
 import { Route as VendorVendorSettingsRouteImport } from './routes/_vendor/vendor/settings'
 import { Route as VendorVendorProfileRouteImport } from './routes/_vendor/vendor/profile'
 import { Route as VendorVendorPayoutsRouteImport } from './routes/_vendor/vendor/payouts'
@@ -198,6 +199,11 @@ const AuthenticatedAdminIndexRoute = AuthenticatedAdminIndexRouteImport.update({
   id: '/admin/',
   path: '/admin/',
   getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const VendorVendorStaffRoute = VendorVendorStaffRouteImport.update({
+  id: '/vendor/staff',
+  path: '/vendor/staff',
+  getParentRoute: () => VendorRoute,
 } as any)
 const VendorVendorSettingsRoute = VendorVendorSettingsRouteImport.update({
   id: '/vendor/settings',
@@ -475,6 +481,7 @@ export interface FileRoutesByFullPath {
   '/vendor/payouts': typeof VendorVendorPayoutsRoute
   '/vendor/profile': typeof VendorVendorProfileRoute
   '/vendor/settings': typeof VendorVendorSettingsRoute
+  '/vendor/staff': typeof VendorVendorStaffRoute
   '/admin/': typeof AuthenticatedAdminIndexRoute
   '/analytics/': typeof AuthenticatedAnalyticsIndexRoute
   '/categories/': typeof AuthenticatedCategoriesIndexRoute
@@ -542,6 +549,7 @@ export interface FileRoutesByTo {
   '/vendor/payouts': typeof VendorVendorPayoutsRoute
   '/vendor/profile': typeof VendorVendorProfileRoute
   '/vendor/settings': typeof VendorVendorSettingsRoute
+  '/vendor/staff': typeof VendorVendorStaffRoute
   '/admin': typeof AuthenticatedAdminIndexRoute
   '/analytics': typeof AuthenticatedAnalyticsIndexRoute
   '/categories': typeof AuthenticatedCategoriesIndexRoute
@@ -612,6 +620,7 @@ export interface FileRoutesById {
   '/_vendor/vendor/payouts': typeof VendorVendorPayoutsRoute
   '/_vendor/vendor/profile': typeof VendorVendorProfileRoute
   '/_vendor/vendor/settings': typeof VendorVendorSettingsRoute
+  '/_vendor/vendor/staff': typeof VendorVendorStaffRoute
   '/_authenticated/admin/': typeof AuthenticatedAdminIndexRoute
   '/_authenticated/analytics/': typeof AuthenticatedAnalyticsIndexRoute
   '/_authenticated/categories/': typeof AuthenticatedCategoriesIndexRoute
@@ -681,6 +690,7 @@ export interface FileRouteTypes {
     | '/vendor/payouts'
     | '/vendor/profile'
     | '/vendor/settings'
+    | '/vendor/staff'
     | '/admin/'
     | '/analytics/'
     | '/categories/'
@@ -748,6 +758,7 @@ export interface FileRouteTypes {
     | '/vendor/payouts'
     | '/vendor/profile'
     | '/vendor/settings'
+    | '/vendor/staff'
     | '/admin'
     | '/analytics'
     | '/categories'
@@ -817,6 +828,7 @@ export interface FileRouteTypes {
     | '/_vendor/vendor/payouts'
     | '/_vendor/vendor/profile'
     | '/_vendor/vendor/settings'
+    | '/_vendor/vendor/staff'
     | '/_authenticated/admin/'
     | '/_authenticated/analytics/'
     | '/_authenticated/categories/'
@@ -1042,6 +1054,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/admin/'
       preLoaderRoute: typeof AuthenticatedAdminIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_vendor/vendor/staff': {
+      id: '/_vendor/vendor/staff'
+      path: '/vendor/staff'
+      fullPath: '/vendor/staff'
+      preLoaderRoute: typeof VendorVendorStaffRouteImport
+      parentRoute: typeof VendorRoute
     }
     '/_vendor/vendor/settings': {
       id: '/_vendor/vendor/settings'
@@ -1493,6 +1512,7 @@ interface VendorRouteChildren {
   VendorVendorPayoutsRoute: typeof VendorVendorPayoutsRoute
   VendorVendorProfileRoute: typeof VendorVendorProfileRoute
   VendorVendorSettingsRoute: typeof VendorVendorSettingsRoute
+  VendorVendorStaffRoute: typeof VendorVendorStaffRoute
   VendorSubscriptionIndexRoute: typeof VendorSubscriptionIndexRoute
   VendorVendorIndexRoute: typeof VendorVendorIndexRoute
 }
@@ -1504,6 +1524,7 @@ const VendorRouteChildren: VendorRouteChildren = {
   VendorVendorPayoutsRoute: VendorVendorPayoutsRoute,
   VendorVendorProfileRoute: VendorVendorProfileRoute,
   VendorVendorSettingsRoute: VendorVendorSettingsRoute,
+  VendorVendorStaffRoute: VendorVendorStaffRoute,
   VendorSubscriptionIndexRoute: VendorSubscriptionIndexRoute,
   VendorVendorIndexRoute: VendorVendorIndexRoute,
 }
