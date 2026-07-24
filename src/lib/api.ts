@@ -422,6 +422,25 @@ export const adminApi = {
     api.patch(`/api/admin/shops/${id}`, data),
   deleteShop: (id: string) => api.delete(`/api/admin/shops/${id}`),
 
+  // Pharmacies Management (Admin)
+  updatePharmacy: (id: string, data: Record<string, unknown>) =>
+    api.patch(`/api/admin/pharmacies/${id}`, data),
+
+  // Update any business's fields (incl. openingHours) by type
+  updateBusiness: (
+    type: "RESTAURANT" | "SHOP" | "PHARMACY",
+    id: string,
+    data: Record<string, unknown>,
+  ) => {
+    const path =
+      type === "RESTAURANT"
+        ? `/api/admin/restaurants/${id}`
+        : type === "SHOP"
+          ? `/api/admin/shops/${id}`
+          : `/api/admin/pharmacies/${id}`;
+    return api.patch(path, data);
+  },
+
   // Generic methods for direct API calls (for flexibility)
   get: (url: string, config?: Record<string, unknown>) => api.get(url, config),
   post: (url: string, data?: Record<string, unknown>) => api.post(url, data),

@@ -6,6 +6,7 @@ import {
   AlertCircle,
   Building2,
   Calendar,
+  Clock,
   ChevronLeft,
   ChevronRight,
   Crown,
@@ -81,6 +82,7 @@ import { Main } from "@/components/layout/main";
 import { TopNav } from "@/components/layout/top-nav";
 import { ProfileDropdown } from "@/components/profile-dropdown";
 import { ThemeSwitch } from "@/components/theme-switch";
+import { BusinessHoursDialog } from "@/components/business-hours-dialog";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/admin/vendors/$vendorId")(
@@ -110,6 +112,7 @@ interface BusinessRow {
   isActive?: boolean;
   latitude?: number | null;
   longitude?: number | null;
+  openingHours?: unknown;
 }
 
 interface BusinessWithType extends BusinessRow {
@@ -324,6 +327,9 @@ function VendorDetailPage() {
 
   // ── Catalog (Menu & Products tab) ───────────────────────────────────────────
   const [selectedBusinessId, setSelectedBusinessId] = useState("");
+  const [hoursBusiness, setHoursBusiness] = useState<BusinessWithType | null>(
+    null,
+  );
   useEffect(() => {
     if (businesses.length > 0 && !selectedBusinessId) {
       setSelectedBusinessId(businesses[0].id);
@@ -865,6 +871,15 @@ function VendorDetailPage() {
                             <Phone className="h-3.5 w-3.5 shrink-0" />
                             <span>{business.phone || "No phone"}</span>
                           </div>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="mt-1 w-full"
+                            onClick={() => setHoursBusiness(business)}
+                          >
+                            <Clock className="mr-2 h-3.5 w-3.5" />
+                            Business Hours
+                          </Button>
                         </CardContent>
                       </Card>
                     );
@@ -1450,6 +1465,13 @@ function VendorDetailPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <BusinessHoursDialog
+        open={!!hoursBusiness}
+        onClose={() => setHoursBusiness(null)}
+        business={hoursBusiness}
+        invalidateKeys={[["admin-vendor", vendorId]]}
+      />
     </>
   );
 }
