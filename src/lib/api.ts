@@ -468,6 +468,10 @@ export const vendorApi = {
   // tally for the active shift (same data the cashier sees on the phone).
   getShifts: () => api.get("/api/vendor/shifts"),
   getCurrentShift: () => api.get("/api/vendor/shifts/current"),
+  getShiftSummary: (date?: string) =>
+    api.get("/api/vendor/shifts/summary", {
+      params: date ? { date } : undefined,
+    }),
   createShift: (data: { name: string; startTime: string; endTime: string }) =>
     api.post("/api/vendor/shifts", data),
   updateShift: (

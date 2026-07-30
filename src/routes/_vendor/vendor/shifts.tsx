@@ -28,7 +28,15 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Clock, Plus, Pencil, Trash2, Moon } from "lucide-react";
+import {
+  Clock,
+  Plus,
+  Pencil,
+  Trash2,
+  Moon,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_vendor/vendor/shifts")({
@@ -47,6 +55,40 @@ interface CurrentShift {
   multiUserEnabled: boolean;
   shift: { id: string; name: string; startTime: string; endTime: string } | null;
   stats: { orders: number; completed: number; sales: number };
+}
+
+interface ShiftStats {
+  orders: number;
+  completed: number;
+  sales: number;
+}
+
+interface ShiftDaySummary {
+  date: string;
+  shifts: Array<{
+    shift: { id: string; name: string; startTime: string; endTime: string };
+    stats: ShiftStats;
+  }>;
+  totals: ShiftStats;
+}
+
+// Local YYYY-MM-DD for today, and day arithmetic that stays on calendar dates.
+function todayIso(): string {
+  return new Date().toISOString().slice(0, 10);
+}
+function shiftIsoDay(iso: string, delta: number): string {
+  const d = new Date(`${iso}T00:00:00.000Z`);
+  d.setUTCDate(d.getUTCDate() + delta);
+  return d.toISOString().slice(0, 10);
+}
+function prettyDay(iso: string): string {
+  if (iso === todayIso()) return "Today";
+  return new Date(`${iso}T00:00:00.000Z`).toLocaleDateString(undefined, {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+    timeZone: "UTC",
+  });
 }
 
 // "HH:MM" 24h -> 12h display.
@@ -81,6 +123,16 @@ function VendorShiftsPage() {
     queryKey: ["vendor-current-shift"],
     queryFn: () => vendorApi.getCurrentShift().then((r) => r.data.data ?? null),
     refetchInterval: 30_000, // keep the live tally fresh
+  });
+
+  const [summaryDate, setSummaryDate] = useState(todayIso());
+  const { data: summary } = useQuery<ShiftDaySummary | null>({
+    queryKey: ["vendor-shift-summary", summaryDate],
+    queryFn: () =>
+      vendorApi
+        .getShiftSummary(summaryDate)
+        .then((r) => r.data.data ?? null),
+    refetchInterval: summaryDate === todayIso() ? 30_000 : false,
   });
 
   const resetForm = () => {
@@ -199,6 +251,93 @@ function VendorShiftsPage() {
               <Moon className="h-4 w-4" />
               No active shift right now.
             </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Per-day record of each shift */}
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0">
+          <div>
+            <CardTitle className="text-base">Shift records</CardTitle>
+            <CardDescription>
+              What each shift did, by day. Kept even as the live tally resets.
+            </CardDescription>
+          </div>
+          <div className="flex items-center gap-1">
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-8 w-8"
+              onClick={() => setSummaryDate((d) => shiftIsoDay(d, -1))}
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <span className="min-w-[90px] text-center text-sm font-medium">
+              {prettyDay(summaryDate)}
+            </span>
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-8 w-8"
+              disabled={summaryDate >= todayIso()}
+              onClick={() => setSummaryDate((d) => shiftIsoDay(d, 1))}
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {!summary || summary.shifts.length === 0 ? (
+            <p className="text-muted-foreground py-6 text-center text-sm">
+              No shift activity for this day.
+            </p>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Shift</TableHead>
+                  <TableHead>Window</TableHead>
+                  <TableHead className="text-right">Orders</TableHead>
+                  <TableHead className="text-right">Completed</TableHead>
+                  <TableHead className="text-right">Money made</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {summary.shifts.map((row) => (
+                  <TableRow key={row.shift.id}>
+                    <TableCell className="font-medium">
+                      {row.shift.name}
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {to12h(row.shift.startTime)} – {to12h(row.shift.endTime)}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      {row.stats.orders}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      {row.stats.completed}
+                    </TableCell>
+                    <TableCell className="text-right font-semibold">
+                      {formatGMD(row.stats.sales)}
+                    </TableCell>
+                  </TableRow>
+                ))}
+                <TableRow className="border-t-2 font-semibold">
+                  <TableCell>Total</TableCell>
+                  <TableCell />
+                  <TableCell className="text-right">
+                    {summary.totals.orders}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    {summary.totals.completed}
+                  </TableCell>
+                  <TableCell className="text-right text-orange-600">
+                    {formatGMD(summary.totals.sales)}
+                  </TableCell>
+                </TableRow>
+              </TableBody>
+            </Table>
           )}
         </CardContent>
       </Card>
