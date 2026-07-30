@@ -463,6 +463,24 @@ export const vendorApi = {
     api.patch(`/api/vendor/staff/${staffId}`, { role }),
   removeStaff: (staffId: string) =>
     api.delete(`/api/vendor/staff/${staffId}`),
+
+  // Shifts (multi-user vendors). Management is admin-only; /current is the live
+  // tally for the active shift (same data the cashier sees on the phone).
+  getShifts: () => api.get("/api/vendor/shifts"),
+  getCurrentShift: () => api.get("/api/vendor/shifts/current"),
+  createShift: (data: { name: string; startTime: string; endTime: string }) =>
+    api.post("/api/vendor/shifts", data),
+  updateShift: (
+    shiftId: string,
+    data: Partial<{
+      name: string;
+      startTime: string;
+      endTime: string;
+      isActive: boolean;
+    }>,
+  ) => api.patch(`/api/vendor/shifts/${shiftId}`, data),
+  removeShift: (shiftId: string) =>
+    api.delete(`/api/vendor/shifts/${shiftId}`),
 };
 
 // ─── KërSpace Real Estate API ─────────────────────────────────────────────────

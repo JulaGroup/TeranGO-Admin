@@ -14,6 +14,7 @@ import {
   // Crown,
   DollarSign,
   Users,
+  Clock,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -106,6 +107,13 @@ const getNavGroups = (): NavGroup[] => [
         icon: Users,
         // Only shown when a super admin has enabled multi-user for this vendor.
         // The web portal is admin-only, so any logged-in vendor here is an admin.
+        condition: (vendor) => Boolean(vendor?.multiUserEnabled),
+      },
+      {
+        title: "Shifts",
+        href: "/vendor/shifts",
+        icon: Clock,
+        // Shifts are a multi-user feature, same gate as Staff.
         condition: (vendor) => Boolean(vendor?.multiUserEnabled),
       },
       {
