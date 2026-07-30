@@ -17,6 +17,7 @@ import {
   ChevronLeft,
   ChevronRight,
   ArrowRightLeft,
+  Undo2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { adminApi } from "@/lib/api";
@@ -76,6 +77,12 @@ type Payment = {
   network: string;
   status: "PENDING" | "SUCCEEDED" | "FAILED";
   createdAt: string;
+  metadata?: {
+    type?: string;
+    reason?: string | null;
+    reference?: string | null;
+    note?: string | null;
+  } | null;
   order?: {
     customerName?: string;
     customerPhone?: string;
@@ -107,9 +114,18 @@ type PaginatedPayments = {
     totalPayments: number;
     totalVolume: number;
     succeeded: number;
+    succeededVolume: number;
+    refunded: number;
+    refundedVolume: number;
+    netVolume: number;
     failed: number;
   };
 };
+
+// A refund is stored as a SUCCEEDED payment tagged network 'manual_refund'.
+function isRefund(payment: Payment): boolean {
+  return payment.network === "manual_refund";
+}
 
 export const Route = createFileRoute("/_authenticated/admin/payments/")({
   component: PaymentsPage,
@@ -120,6 +136,7 @@ function PaymentsPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [networkFilter, setNetworkFilter] = useState("all");
+  const [typeFilter, setTypeFilter] = useState("all");
   const [viewLayout, setViewLayout] = useState<"grid" | "list">("grid");
   const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
@@ -133,12 +150,14 @@ function PaymentsPage() {
       searchQuery,
       statusFilter,
       networkFilter,
+      typeFilter,
     ],
     queryFn: async () => {
       const params: any = { page: currentPage, limit: 12 };
       if (searchQuery) params.q = searchQuery;
       if (statusFilter !== "all") params.status = statusFilter;
       if (networkFilter !== "all") params.network = networkFilter;
+      if (typeFilter !== "all") params.type = typeFilter;
       const resp = await adminApi.getPayments(params);
       return resp.data;
     },
@@ -163,6 +182,10 @@ function PaymentsPage() {
         totalPayments: 0,
         totalVolume: 0,
         succeeded: 0,
+        succeededVolume: 0,
+        refunded: 0,
+        refundedVolume: 0,
+        netVolume: 0,
         failed: 0,
       },
     [paymentsResponse],
@@ -223,29 +246,34 @@ function PaymentsPage() {
         <Card className="border-l-4 border-l-primary shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
-              Total Volume
+              Net Volume
             </CardTitle>
             <Banknote className="h-4 w-4 text-primary" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              D {stats.totalVolume.toLocaleString()}
+              D {stats.netVolume.toLocaleString()}
             </div>
-            <p className="text-xs text-muted-foreground mt-1">All transactions</p>
+            <p className="text-xs text-muted-foreground mt-1">
+              Money in minus refunds
+            </p>
           </CardContent>
         </Card>
-        <Card className="border-l-4 border-l-blue-500 shadow-sm">
+        <Card className="border-l-4 border-l-rose-500 shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
-              Total Payments
+              Refunded
             </CardTitle>
-            <ArrowRightLeft className="h-4 w-4 text-blue-500" />
+            <Undo2 className="h-4 w-4 text-rose-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
-              {stats.totalPayments.toLocaleString()}
+            <div className="text-2xl font-bold text-rose-600">
+              D {stats.refundedVolume.toLocaleString()}
             </div>
-            <p className="text-xs text-muted-foreground mt-1">All time count</p>
+            <p className="text-xs text-muted-foreground mt-1">
+              {stats.refunded.toLocaleString()} refund
+              {stats.refunded === 1 ? "" : "s"}
+            </p>
           </CardContent>
         </Card>
         <Card className="border-l-4 border-l-emerald-500 shadow-sm">
@@ -311,6 +339,22 @@ function PaymentsPage() {
                 <SelectItem value="PENDING">Pending</SelectItem>
                 <SelectItem value="SUCCEEDED">Succeeded</SelectItem>
                 <SelectItem value="FAILED">Failed</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select
+              value={typeFilter}
+              onValueChange={(v) => {
+                setTypeFilter(v);
+                setCurrentPage(1);
+              }}
+            >
+              <SelectTrigger className="h-9 w-[160px]">
+                <SelectValue placeholder="Type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Types</SelectItem>
+                <SelectItem value="payment">Payments</SelectItem>
+                <SelectItem value="refund">Refunds</SelectItem>
               </SelectContent>
             </Select>
             <div className="ml-auto flex items-center rounded-md border bg-muted/40 p-0.5">
@@ -405,7 +449,21 @@ function getPaymentService(payment: Payment): string {
 }
 
 // Sub-components
-const StatusBadge = ({ status }: { status: string }) => {
+const StatusBadge = ({
+  status,
+  refund,
+}: {
+  status: string;
+  refund?: boolean;
+}) => {
+  if (refund) {
+    return (
+      <Badge className="bg-rose-500 hover:bg-rose-600 text-white shadow-sm flex items-center gap-1.5 whitespace-nowrap">
+        <Undo2 className="h-3 w-3" />
+        Refunded
+      </Badge>
+    );
+  }
   const s = status?.toUpperCase();
   if (s === "SUCCEEDED") {
     return (
@@ -452,14 +510,21 @@ const PaymentCard = ({
               {format(new Date(payment.createdAt), "MMM dd, yyyy, HH:mm")}
             </CardDescription>
           </div>
-          <StatusBadge status={payment.status} />
+          <StatusBadge status={payment.status} refund={isRefund(payment)} />
         </div>
       </CardHeader>
       <CardContent className="space-y-2.5 text-sm pb-3">
         <div className="flex items-center justify-between">
-          <span className="text-muted-foreground text-xs">Amount</span>
-          <span className="font-semibold">
-            D {payment.amount.toLocaleString()}
+          <span className="text-muted-foreground text-xs">
+            {isRefund(payment) ? "Refund" : "Amount"}
+          </span>
+          <span
+            className={cn(
+              "font-semibold",
+              isRefund(payment) && "text-rose-600",
+            )}
+          >
+            {isRefund(payment) ? "- " : ""}D {payment.amount.toLocaleString()}
           </span>
         </div>
         <div className="flex items-center justify-between">
@@ -520,14 +585,20 @@ const PaymentTable = ({
               </TableCell>
               <TableCell>{getPaymentCustomer(payment)}</TableCell>
               <TableCell>{getPaymentService(payment)}</TableCell>
-              <TableCell className="font-semibold">
-                D {payment.amount.toLocaleString()}
+              <TableCell
+                className={cn(
+                  "font-semibold",
+                  isRefund(payment) && "text-rose-600",
+                )}
+              >
+                {isRefund(payment) ? "- " : ""}D{" "}
+                {payment.amount.toLocaleString()}
               </TableCell>
               <TableCell>
                 <Badge variant="outline" className="text-xs">{payment.network}</Badge>
               </TableCell>
               <TableCell>
-                <StatusBadge status={payment.status} />
+                <StatusBadge status={payment.status} refund={isRefund(payment)} />
               </TableCell>
               <TableCell className="text-muted-foreground text-sm">
                 {format(new Date(payment.createdAt), "PP")}
@@ -607,21 +678,34 @@ const PaymentDetailsDialog = ({
             #{payment.id.slice(-8).toUpperCase()}
           </DialogTitle>
           <div className="flex items-center justify-between pt-1">
-            <StatusBadge status={payment.status} />
+            <StatusBadge status={payment.status} refund={isRefund(payment)} />
             <p className="text-sm text-muted-foreground">
               {format(new Date(payment.createdAt), "PPpp")}
             </p>
           </div>
         </DialogHeader>
         <div className="space-y-4 py-2">
-          <InfoSection title="Transaction Details">
+          <InfoSection title={isRefund(payment) ? "Refund Details" : "Transaction Details"}>
             <InfoRow
-              label="Amount"
-              value={`D ${payment.amount.toLocaleString()}`}
+              label={isRefund(payment) ? "Refund Amount" : "Amount"}
+              value={`${isRefund(payment) ? "- " : ""}D ${payment.amount.toLocaleString()}`}
             />
             <InfoRow label="Network" value={payment.network} />
             <InfoRow label="Currency" value={payment.currency} />
             <InfoRow label="Payment ID" value={payment.id} isMonospace />
+            {isRefund(payment) && payment.metadata?.reason && (
+              <InfoRow label="Reason" value={String(payment.metadata.reason)} />
+            )}
+            {isRefund(payment) && payment.metadata?.reference && (
+              <InfoRow
+                label="Reference"
+                value={String(payment.metadata.reference)}
+                isMonospace
+              />
+            )}
+            {isRefund(payment) && payment.metadata?.note && (
+              <InfoRow label="Note" value={String(payment.metadata.note)} />
+            )}
           </InfoSection>
 
           <InfoSection title={isCustomDelivery ? "Delivery Information" : "Order Information"}>
