@@ -14,6 +14,21 @@ import {
 } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+
+// Supported country codes for portal login.
+const COUNTRIES = [
+  { code: '+220', flag: '🇬🇲', name: 'Gambia' },
+  { code: '+221', flag: '🇸🇳', name: 'Senegal' },
+  { code: '+44', flag: '🇬🇧', name: 'United Kingdom' },
+  { code: '+1', flag: '🇺🇸', name: 'USA / Canada' },
+]
 
 export const Route = createFileRoute('/(auth)/login')({
   component: LoginPage,
@@ -28,6 +43,7 @@ export const Route = createFileRoute('/(auth)/login')({
 function LoginPage() {
   const navigate = useNavigate()
   const [phone, setPhone] = useState('')
+  const [countryCode, setCountryCode] = useState('+220')
   const [loading, setLoading] = useState(false)
 
   const handleSendOTP = async (e: React.FormEvent) => {
@@ -41,7 +57,7 @@ function LoginPage() {
     setLoading(true)
 
     try {
-      const fullPhone = `+220${phone}`
+      const fullPhone = `${countryCode}${phone}`
 
       await api.post('/auth/send-otp', {
         phone: fullPhone,
@@ -92,10 +108,22 @@ function LoginPage() {
             <div className='space-y-2'>
               <Label htmlFor='phone'>Phone Number</Label>
               <div className='flex gap-2'>
-                <div className='bg-muted flex items-center gap-2 rounded-md border px-3 py-2'>
-                  <span className='text-lg'>🇬🇲</span>
-                  <span className='font-medium'>+220</span>
-                </div>
+                <Select
+                  value={countryCode}
+                  onValueChange={setCountryCode}
+                  disabled={loading}
+                >
+                  <SelectTrigger className='w-[110px]'>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {COUNTRIES.map((c) => (
+                      <SelectItem key={c.code} value={c.code}>
+                        {c.flag} {c.code}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
                 <Input
                   id='phone'
                   placeholder='Enter phone number'
@@ -105,7 +133,7 @@ function LoginPage() {
                   disabled={loading}
                   className='flex-1 text-lg'
                   autoFocus
-                  maxLength={7}
+                  maxLength={12}
                 />
               </div>
               <p className='text-muted-foreground text-xs'>
@@ -127,7 +155,7 @@ function LoginPage() {
           <div className='text-muted-foreground mt-6 text-center text-sm'>
             <p>For Admin and Vendor access</p>
             <p className='mt-1 text-xs'>
-              Only Gambian phone numbers (+220) are accepted
+              Select your country code and enter your number
             </p>
           </div>
         </CardContent>
