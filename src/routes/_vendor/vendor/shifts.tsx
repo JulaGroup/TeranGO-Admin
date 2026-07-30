@@ -46,7 +46,7 @@ interface Shift {
 interface CurrentShift {
   multiUserEnabled: boolean;
   shift: { id: string; name: string; startTime: string; endTime: string } | null;
-  stats: { orders: number; sales: number };
+  stats: { orders: number; completed: number; sales: number };
 }
 
 // "HH:MM" 24h -> 12h display.
@@ -182,9 +182,15 @@ function VendorShiftsPage() {
                 </div>
                 <div className="text-center">
                   <p className="text-2xl font-bold text-orange-600">
+                    {current.stats.completed}
+                  </p>
+                  <p className="text-muted-foreground text-xs">Completed</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-2xl font-bold text-orange-600">
                     {formatGMD(current.stats.sales)}
                   </p>
-                  <p className="text-muted-foreground text-xs">Sales</p>
+                  <p className="text-muted-foreground text-xs">Money made</p>
                 </div>
               </div>
             </div>
