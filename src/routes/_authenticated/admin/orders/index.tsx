@@ -846,6 +846,26 @@ function OrdersPage() {
                             <p className="text-muted-foreground text-xs">
                               {order.user?.phoneNumber || order.user?.phone}
                             </p>
+                            {/* Where it's going — the delivery destination, so
+                                the admin can see the drop-off at a glance, not
+                                just the vendor. */}
+                            {order.orderType === "PICKUP" ? (
+                              <p className="text-muted-foreground mt-0.5 flex items-center gap-1 text-xs">
+                                <Package className="h-3 w-3 shrink-0" />
+                                Pickup at vendor
+                              </p>
+                            ) : (
+                              <p className="text-muted-foreground mt-0.5 flex max-w-[220px] items-center gap-1 text-xs">
+                                <MapPin className="h-3 w-3 shrink-0" />
+                                <span className="truncate">
+                                  {order.address ||
+                                    (typeof order.deliveryAddress === "string"
+                                      ? order.deliveryAddress
+                                      : order.deliveryAddress?.street) ||
+                                    "No address"}
+                                </span>
+                              </p>
+                            )}
                           </div>
                         </TableCell>
                         <TableCell>
