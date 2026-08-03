@@ -157,6 +157,11 @@ function getAllowedTransitions(
       return ["READY"];
     case "READY":
       return !isDelivery || isGiftOrder ? ["DELIVERED"] : [];
+    case "DISPATCHED":
+      // Out for delivery. The driver normally marks it delivered from their
+      // app, but let an admin finalize it too (e.g. gift orders, or when the
+      // driver couldn't complete the QR/scan step).
+      return ["DELIVERED"];
     default:
       return [];
   }
