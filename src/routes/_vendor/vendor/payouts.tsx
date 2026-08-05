@@ -88,7 +88,7 @@ function VendorPayouts() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Payouts</h1>
+        <h1 className="text-3xl font-bold tracking-tight text-zinc-950 dark:text-zinc-50">Payouts</h1>
         <p className="text-sm text-muted-foreground">
           Manage your earnings and withdrawal requests.
         </p>

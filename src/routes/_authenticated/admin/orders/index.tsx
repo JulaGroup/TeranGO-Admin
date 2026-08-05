@@ -30,6 +30,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Undo2,
+  Bell,
 } from "lucide-react";
 import { toast } from "sonner";
 import { adminApi } from "@/lib/api";
@@ -345,6 +346,9 @@ function OrdersPage() {
   const [refundReference, setRefundReference] = useState("");
   const [refundNote, setRefundNote] = useState("");
   const [cancelOrderOnRefund, setCancelOrderOnRefund] = useState(false);
+  const [isNotifyOpen, setIsNotifyOpen] = useState(false);
+  const [notifyTitle, setNotifyTitle] = useState("Delivery Update");
+  const [notifyMessage, setNotifyMessage] = useState("");
 
   // Only the super admin can cancel an order while refunding it — the
   // server enforces this independently, this just gates the checkbox.
@@ -586,6 +590,30 @@ function OrdersPage() {
         error.message ||
         "Failed to mark order as refunded";
       toast.error(message);
+    },
+  });
+
+  const notifyCustomerMutation = useMutation({
+    mutationFn: ({
+      id,
+      title,
+      message,
+    }: {
+      id: string;
+      title: string;
+      message: string;
+    }) => adminApi.notifyOrderCustomer(id, title, message).then((r) => r.data),
+    onSuccess: () => {
+      toast.success("Notification sent to the customer");
+      setIsNotifyOpen(false);
+      setNotifyMessage("");
+    },
+    onError: (error: AxiosError<{ error: string }>) => {
+      toast.error(
+        error?.response?.data?.error ||
+          error.message ||
+          "Failed to send notification",
+      );
     },
   });
 
@@ -1594,6 +1622,21 @@ function OrdersPage() {
                 )}
               </div>
 
+              {/* Message the customer directly (e.g. weather delay heads-up) */}
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full border-orange-300 text-orange-700 hover:bg-orange-50"
+                onClick={() => {
+                  setNotifyTitle("Delivery Update");
+                  setNotifyMessage("");
+                  setIsNotifyOpen(true);
+                }}
+              >
+                <Bell className="mr-1 h-3.5 w-3.5" />
+                Notify Customer
+              </Button>
+
               {/* Assigned Driver */}
               {selectedOrder.driver && (
                 <div className="rounded-lg border p-4 bg-blue-50/50 dark:bg-blue-950/20">
@@ -2093,6 +2136,63 @@ function OrdersPage() {
               {markPaidMutation.isPending
                 ? "Confirming..."
                 : "Confirm Payment"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isNotifyOpen} onOpenChange={setIsNotifyOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Notify Customer</DialogTitle>
+            <DialogDescription>
+              Send a push notification to{" "}
+              {selectedOrder?.user?.name || "this customer"} about order{" "}
+              TG{selectedOrder?.id?.slice(-4).toUpperCase()}.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <div className="space-y-1.5">
+              <Label>Title</Label>
+              <Input
+                value={notifyTitle}
+                onChange={(e) => setNotifyTitle(e.target.value)}
+                placeholder="Delivery Update"
+                maxLength={60}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Message</Label>
+              <Textarea
+                value={notifyMessage}
+                onChange={(e) => setNotifyMessage(e.target.value)}
+                placeholder="e.g. Heads up — delivery may be delayed due to current weather conditions. Thanks for your patience!"
+                rows={4}
+                maxLength={300}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsNotifyOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              disabled={
+                !notifyMessage.trim() ||
+                !selectedOrder ||
+                notifyCustomerMutation.isPending
+              }
+              onClick={() =>
+                selectedOrder &&
+                notifyCustomerMutation.mutate({
+                  id: selectedOrder.id,
+                  title: notifyTitle.trim() || "TeranGO Update",
+                  message: notifyMessage.trim(),
+                })
+              }
+            >
+              <Bell className="mr-1 h-4 w-4" />
+              {notifyCustomerMutation.isPending ? "Sending…" : "Send"}
             </Button>
           </DialogFooter>
         </DialogContent>

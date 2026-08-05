@@ -192,7 +192,7 @@ function VendorShiftsPage() {
     <div className="mx-auto max-w-4xl space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="flex items-center gap-2 text-2xl font-bold">
+          <h1 className="flex items-center gap-2 text-3xl font-bold tracking-tight text-zinc-950 dark:text-zinc-50">
             <Clock className="h-6 w-6" /> Shifts
           </h1>
           <p className="text-muted-foreground text-sm">

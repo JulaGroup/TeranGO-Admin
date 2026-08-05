@@ -202,6 +202,9 @@ export const adminApi = {
       note,
       cancelOrder,
     }),
+  // Send a one-off push notification to a specific order's customer.
+  notifyOrderCustomer: (id: string, title: string, message: string) =>
+    api.post(`/api/admin/orders/${id}/notify-customer`, { title, message }),
   // Current admin's own privileges (e.g. super admin) — used to gate
   // actions client-side; the server independently enforces the same check.
   getMe: () => api.get("/api/admin/me"),
