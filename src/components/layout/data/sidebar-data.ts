@@ -152,6 +152,11 @@ export const sidebarData: SidebarData = {
           url: "/admin/furniture",
           icon: Sofa,
         },
+        {
+          title: "Experiences",
+          url: "/admin/experiences",
+          icon: Star,
+        },
       ],
     },
 

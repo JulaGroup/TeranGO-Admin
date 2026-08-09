@@ -64,6 +64,7 @@ import { Route as AuthenticatedAdminKerspaceIndexRouteImport } from './routes/_a
 import { Route as AuthenticatedAdminFurnitureIndexRouteImport } from './routes/_authenticated/admin/furniture/index'
 import { Route as AuthenticatedAdminFeaturedIndexRouteImport } from './routes/_authenticated/admin/featured/index'
 import { Route as AuthenticatedAdminExpressIndexRouteImport } from './routes/_authenticated/admin/express/index'
+import { Route as AuthenticatedAdminExperiencesIndexRouteImport } from './routes/_authenticated/admin/experiences/index'
 import { Route as AuthenticatedAdminEarningsIndexRouteImport } from './routes/_authenticated/admin/earnings/index'
 import { Route as AuthenticatedAdminDriversIndexRouteImport } from './routes/_authenticated/admin/drivers/index'
 import { Route as AuthenticatedAdminDeliveryTownsIndexRouteImport } from './routes/_authenticated/admin/delivery-towns/index'
@@ -385,6 +386,12 @@ const AuthenticatedAdminExpressIndexRoute =
     path: '/admin/express/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedAdminExperiencesIndexRoute =
+  AuthenticatedAdminExperiencesIndexRouteImport.update({
+    id: '/admin/experiences/',
+    path: '/admin/experiences/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedAdminEarningsIndexRoute =
   AuthenticatedAdminEarningsIndexRouteImport.update({
     id: '/admin/earnings/',
@@ -513,6 +520,7 @@ export interface FileRoutesByFullPath {
   '/admin/delivery-towns/': typeof AuthenticatedAdminDeliveryTownsIndexRoute
   '/admin/drivers/': typeof AuthenticatedAdminDriversIndexRoute
   '/admin/earnings/': typeof AuthenticatedAdminEarningsIndexRoute
+  '/admin/experiences/': typeof AuthenticatedAdminExperiencesIndexRoute
   '/admin/express/': typeof AuthenticatedAdminExpressIndexRoute
   '/admin/featured/': typeof AuthenticatedAdminFeaturedIndexRoute
   '/admin/furniture/': typeof AuthenticatedAdminFurnitureIndexRoute
@@ -582,6 +590,7 @@ export interface FileRoutesByTo {
   '/admin/delivery-towns': typeof AuthenticatedAdminDeliveryTownsIndexRoute
   '/admin/drivers': typeof AuthenticatedAdminDriversIndexRoute
   '/admin/earnings': typeof AuthenticatedAdminEarningsIndexRoute
+  '/admin/experiences': typeof AuthenticatedAdminExperiencesIndexRoute
   '/admin/express': typeof AuthenticatedAdminExpressIndexRoute
   '/admin/featured': typeof AuthenticatedAdminFeaturedIndexRoute
   '/admin/furniture': typeof AuthenticatedAdminFurnitureIndexRoute
@@ -654,6 +663,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/delivery-towns/': typeof AuthenticatedAdminDeliveryTownsIndexRoute
   '/_authenticated/admin/drivers/': typeof AuthenticatedAdminDriversIndexRoute
   '/_authenticated/admin/earnings/': typeof AuthenticatedAdminEarningsIndexRoute
+  '/_authenticated/admin/experiences/': typeof AuthenticatedAdminExperiencesIndexRoute
   '/_authenticated/admin/express/': typeof AuthenticatedAdminExpressIndexRoute
   '/_authenticated/admin/featured/': typeof AuthenticatedAdminFeaturedIndexRoute
   '/_authenticated/admin/furniture/': typeof AuthenticatedAdminFurnitureIndexRoute
@@ -725,6 +735,7 @@ export interface FileRouteTypes {
     | '/admin/delivery-towns/'
     | '/admin/drivers/'
     | '/admin/earnings/'
+    | '/admin/experiences/'
     | '/admin/express/'
     | '/admin/featured/'
     | '/admin/furniture/'
@@ -794,6 +805,7 @@ export interface FileRouteTypes {
     | '/admin/delivery-towns'
     | '/admin/drivers'
     | '/admin/earnings'
+    | '/admin/experiences'
     | '/admin/express'
     | '/admin/featured'
     | '/admin/furniture'
@@ -865,6 +877,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/delivery-towns/'
     | '/_authenticated/admin/drivers/'
     | '/_authenticated/admin/earnings/'
+    | '/_authenticated/admin/experiences/'
     | '/_authenticated/admin/express/'
     | '/_authenticated/admin/featured/'
     | '/_authenticated/admin/furniture/'
@@ -1291,6 +1304,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminExpressIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/admin/experiences/': {
+      id: '/_authenticated/admin/experiences/'
+      path: '/admin/experiences'
+      fullPath: '/admin/experiences/'
+      preLoaderRoute: typeof AuthenticatedAdminExperiencesIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/admin/earnings/': {
       id: '/_authenticated/admin/earnings/'
       path: '/admin/earnings'
@@ -1418,6 +1438,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdminDeliveryTownsIndexRoute: typeof AuthenticatedAdminDeliveryTownsIndexRoute
   AuthenticatedAdminDriversIndexRoute: typeof AuthenticatedAdminDriversIndexRoute
   AuthenticatedAdminEarningsIndexRoute: typeof AuthenticatedAdminEarningsIndexRoute
+  AuthenticatedAdminExperiencesIndexRoute: typeof AuthenticatedAdminExperiencesIndexRoute
   AuthenticatedAdminExpressIndexRoute: typeof AuthenticatedAdminExpressIndexRoute
   AuthenticatedAdminFeaturedIndexRoute: typeof AuthenticatedAdminFeaturedIndexRoute
   AuthenticatedAdminFurnitureIndexRoute: typeof AuthenticatedAdminFurnitureIndexRoute
@@ -1480,6 +1501,8 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
     AuthenticatedAdminDeliveryTownsIndexRoute,
   AuthenticatedAdminDriversIndexRoute: AuthenticatedAdminDriversIndexRoute,
   AuthenticatedAdminEarningsIndexRoute: AuthenticatedAdminEarningsIndexRoute,
+  AuthenticatedAdminExperiencesIndexRoute:
+    AuthenticatedAdminExperiencesIndexRoute,
   AuthenticatedAdminExpressIndexRoute: AuthenticatedAdminExpressIndexRoute,
   AuthenticatedAdminFeaturedIndexRoute: AuthenticatedAdminFeaturedIndexRoute,
   AuthenticatedAdminFurnitureIndexRoute: AuthenticatedAdminFurnitureIndexRoute,

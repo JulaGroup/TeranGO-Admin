@@ -135,6 +135,27 @@ export const adminApi = {
   setVendorMultiUser: (id: string, enabled: boolean) =>
     api.patch(`/api/admin/vendors/${id}/multi-user`, { enabled }),
 
+  // Experiences (bookable activities)
+  getExperiences: () => api.get("/api/admin/experiences"),
+  getExperienceById: (id: string) => api.get(`/api/admin/experiences/${id}`),
+  createExperience: (data: Record<string, unknown>) =>
+    api.post("/api/admin/experiences", data),
+  updateExperience: (id: string, data: Record<string, unknown>) =>
+    api.patch(`/api/admin/experiences/${id}`, data),
+  deleteExperience: (id: string) =>
+    api.delete(`/api/admin/experiences/${id}`),
+  getExperienceBookings: (id: string) =>
+    api.get(`/api/admin/experiences/${id}/bookings`),
+  addExperienceOption: (id: string, data: Record<string, unknown>) =>
+    api.post(`/api/admin/experiences/${id}/options`, data),
+  updateExperienceOption: (
+    id: string,
+    optionId: string,
+    data: Record<string, unknown>,
+  ) => api.patch(`/api/admin/experiences/${id}/options/${optionId}`, data),
+  deleteExperienceOption: (id: string, optionId: string) =>
+    api.delete(`/api/admin/experiences/${id}/options/${optionId}`),
+
   // Featured vendors (admin-curated placement)
   getFeaturedVendors: () =>
     api.get("/api/subscriptions/admin/featured/vendors"),
