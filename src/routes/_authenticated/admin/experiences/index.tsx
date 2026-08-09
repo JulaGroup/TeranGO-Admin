@@ -66,6 +66,7 @@ export const Route = createFileRoute("/_authenticated/admin/experiences/")({
 const emptyForm = () => ({
   name: "",
   vendorId: "",
+  category: "",
   description: "",
   address: "",
   city: "",
@@ -164,6 +165,7 @@ function ExperiencesPage() {
       const payload = {
         name: form.name,
         vendorId: form.vendorId,
+        category: form.category,
         description: form.description,
         address: form.address,
         city: form.city,
@@ -241,6 +243,7 @@ function ExperiencesPage() {
     setForm({
       name: exp.name || "",
       vendorId: exp.vendorId || "",
+      category: exp.category || "",
       description: exp.description || "",
       address: exp.address || "",
       city: exp.city || "",
@@ -469,13 +472,25 @@ function ExperiencesPage() {
           </DialogHeader>
 
           <div className="space-y-4 py-2">
-            <div className="space-y-2">
-              <Label>Name</Label>
-              <Input
-                value={form.name}
-                onChange={(e) => setForm({ ...form, name: e.target.value })}
-                placeholder="Turbo Tracks"
-              />
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label>Name</Label>
+                <Input
+                  value={form.name}
+                  onChange={(e) => setForm({ ...form, name: e.target.value })}
+                  placeholder="Turbo Tracks"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Category</Label>
+                <Input
+                  value={form.category}
+                  onChange={(e) =>
+                    setForm({ ...form, category: e.target.value })
+                  }
+                  placeholder="e.g. Karting, Adventure"
+                />
+              </div>
             </div>
 
             <div className="space-y-2">
