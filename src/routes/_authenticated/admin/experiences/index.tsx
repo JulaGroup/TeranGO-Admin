@@ -15,7 +15,12 @@ import {
   CheckCircle2,
   Ban,
   Ticket,
+  Upload,
+  ImageIcon,
 } from "lucide-react";
+
+const CLOUDINARY_CLOUD_NAME = "dkpi5ij2t";
+const CLOUDINARY_UPLOAD_PRESET = "unsigned_preset";
 import { toast } from "sonner";
 import { adminApi } from "@/lib/api";
 import {
@@ -97,6 +102,42 @@ function ExperiencesPage() {
   const [form, setForm] = useState(emptyForm());
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [bookingsFor, setBookingsFor] = useState<any | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+
+  const handleImageUpload = async (
+    e: React.ChangeEvent<HTMLInputElement>,
+  ) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please select an image file");
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Image must be under 5MB");
+      return;
+    }
+    setIsUploading(true);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      fd.append("upload_preset", CLOUDINARY_UPLOAD_PRESET);
+      const res = await fetch(
+        `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`,
+        { method: "POST", body: fd },
+      );
+      if (!res.ok) throw new Error("Upload failed");
+      const data = await res.json();
+      if (data.secure_url) {
+        setForm((prev) => ({ ...prev, imageUrl: data.secure_url }));
+        toast.success("Image uploaded");
+      }
+    } catch {
+      toast.error("Failed to upload image");
+    } finally {
+      setIsUploading(false);
+    }
+  };
 
   const { data: experiences = [], isLoading, refetch } = useQuery({
     queryKey: ["admin-experiences"],
@@ -499,13 +540,46 @@ function ExperiencesPage() {
                 />
               </div>
               <div className="space-y-2">
-                <Label>Image URL</Label>
-                <Input
-                  value={form.imageUrl}
-                  onChange={(e) =>
-                    setForm({ ...form, imageUrl: e.target.value })
-                  }
-                />
+                <Label>Image</Label>
+                <div className="flex items-center gap-3">
+                  <div className="h-16 w-16 shrink-0 overflow-hidden rounded-lg border bg-muted">
+                    {form.imageUrl ? (
+                      <img
+                        src={form.imageUrl}
+                        alt="Experience"
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      <div className="flex h-full w-full items-center justify-center">
+                        <ImageIcon className="h-6 w-6 text-muted-foreground" />
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex-1 space-y-2">
+                    <label className="inline-flex cursor-pointer items-center gap-2 rounded-md border px-3 py-2 text-sm font-medium hover:bg-accent">
+                      {isUploading ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Upload className="h-4 w-4" />
+                      )}
+                      {isUploading ? "Uploading…" : "Upload image"}
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={handleImageUpload}
+                        disabled={isUploading}
+                      />
+                    </label>
+                    <Input
+                      placeholder="…or paste an image URL"
+                      value={form.imageUrl}
+                      onChange={(e) =>
+                        setForm({ ...form, imageUrl: e.target.value })
+                      }
+                    />
+                  </div>
+                </div>
               </div>
             </div>
 
