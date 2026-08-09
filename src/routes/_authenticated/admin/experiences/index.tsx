@@ -21,6 +21,19 @@ import {
 
 const CLOUDINARY_CLOUD_NAME = "dkpi5ij2t";
 const CLOUDINARY_UPLOAD_PRESET = "unsigned_preset";
+
+// Curated experience categories (keep in sync with the app's list).
+const EXPERIENCE_CATEGORIES = [
+  "Activities",
+  "Tours",
+  "Beach & Water",
+  "Nightlife",
+  "Sports",
+  "Wellness",
+  "Arts & Culture",
+  "Food & Drink",
+  "Events",
+];
 import { toast } from "sonner";
 import { adminApi } from "@/lib/api";
 import {
@@ -483,13 +496,21 @@ function ExperiencesPage() {
               </div>
               <div className="space-y-2">
                 <Label>Category</Label>
-                <Input
+                <Select
                   value={form.category}
-                  onChange={(e) =>
-                    setForm({ ...form, category: e.target.value })
-                  }
-                  placeholder="e.g. Karting, Adventure"
-                />
+                  onValueChange={(v) => setForm({ ...form, category: v })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {EXPERIENCE_CATEGORIES.map((c) => (
+                      <SelectItem key={c} value={c}>
+                        {c}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
 
