@@ -12,6 +12,7 @@ import {
   RefreshCw,
   Building2,
   UtensilsCrossed,
+  Star,
   Package,
   Pill,
   CheckCircle,
@@ -183,7 +184,7 @@ function VendorsPage() {
     phone: "",
     waveNumber: "",
     // Business details
-    businessType: "" as "" | "RESTAURANT" | "SHOP" | "PHARMACY",
+    businessType: "" as "" | "RESTAURANT" | "SHOP" | "PHARMACY" | "EXPERIENCE",
     businessName: "",
     businessAddress: "",
     businessPhone: "",
@@ -1384,22 +1385,27 @@ function VendorsPage() {
               {/* Business type selector */}
               <div className="space-y-2">
                 <Label>Business Type (optional)</Label>
-                <div className="grid grid-cols-3 gap-2">
-                  {(["RESTAURANT", "SHOP", "PHARMACY"] as const).map((type) => {
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                  {(
+                    ["RESTAURANT", "SHOP", "PHARMACY", "EXPERIENCE"] as const
+                  ).map((type) => {
                     const icons = {
                       RESTAURANT: UtensilsCrossed,
                       SHOP: Package,
                       PHARMACY: Pill,
+                      EXPERIENCE: Star,
                     };
                     const colors = {
                       RESTAURANT: "text-orange-500",
                       SHOP: "text-green-500",
                       PHARMACY: "text-blue-500",
+                      EXPERIENCE: "text-amber-500",
                     };
                     const labels = {
                       RESTAURANT: "Restaurant",
                       SHOP: "Shop",
                       PHARMACY: "Pharmacy",
+                      EXPERIENCE: "Experience",
                     };
                     const Icon = icons[type];
                     const selected = createForm.businessType === type;
