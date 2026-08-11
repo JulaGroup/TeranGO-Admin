@@ -2,7 +2,11 @@ import { api } from "@/lib/api";
 
 export const VENDOR_PROFILE_STORAGE_KEY = "vendor_profile";
 
-export type VendorBusinessType = "RESTAURANT" | "SHOP" | "PHARMACY";
+export type VendorBusinessType =
+  | "RESTAURANT"
+  | "SHOP"
+  | "PHARMACY"
+  | "EXPERIENCE";
 
 export interface VendorBusinessBase {
   id: string;

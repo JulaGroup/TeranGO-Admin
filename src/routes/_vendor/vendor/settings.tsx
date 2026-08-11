@@ -84,7 +84,26 @@ function getBusinessOptions(vendor: VendorProfile): BusinessOption[] {
     });
   }
 
+  if (vendor.experiences) {
+    vendor.experiences.forEach((e) => {
+      options.push({ id: e.id, label: e.name, type: "EXPERIENCE" });
+    });
+  }
+
   return options;
+}
+
+/** Which API a business's edits are saved through. */
+function endpointFor(business: VendorBusiness): string {
+  switch (business.type) {
+    case "RESTAURANT":
+      return `/api/restaurants/${business.id}/details`;
+    case "EXPERIENCE":
+      // Providers manage their own listing; ownership is checked server-side.
+      return `/api/experiences/vendor/${business.id}`;
+    default:
+      return `/api/shops/${business.id}`;
+  }
 }
 
 function findBusinessById(
@@ -97,6 +116,7 @@ function findBusinessById(
     ...(vendor.restaurants || []).map((r) => ({ ...r, type: "RESTAURANT" as const })),
     ...(vendor.shops || []).map((s) => ({ ...s, type: "SHOP" as const })),
     ...(vendor.pharmacies || []).map((p) => ({ ...p, type: "PHARMACY" as const })),
+    ...(vendor.experiences || []).map((e) => ({ ...e, type: "EXPERIENCE" as const })),
   ];
 
   return allBusinesses.find((b) => b.id === businessId);
@@ -110,14 +130,19 @@ function parseOpeningHours(business?: VendorBusiness): BusinessHours[] {
     closeTime: "18:00",
   }));
 
-  if (!business?.openingHours || typeof business.openingHours !== "object") {
+  // Experiences store the same shape under `openHours`; everything else uses
+  // `openingHours`.
+  const raw =
+    (business as any)?.openingHours ?? (business as any)?.openHours ?? null;
+
+  if (!raw || typeof raw !== "object") {
     return defaultHours;
   }
 
   return DAYS.map((day) => {
     const dayKey = day.toLowerCase();
     const dayData = (
-      business.openingHours as Record<
+      raw as Record<
         string,
         { open?: string; close?: string; closed?: boolean }
       >
@@ -233,6 +258,9 @@ function VendorSettingsView({
     address: business?.address || "",
     phone: business?.phone || "",
     email: business?.email || "",
+    // Experiences only
+    totalUnits: String((business as any)?.totalUnits ?? 1),
+    unitLabel: (business as any)?.unitLabel || "spot",
   });
   const [businessHours, setBusinessHours] = useState<BusinessHours[]>(() =>
     parseOpeningHours(business),
@@ -263,12 +291,11 @@ function VendorSettingsView({
     mutationFn: async (imageUrl: string) => {
       if (!business) throw new Error("No business");
 
-      const endpoint =
-        business.type === "RESTAURANT"
-          ? `/api/restaurants/${business.id}/details`
-          : `/api/shops/${business.id}`;
-
-      await api.put(endpoint, { imageUrl });
+      if (business.type === "EXPERIENCE") {
+        await api.patch(endpointFor(business), { imageUrl });
+      } else {
+        await api.put(endpointFor(business), { imageUrl });
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({
@@ -293,30 +320,33 @@ function VendorSettingsView({
         closed: !day.isOpen,
       };
     });
-    return {
+    const base = {
       name: data.name,
       description: data.description,
       address: data.address,
       phone: data.phone,
-      email: data.email,
-      openingHours,
     };
+    // Experiences have no email field and name their hours `openHours`.
+    if (business?.type === "EXPERIENCE") {
+      return {
+        ...base,
+        openHours: openingHours,
+        totalUnits: Math.max(1, Number(data.totalUnits) || 1),
+        unitLabel: data.unitLabel || "spot",
+      };
+    }
+    return { ...base, email: data.email, openingHours };
   };
 
   const updateMutation = useMutation({
     mutationFn: async () => {
       if (!business) throw new Error("No business");
 
-      const endpoint =
-        business.type === "RESTAURANT"
-          ? `/api/restaurants/${business.id}/details`
-          : `/api/shops/${business.id}`;
-
-      const response = await api.put(
-        endpoint,
-        buildPayload(businessHours, formData),
-      );
-      return response;
+      const payload = buildPayload(businessHours, formData);
+      const endpoint = endpointFor(business);
+      return business.type === "EXPERIENCE"
+        ? await api.patch(endpoint, payload)
+        : await api.put(endpoint, payload);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({
@@ -533,22 +563,68 @@ function VendorSettingsView({
                     />
                   </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="email">Email</Label>
-                    <Input
-                      id="email"
-                      type="email"
-                      value={formData.email}
-                      onChange={(e) =>
-                        setFormData((prev) => ({
-                          ...prev,
-                          email: e.target.value,
-                        }))
-                      }
-                      disabled={!isEditing}
-                    />
-                  </div>
+                  {business.type !== "EXPERIENCE" && (
+                    <div className="space-y-2">
+                      <Label htmlFor="email">Email</Label>
+                      <Input
+                        id="email"
+                        type="email"
+                        value={formData.email}
+                        onChange={(e) =>
+                          setFormData((prev) => ({
+                            ...prev,
+                            email: e.target.value,
+                          }))
+                        }
+                        disabled={!isEditing}
+                      />
+                    </div>
+                  )}
                 </div>
+
+                {/* Capacity — how many can run at once, and what to call them.
+                    Changing this changes what customers can book immediately. */}
+                {business.type === "EXPERIENCE" && (
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label htmlFor="totalUnits">Capacity</Label>
+                      <Input
+                        id="totalUnits"
+                        type="number"
+                        min={1}
+                        value={formData.totalUnits}
+                        onChange={(e) =>
+                          setFormData((prev) => ({
+                            ...prev,
+                            totalUnits: e.target.value,
+                          }))
+                        }
+                        disabled={!isEditing}
+                      />
+                      <p className="text-muted-foreground text-xs">
+                        How many can run at the same time
+                      </p>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="unitLabel">What you call them</Label>
+                      <Input
+                        id="unitLabel"
+                        placeholder="kart"
+                        value={formData.unitLabel}
+                        onChange={(e) =>
+                          setFormData((prev) => ({
+                            ...prev,
+                            unitLabel: e.target.value,
+                          }))
+                        }
+                        disabled={!isEditing}
+                      />
+                      <p className="text-muted-foreground text-xs">
+                        Shown to customers, e.g. kart, seat, board
+                      </p>
+                    </div>
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -610,6 +686,19 @@ function VendorSettingsView({
             </CardContent>
           </Card>
 
+          {/* Packages — experiences only. Saved immediately, independent of the
+              profile form above. */}
+          {business.type === "EXPERIENCE" && (
+            <ExperiencePackages
+              experienceId={business.id}
+              unitLabel={(business as any).unitLabel || "spot"}
+              options={((business as any).options || []).filter(
+                (o: any) => o.isActive !== false,
+              )}
+              onChanged={refetch}
+            />
+          )}
+
           {isEditing && (
             <div className="flex justify-end gap-3">
               <Button
@@ -623,6 +712,8 @@ function VendorSettingsView({
                     address: business.address || "",
                     phone: business.phone || "",
                     email: business.email || "",
+                    totalUnits: String((business as any).totalUnits ?? 1),
+                    unitLabel: (business as any).unitLabel || "spot",
                   });
                   setBusinessHours(parseOpeningHours(business));
                   setProfileImage(business.imageUrl || "");
@@ -653,5 +744,205 @@ function VendorSettingsView({
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+/**
+ * Package editor for experience providers — add, reprice and retire the
+ * options customers book. Each action saves straight away; there is no draft
+ * state to lose, and pricing is the thing a provider changes most often.
+ */
+function ExperiencePackages({
+  experienceId,
+  unitLabel,
+  options,
+  onChanged,
+}: {
+  experienceId: string;
+  unitLabel: string;
+  options: Array<{
+    id: string;
+    label: string;
+    durationMins: number;
+    price: number;
+  }>;
+  onChanged: () => void;
+}) {
+  const [label, setLabel] = useState("");
+  const [durationMins, setDurationMins] = useState("5");
+  const [price, setPrice] = useState("");
+  const [editing, setEditing] = useState<Record<string, string>>({});
+
+  const addMutation = useMutation({
+    mutationFn: () =>
+      api.post(`/api/experiences/vendor/${experienceId}/options`, {
+        label,
+        durationMins: Number(durationMins),
+        price: Number(price),
+      }),
+    onSuccess: () => {
+      toast.success("Package added");
+      setLabel("");
+      setDurationMins("5");
+      setPrice("");
+      onChanged();
+    },
+    onError: (e: any) =>
+      toast.error(e?.response?.data?.error || "Couldn't add package"),
+  });
+
+  const priceMutation = useMutation({
+    mutationFn: ({ id, value }: { id: string; value: number }) =>
+      api.patch(`/api/experiences/vendor/${experienceId}/options/${id}`, {
+        price: value,
+      }),
+    onSuccess: (_r, v) => {
+      toast.success("Price updated");
+      setEditing((p) => {
+        const next = { ...p };
+        delete next[v.id];
+        return next;
+      });
+      onChanged();
+    },
+    onError: (e: any) =>
+      toast.error(e?.response?.data?.error || "Couldn't update price"),
+  });
+
+  const removeMutation = useMutation({
+    mutationFn: (id: string) =>
+      api.delete(`/api/experiences/vendor/${experienceId}/options/${id}`),
+    onSuccess: () => {
+      toast.success("Package removed");
+      onChanged();
+    },
+    onError: (e: any) =>
+      toast.error(e?.response?.data?.error || "Couldn't remove package"),
+  });
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Packages</CardTitle>
+        <CardDescription>
+          What customers choose and pay for. Prices are per {unitLabel} — you
+          receive the full amount, TeranGO&apos;s fee is added on top for the
+          customer.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {options.length === 0 ? (
+          <p className="text-muted-foreground rounded-lg border border-dashed p-6 text-center text-sm">
+            No packages yet — add your first one below.
+          </p>
+        ) : (
+          <div className="space-y-2">
+            {options.map((o) => {
+              const draft = editing[o.id];
+              const dirty = draft !== undefined && Number(draft) !== o.price;
+              return (
+                <div
+                  key={o.id}
+                  className="flex flex-wrap items-center gap-3 rounded-lg border p-3"
+                >
+                  <div className="min-w-[160px] flex-1">
+                    <div className="font-medium">{o.label}</div>
+                    <div className="text-muted-foreground text-xs">
+                      {o.durationMins} min · per {unitLabel}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-muted-foreground text-sm">D</span>
+                    <Input
+                      type="number"
+                      min={0}
+                      className="h-9 w-28"
+                      value={draft ?? String(o.price)}
+                      onChange={(e) =>
+                        setEditing((p) => ({ ...p, [o.id]: e.target.value }))
+                      }
+                    />
+                    <Button
+                      size="sm"
+                      disabled={!dirty || priceMutation.isPending}
+                      onClick={() =>
+                        priceMutation.mutate({ id: o.id, value: Number(draft) })
+                      }
+                    >
+                      {priceMutation.isPending &&
+                      priceMutation.variables?.id === o.id ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        "Save"
+                      )}
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="text-destructive"
+                      disabled={removeMutation.isPending}
+                      onClick={() => removeMutation.mutate(o.id)}
+                    >
+                      Remove
+                    </Button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        <div className="bg-muted/30 space-y-3 rounded-lg border p-3">
+          <Label className="text-muted-foreground text-xs uppercase tracking-wide">
+            Add a package
+          </Label>
+          <div className="grid gap-3 sm:grid-cols-[1fr_auto_auto_auto] sm:items-end">
+            <div className="space-y-1">
+              <Label className="text-xs">Name</Label>
+              <Input
+                placeholder="10 min / 12 laps"
+                value={label}
+                onChange={(e) => setLabel(e.target.value)}
+              />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Minutes</Label>
+              <Input
+                type="number"
+                min={1}
+                className="w-24"
+                value={durationMins}
+                onChange={(e) => setDurationMins(e.target.value)}
+              />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Price (D)</Label>
+              <Input
+                type="number"
+                min={0}
+                className="w-28"
+                value={price}
+                onChange={(e) => setPrice(e.target.value)}
+              />
+            </div>
+            <Button
+              disabled={
+                !label.trim() ||
+                !Number(price) ||
+                !Number(durationMins) ||
+                addMutation.isPending
+              }
+              onClick={() => addMutation.mutate()}
+            >
+              {addMutation.isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                "Add"
+              )}
+            </Button>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
   );
 }
