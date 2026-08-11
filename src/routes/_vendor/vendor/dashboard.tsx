@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { api } from "@/lib/api";
 import { useVendorProfile } from "@/hooks/use-vendor-profile";
+import { isExperienceVendor } from "@/lib/vendor";
 import {
   Card,
   CardContent,
@@ -227,6 +228,13 @@ function VendorDashboard() {
   const weekRevenue =
     stats?.dailyStats?.reduce((s, d) => s + d.revenue, 0) ?? 0;
 
+  // Experience providers sell bookings, not orders — same figures, right words.
+  const xp = isExperienceVendor(vendor);
+  const unit = xp ? "booking" : "order";
+  const units = xp ? "bookings" : "orders";
+  const Unit = xp ? "Booking" : "Order";
+  const Units = xp ? "Bookings" : "Orders";
+
   const statCards = [
     {
       title: "Total Revenue",
@@ -238,33 +246,33 @@ function VendorDashboard() {
     {
       title: "Today's Revenue",
       value: fmt(stats?.todayRevenue ?? 0),
-      subtitle: `${stats?.todayOrders ?? 0} orders today`,
+      subtitle: `${stats?.todayOrders ?? 0} ${units} today`,
       icon: TrendingUp,
       highlight: false,
     },
     {
-      title: "Avg. Order Value",
+      title: `Avg. ${Unit} Value`,
       value: fmt(stats?.averageOrderValue ?? 0),
-      subtitle: "Per transaction",
+      subtitle: `Per ${unit}`,
       icon: BarChart2,
       highlight: false,
     },
     {
-      title: "Total Orders",
+      title: `Total ${Units}`,
       value: stats?.totalOrders ?? 0,
       subtitle: "All time",
       icon: ShoppingBag,
       highlight: false,
     },
     {
-      title: "Pending Orders",
+      title: xp ? "Upcoming" : "Pending Orders",
       value: stats?.pendingOrders ?? 0,
-      subtitle: "Awaiting fulfillment",
+      subtitle: xp ? "Still to come" : "Awaiting fulfillment",
       icon: Clock,
       highlight: (stats?.pendingOrders ?? 0) > 0,
     },
     {
-      title: "Completed Orders",
+      title: xp ? "Guests Checked In" : "Completed Orders",
       value: stats?.completedOrders ?? 0,
       subtitle: `${completionRate}% completion rate`,
       icon: CheckCircle,

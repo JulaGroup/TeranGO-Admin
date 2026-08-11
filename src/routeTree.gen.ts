@@ -40,6 +40,7 @@ import { Route as VendorVendorPayoutsRouteImport } from './routes/_vendor/vendor
 import { Route as VendorVendorOrdersRouteImport } from './routes/_vendor/vendor/orders'
 import { Route as VendorVendorMenuRouteImport } from './routes/_vendor/vendor/menu'
 import { Route as VendorVendorDashboardRouteImport } from './routes/_vendor/vendor/dashboard'
+import { Route as VendorVendorBookingsRouteImport } from './routes/_vendor/vendor/bookings'
 import { Route as AuthenticatedAdminDeliverySettingsRouteImport } from './routes/_authenticated/admin/delivery-settings'
 import { Route as AuthenticatedAdminVendorsIndexRouteImport } from './routes/_authenticated/admin/vendors/index'
 import { Route as AuthenticatedAdminVendorSettlementsIndexRouteImport } from './routes/_authenticated/admin/vendor-settlements/index'
@@ -240,6 +241,11 @@ const VendorVendorMenuRoute = VendorVendorMenuRouteImport.update({
 const VendorVendorDashboardRoute = VendorVendorDashboardRouteImport.update({
   id: '/vendor/dashboard',
   path: '/vendor/dashboard',
+  getParentRoute: () => VendorRoute,
+} as any)
+const VendorVendorBookingsRoute = VendorVendorBookingsRouteImport.update({
+  id: '/vendor/bookings',
+  path: '/vendor/bookings',
   getParentRoute: () => VendorRoute,
 } as any)
 const AuthenticatedAdminDeliverySettingsRoute =
@@ -488,6 +494,7 @@ export interface FileRoutesByFullPath {
   '/unauthorized': typeof authUnauthorizedRoute
   '/express': typeof AuthenticatedExpressRoute
   '/admin/delivery-settings': typeof AuthenticatedAdminDeliverySettingsRoute
+  '/vendor/bookings': typeof VendorVendorBookingsRoute
   '/vendor/dashboard': typeof VendorVendorDashboardRoute
   '/vendor/menu': typeof VendorVendorMenuRoute
   '/vendor/orders': typeof VendorVendorOrdersRoute
@@ -558,6 +565,7 @@ export interface FileRoutesByTo {
   '/unauthorized': typeof authUnauthorizedRoute
   '/express': typeof AuthenticatedExpressRoute
   '/admin/delivery-settings': typeof AuthenticatedAdminDeliverySettingsRoute
+  '/vendor/bookings': typeof VendorVendorBookingsRoute
   '/vendor/dashboard': typeof VendorVendorDashboardRoute
   '/vendor/menu': typeof VendorVendorMenuRoute
   '/vendor/orders': typeof VendorVendorOrdersRoute
@@ -631,6 +639,7 @@ export interface FileRoutesById {
   '/_authenticated/express': typeof AuthenticatedExpressRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
   '/_authenticated/admin/delivery-settings': typeof AuthenticatedAdminDeliverySettingsRoute
+  '/_vendor/vendor/bookings': typeof VendorVendorBookingsRoute
   '/_vendor/vendor/dashboard': typeof VendorVendorDashboardRoute
   '/_vendor/vendor/menu': typeof VendorVendorMenuRoute
   '/_vendor/vendor/orders': typeof VendorVendorOrdersRoute
@@ -703,6 +712,7 @@ export interface FileRouteTypes {
     | '/unauthorized'
     | '/express'
     | '/admin/delivery-settings'
+    | '/vendor/bookings'
     | '/vendor/dashboard'
     | '/vendor/menu'
     | '/vendor/orders'
@@ -773,6 +783,7 @@ export interface FileRouteTypes {
     | '/unauthorized'
     | '/express'
     | '/admin/delivery-settings'
+    | '/vendor/bookings'
     | '/vendor/dashboard'
     | '/vendor/menu'
     | '/vendor/orders'
@@ -845,6 +856,7 @@ export interface FileRouteTypes {
     | '/_authenticated/express'
     | '/_authenticated/'
     | '/_authenticated/admin/delivery-settings'
+    | '/_vendor/vendor/bookings'
     | '/_vendor/vendor/dashboard'
     | '/_vendor/vendor/menu'
     | '/_vendor/vendor/orders'
@@ -1134,6 +1146,13 @@ declare module '@tanstack/react-router' {
       path: '/vendor/dashboard'
       fullPath: '/vendor/dashboard'
       preLoaderRoute: typeof VendorVendorDashboardRouteImport
+      parentRoute: typeof VendorRoute
+    }
+    '/_vendor/vendor/bookings': {
+      id: '/_vendor/vendor/bookings'
+      path: '/vendor/bookings'
+      fullPath: '/vendor/bookings'
+      preLoaderRoute: typeof VendorVendorBookingsRouteImport
       parentRoute: typeof VendorRoute
     }
     '/_authenticated/admin/delivery-settings': {
@@ -1548,6 +1567,7 @@ const AuthenticatedRouteRouteWithChildren =
   AuthenticatedRouteRoute._addFileChildren(AuthenticatedRouteRouteChildren)
 
 interface VendorRouteChildren {
+  VendorVendorBookingsRoute: typeof VendorVendorBookingsRoute
   VendorVendorDashboardRoute: typeof VendorVendorDashboardRoute
   VendorVendorMenuRoute: typeof VendorVendorMenuRoute
   VendorVendorOrdersRoute: typeof VendorVendorOrdersRoute
@@ -1561,6 +1581,7 @@ interface VendorRouteChildren {
 }
 
 const VendorRouteChildren: VendorRouteChildren = {
+  VendorVendorBookingsRoute: VendorVendorBookingsRoute,
   VendorVendorDashboardRoute: VendorVendorDashboardRoute,
   VendorVendorMenuRoute: VendorVendorMenuRoute,
   VendorVendorOrdersRoute: VendorVendorOrdersRoute,

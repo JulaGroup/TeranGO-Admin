@@ -51,7 +51,22 @@ export interface VendorPharmacy extends VendorBusinessBase {
   } | null;
 }
 
-export type VendorBusiness = VendorRestaurant | VendorShop | VendorPharmacy;
+export interface VendorExperience extends VendorBusinessBase {
+  type: "EXPERIENCE";
+  unitLabel?: string;
+  totalUnits?: number;
+  service?: {
+    id: string;
+    name: string;
+    type: string;
+  } | null;
+}
+
+export type VendorBusiness =
+  | VendorRestaurant
+  | VendorShop
+  | VendorPharmacy
+  | VendorExperience;
 
 export interface VendorProfileUser {
   id: string;
@@ -76,12 +91,25 @@ export interface VendorProfile {
   restaurants: VendorRestaurant[];
   shops: VendorShop[];
   pharmacies: VendorPharmacy[];
+  experiences?: VendorExperience[];
   _count?: {
     restaurants?: number;
     shops?: number;
     pharmacies?: number;
+    experiences?: number;
   };
 }
+
+/** True when this vendor sells bookable experiences rather than goods. */
+export const isExperienceVendor = (v: VendorProfile | null | undefined) =>
+  Boolean(v?.experiences && v.experiences.length > 0);
+
+/** True when the vendor has nothing but experiences — no orders will ever exist. */
+export const isExperienceOnlyVendor = (v: VendorProfile | null | undefined) =>
+  isExperienceVendor(v) &&
+  !v?.restaurants?.length &&
+  !v?.shops?.length &&
+  !v?.pharmacies?.length;
 
 const safeParse = <T>(raw: string | null): T | null => {
   if (!raw) return null;

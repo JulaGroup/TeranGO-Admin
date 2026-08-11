@@ -15,10 +15,16 @@ import {
   DollarSign,
   Users,
   Clock,
+  CalendarCheck,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { clearVendorProfile, type VendorProfile } from "@/lib/vendor";
+import {
+  clearVendorProfile,
+  isExperienceVendor,
+  isExperienceOnlyVendor,
+  type VendorProfile,
+} from "@/lib/vendor";
 import { useVendorProfile } from "@/hooks/use-vendor-profile";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -54,6 +60,14 @@ const getNavGroups = (): NavGroup[] => [
         title: "Orders",
         href: "/vendor/orders",
         icon: ShoppingBag,
+        // An experience-only vendor never receives orders — they get bookings.
+        condition: (vendor) => !isExperienceOnlyVendor(vendor),
+      },
+      {
+        title: "Bookings",
+        href: "/vendor/bookings",
+        icon: CalendarCheck,
+        condition: (vendor) => isExperienceVendor(vendor),
       },
       {
         title: "Menu",
