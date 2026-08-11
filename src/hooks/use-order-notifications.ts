@@ -305,6 +305,37 @@ export function useOrderNotifications({
 
     socket.on("new_order", handleNewOrder);
     socket.on("new-order", handleNewOrder); // support server hyphenated event
+
+    // Experience providers get bookings rather than orders — same treatment,
+    // so a confirmed booking lands as audibly as a new order does.
+    const handleBookingConfirmed = (data: {
+      bookingId: string;
+      vendorId?: string;
+      experienceName?: string;
+      optionLabel?: string;
+      quantity?: number;
+      customerName?: string;
+    }) => {
+      if (vendorId && data.vendorId && data.vendorId !== vendorId) return;
+      playNotificationSound();
+      const who = data.customerName || "Guest";
+      const what = `${data.optionLabel || "Booking"}${
+        data.quantity ? ` × ${data.quantity}` : ""
+      }`;
+      toast.success("New booking 🎟️", {
+        description: `${who} · ${what}`,
+        duration: 8000,
+      });
+      showBrowserNotification("🎟️ New Booking", `${who} • ${what}`, {
+        bookingId: data.bookingId,
+        type: "booking_confirmed",
+      });
+      queryClient.invalidateQueries({ queryKey: ["vendor-bookings"] });
+      queryClient.invalidateQueries({ queryKey: ["vendor-stats"] });
+      queryClient.invalidateQueries({ queryKey: ["vendor-earnings-summary"] });
+    };
+    socket.on("booking_confirmed", handleBookingConfirmed);
+    socket.on("booking-confirmed", handleBookingConfirmed);
     socket.on("orderCreated", (data: OrderCreatedPayload) =>
       handleNewOrder({
         id: data.orderId,

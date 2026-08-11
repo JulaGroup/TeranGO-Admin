@@ -22,6 +22,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Clock, RotateCw, Wallet } from "lucide-react";
 import { toast } from "sonner";
+import { useVendorProfile } from "@/hooks/use-vendor-profile";
+import { isExperienceVendor } from "@/lib/vendor";
 
 export const Route = createFileRoute("/_vendor/vendor/payouts")({
   component: VendorPayouts,
@@ -44,6 +46,10 @@ function formatDate(dateStr: string) {
 
 function VendorPayouts() {
   const queryClient = useQueryClient();
+  // Providers earn from bookings, not delivered orders — same figures, right words.
+  const { vendor } = useVendorProfile();
+  const xp = isExperienceVendor(vendor);
+  const units = xp ? "booking(s)" : "order(s)";
   const [page, setPage] = useState(1);
 
   const { data: summary, isLoading: isLoadingSummary } = useQuery({
@@ -101,7 +107,9 @@ function VendorPayouts() {
               Available for Payout
             </CardTitle>
             <CardDescription>
-              Earnings from delivered orders not yet paid out
+              {xp
+                ? "Earnings from completed bookings not yet paid out"
+                : "Earnings from delivered orders not yet paid out"}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -111,7 +119,7 @@ function VendorPayouts() {
                 : formatGMD(summary?.pendingUnsettled?.total)}
             </div>
             <p className="text-sm text-green-600 mt-2">
-              Includes {summary?.pendingUnsettled?.count || 0} order(s)
+              Includes {summary?.pendingUnsettled?.count || 0} {units}
             </p>
           </CardContent>
           <CardFooter>
