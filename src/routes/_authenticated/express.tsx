@@ -1,7 +1,12 @@
 import React, { useEffect, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { Card, CardContent } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -45,6 +50,7 @@ import {
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
+import { format } from "date-fns";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { adminApi } from "@/lib/api";
@@ -65,6 +71,9 @@ interface ExpressMetrics {
     averageExpressFee: number;
     onTimeRate: number;
   };
+  totalAllTime?: number;
+  statusCounts?: Record<string, number>;
+  revenueToday?: number;
   priorityBreakdown: Array<{ priorityLevel: string; _count: { id: number } }>;
   vehiclePerformance: Array<{
     vehicleType: string;
@@ -114,16 +123,18 @@ interface ExpressDelivery {
 const formatCurrency = (amount: number) =>
   `D${Math.round(amount).toLocaleString()}`;
 
-const formatCreatedAt = (iso?: string) => {
+const formatCreatedDate = (iso?: string) => {
   if (!iso) return "—";
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return "—";
-  return d.toLocaleString("en-GB", {
-    day: "2-digit",
-    month: "short",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+  return format(d, "MMM dd, yyyy");
+};
+
+const formatCreatedTime = (iso?: string) => {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  return format(d, "HH:mm");
 };
 
 const PRIORITY_CONFIG = {
@@ -205,60 +216,6 @@ const PAYMENT_CONFIG: Record<string, { label: string; className: string }> = {
     className: "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-400",
   },
 };
-
-// ─── Stat Card ────────────────────────────────────────────────────────────────
-
-function StatCard({
-  icon: Icon,
-  label,
-  value,
-  sub,
-  iconClass,
-  loading,
-}: {
-  icon: React.ElementType;
-  label: string;
-  value: string | number;
-  sub?: string;
-  iconClass?: string;
-  loading?: boolean;
-}) {
-  if (loading) {
-    return (
-      <Card>
-        <CardContent className="p-5">
-          <Skeleton className="h-4 w-24 mb-3" />
-          <Skeleton className="h-7 w-16" />
-        </CardContent>
-      </Card>
-    );
-  }
-  return (
-    <Card>
-      <CardContent className="p-5">
-        <div className="flex items-start justify-between">
-          <div>
-            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-              {label}
-            </p>
-            <p className="text-2xl font-bold mt-1 tabular-nums">{value}</p>
-            {sub && (
-              <p className="text-xs text-muted-foreground mt-0.5">{sub}</p>
-            )}
-          </div>
-          <div
-            className={cn(
-              "flex h-10 w-10 items-center justify-center rounded-xl",
-              iconClass,
-            )}
-          >
-            <Icon className="h-5 w-5" />
-          </div>
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
 
 // ─── Delivery Detail Dialog ───────────────────────────────────────────────────
 
@@ -945,11 +902,19 @@ const ExpressDeliveryManagement: React.FC = () => {
   const hasFilters =
     !!debouncedSearch || statusFilter !== "ALL" || priorityFilter !== "ALL";
 
-  const today = metrics?.todayStats ?? {
-    totalExpressDeliveries: 0,
-    averageDeliveryTime: 0,
-    averageExpressFee: 0,
-    onTimeRate: 0,
+  // Counted server-side across the whole table, not the loaded page.
+  const counts = metrics?.statusCounts ?? {};
+  const sumOf = (...keys: string[]) =>
+    keys.reduce((n, k) => n + (counts[k] ?? 0), 0);
+
+  const stats = {
+    total: metrics?.totalAllTime ?? 0,
+    pending: sumOf("PENDING"),
+    active: sumOf("DRIVER_ASSIGNED", "PICKED_UP", "IN_TRANSIT", "ARRIVED"),
+    delivered: sumOf("DELIVERED"),
+    cancelled: sumOf("CANCELLED"),
+    revenueToday: metrics?.revenueToday ?? 0,
+    todayCount: metrics?.todayStats?.totalExpressDeliveries ?? 0,
   };
 
 
@@ -976,89 +941,159 @@ const ExpressDeliveryManagement: React.FC = () => {
       </Header>
 
       <Main>
-    <div className="space-y-5">
-      {/* Header */}
-      <div className="flex items-start justify-between gap-4">
+    <div className="space-y-6">
+      {/* Page Header */}
+      <div className="flex items-center justify-between">
         <div>
-          <div className="flex items-center gap-2">
-            <Zap className="h-5 w-5 text-primary" />
-            <h1 className="text-xl font-bold tracking-tight">
-              Express Delivery
-            </h1>
-          </div>
-          <p className="text-sm text-muted-foreground mt-0.5">
-            Real-time management for express &amp; priority deliveries
+          <h1 className="text-2xl font-bold tracking-tight">
+            Express Delivery
+          </h1>
+          <p className="text-muted-foreground text-sm mt-1">
+            Track and manage all express courier deliveries
           </p>
         </div>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => refetch()}
-          className="gap-2 shrink-0"
-        >
-          <RefreshCw className="h-3.5 w-3.5" />
-          Refresh
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            onClick={() => refetch()}
+            variant="outline"
+            size="sm"
+            disabled={deliveriesFetching}
+          >
+            <RefreshCw
+              className={cn(
+                "mr-2 h-4 w-4",
+                deliveriesFetching && "animate-spin",
+              )}
+            />
+            Refresh
+          </Button>
+        </div>
       </div>
 
-      {/* Stat cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <StatCard
-          icon={Zap}
-          label="Total Today"
-          value={today.totalExpressDeliveries}
-          sub="express deliveries"
-          iconClass="bg-primary/10 text-primary"
-          loading={metricsLoading}
-        />
-        <StatCard
-          icon={Package}
-          label={hasFilters ? "Matching" : "All Deliveries"}
-          value={totalMatching}
-          sub={hasFilters ? "match your filters" : "all time"}
-          iconClass="bg-blue-500/10 text-blue-600 dark:text-blue-400"
-          loading={deliveriesLoading}
-        />
-        <StatCard
-          icon={Clock}
-          label="Avg. Delivery"
-          value={
-            today.averageDeliveryTime ? `${today.averageDeliveryTime}m` : "—"
-          }
-          sub="minutes"
-          iconClass="bg-violet-500/10 text-violet-600 dark:text-violet-400"
-          loading={metricsLoading}
-        />
-        <StatCard
-          icon={TrendingUp}
-          label="On-Time Rate"
-          value={
-            today.onTimeRate > 0
-              ? `${Math.round(today.onTimeRate * 100)}%`
-              : "—"
-          }
-          sub="delivered on time"
-          iconClass="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
-          loading={metricsLoading}
-        />
+      {/* Stats Cards */}
+      <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-5">
+        <Card className="border-l-4 border-l-primary shadow-sm">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Total Express
+            </CardTitle>
+            <Zap className="h-4 w-4 text-primary" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold tabular-nums">
+              {metricsLoading ? (
+                <Skeleton className="h-7 w-14" />
+              ) : (
+                stats.total.toLocaleString()
+              )}
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">All time</p>
+          </CardContent>
+        </Card>
+
+        <Card className="border-l-4 border-l-amber-500 shadow-sm">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Pending
+            </CardTitle>
+            <Clock className="h-4 w-4 text-amber-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold tabular-nums">
+              {metricsLoading ? (
+                <Skeleton className="h-7 w-14" />
+              ) : (
+                stats.pending.toLocaleString()
+              )}
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              Awaiting a driver
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="border-l-4 border-l-blue-500 shadow-sm">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              In Progress
+            </CardTitle>
+            <Package className="h-4 w-4 text-blue-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold tabular-nums">
+              {metricsLoading ? (
+                <Skeleton className="h-7 w-14" />
+              ) : (
+                stats.active.toLocaleString()
+              )}
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              Assigned or on the road
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="border-l-4 border-l-emerald-500 shadow-sm">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Delivered
+            </CardTitle>
+            <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold tabular-nums">
+              {metricsLoading ? (
+                <Skeleton className="h-7 w-14" />
+              ) : (
+                stats.delivered.toLocaleString()
+              )}
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              {stats.cancelled > 0
+                ? `${stats.cancelled.toLocaleString()} cancelled`
+                : "Completed"}
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="border-l-4 border-l-orange-500 shadow-sm">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Revenue Today
+            </CardTitle>
+            <TrendingUp className="h-4 w-4 text-orange-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold tabular-nums">
+              {metricsLoading ? (
+                <Skeleton className="h-7 w-20" />
+              ) : (
+                formatCurrency(stats.revenueToday)
+              )}
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              {stats.todayCount} today, paid only
+            </p>
+          </CardContent>
+        </Card>
       </div>
 
-      {/* Deliveries */}
-      <div className="space-y-4">
-          {/* Filters */}
-          <div className="flex flex-wrap gap-2">
-            <div className="relative flex-1 min-w-48">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
+      {/* Deliveries table with integrated filters */}
+      <Card className="shadow-sm overflow-hidden">
+        <CardHeader className="border-b pb-4">
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
               <Input
-                placeholder="Search ID, address, sender…"
+                className="pl-9 h-9 w-[260px]"
+                placeholder="Search TGEX ref, address, sender..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9 h-9 text-sm"
               />
             </div>
             <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="h-9 w-36 text-sm">
-                <SelectValue placeholder="Status" />
+              <SelectTrigger className="h-9 w-[160px]">
+                <SelectValue placeholder="Filter by status" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="ALL">All Status</SelectItem>
@@ -1072,8 +1107,8 @@ const ExpressDeliveryManagement: React.FC = () => {
               </SelectContent>
             </Select>
             <Select value={priorityFilter} onValueChange={setPriorityFilter}>
-              <SelectTrigger className="h-9 w-36 text-sm">
-                <SelectValue placeholder="Priority" />
+              <SelectTrigger className="h-9 w-[160px]">
+                <SelectValue placeholder="Filter by priority" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="ALL">All Priorities</SelectItem>
@@ -1082,72 +1117,61 @@ const ExpressDeliveryManagement: React.FC = () => {
                 <SelectItem value="STANDARD">Standard</SelectItem>
               </SelectContent>
             </Select>
+            {hasFilters && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-9 text-muted-foreground"
+                onClick={() => {
+                  setSearchQuery("");
+                  setStatusFilter("ALL");
+                  setPriorityFilter("ALL");
+                }}
+              >
+                <XCircle className="mr-1.5 h-3.5 w-3.5" />
+                Clear
+              </Button>
+            )}
           </div>
+        </CardHeader>
 
-          {/* Table */}
-          <Card>
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow className="hover:bg-transparent">
-                    <TableHead className="text-xs font-semibold uppercase tracking-wider pl-4 w-28">
-                      ID
-                    </TableHead>
-                    <TableHead className="text-xs font-semibold uppercase tracking-wider w-24">
-                      Priority
-                    </TableHead>
-                    <TableHead className="text-xs font-semibold uppercase tracking-wider">
-                      Route
-                    </TableHead>
-                    <TableHead className="text-xs font-semibold uppercase tracking-wider w-32">
-                      Status
-                    </TableHead>
-                    <TableHead className="text-xs font-semibold uppercase tracking-wider w-28">
-                      Payment
-                    </TableHead>
-                    <TableHead className="text-xs font-semibold uppercase tracking-wider w-28">
-                      Driver
-                    </TableHead>
-                    <TableHead className="text-xs font-semibold uppercase tracking-wider w-28">
-                      Created
-                    </TableHead>
-                    <TableHead className="text-xs font-semibold uppercase tracking-wider text-right pr-4 w-20">
-                      Fee
-                    </TableHead>
-                    <TableHead className="text-xs font-semibold uppercase tracking-wider text-right pr-4 w-36">
-                      Actions
-                    </TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {deliveriesLoading ? (
-                    Array.from({ length: 5 }).map((_, i) => (
-                      <TableRow key={i}>
-                        {Array.from({ length: 9 }).map((_, j) => (
-                          <TableCell key={j} className="py-3">
-                            <Skeleton className="h-4 w-full" />
-                          </TableCell>
-                        ))}
-                      </TableRow>
-                    ))
-                  ) : rows.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={9} className="text-center py-12">
-                        <div className="flex flex-col items-center gap-2">
-                          <Package className="h-8 w-8 text-muted-foreground/30" />
-                          <p className="text-sm font-medium text-muted-foreground">
-                            No deliveries found
-                          </p>
-                          <p className="text-xs text-muted-foreground/60">
-                            {hasFilters
-                              ? "Try adjusting your filters"
-                              : "Express deliveries will appear here"}
-                          </p>
-                        </div>
-                      </TableCell>
+        <CardContent className="p-0">
+          {deliveriesLoading ? (
+            <div className="flex flex-col items-center justify-center py-20 text-center">
+              <RefreshCw className="h-8 w-8 animate-spin text-muted-foreground mb-4 opacity-50" />
+              <p className="text-sm text-muted-foreground">
+                Loading deliveries...
+              </p>
+            </div>
+          ) : rows.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-20 text-center">
+              <Package className="h-10 w-10 text-muted-foreground/30 mb-3" />
+              <p className="text-sm font-medium">No deliveries found</p>
+              <p className="text-xs text-muted-foreground mt-1">
+                {hasFilters
+                  ? "Try adjusting your filters"
+                  : "Express deliveries will appear here"}
+              </p>
+            </div>
+          ) : (
+            <>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-muted/50 hover:bg-muted/50">
+                      <TableHead>Delivery</TableHead>
+                      <TableHead>Route</TableHead>
+                      <TableHead>Sender</TableHead>
+                      <TableHead>Amount</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Payment</TableHead>
+                      <TableHead>Driver</TableHead>
+                      <TableHead>Created</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
-                  ) : (
-                    rows.map((delivery) => {
+                  </TableHeader>
+                  <TableBody>
+                    {rows.map((delivery) => {
                       const priority =
                         PRIORITY_CONFIG[delivery.priorityLevel] ??
                         PRIORITY_CONFIG.STANDARD;
@@ -1158,21 +1182,19 @@ const ExpressDeliveryManagement: React.FC = () => {
                       return (
                         <TableRow
                           key={delivery.id}
-                          className={cn(
-                            "group",
-                            delivery.isDelayed &&
-                              "bg-red-50/50 dark:bg-red-950/10",
-                          )}
+                          className="hover:bg-muted/30 transition-colors"
                         >
-                          <TableCell className="pl-4 py-3">
-                            <span className="font-mono text-xs text-muted-foreground">
+                          {/* Delivery ref + priority */}
+                          <TableCell className="align-top">
+                            <p className="font-medium whitespace-nowrap">
                               {formatExpressDeliveryId(delivery.id)}
-                            </span>
-                          </TableCell>
-                          <TableCell className="py-3">
+                            </p>
                             <Badge
                               variant="outline"
-                              className={cn("text-xs gap-1", priority.className)}
+                              className={cn(
+                                "mt-1 text-xs gap-1",
+                                priority.className,
+                              )}
                             >
                               <span
                                 className={cn(
@@ -1183,15 +1205,68 @@ const ExpressDeliveryManagement: React.FC = () => {
                               {priority.label}
                             </Badge>
                           </TableCell>
-                          <TableCell className="py-3 max-w-[200px]">
-                            <p className="text-sm truncate font-medium">
-                              {delivery.pickupAddress}
-                            </p>
-                            <p className="text-xs text-muted-foreground truncate mt-0.5">
-                              → {delivery.dropoffAddress}
-                            </p>
+
+                          {/* Route: pickup above drop-off, the way a courier
+                              run actually reads */}
+                          <TableCell className="align-top max-w-[260px]">
+                            <div className="flex gap-2">
+                              <div className="flex flex-col items-center pt-1.5">
+                                <span className="h-2 w-2 rounded-full bg-emerald-500 shrink-0" />
+                                <span className="w-px flex-1 my-0.5 bg-border" />
+                                <span className="h-2 w-2 rounded-full bg-red-500 shrink-0" />
+                              </div>
+                              <div className="min-w-0 space-y-1">
+                                <p className="text-sm truncate">
+                                  {delivery.pickupAddress}
+                                </p>
+                                <p className="text-sm truncate">
+                                  {delivery.dropoffAddress}
+                                </p>
+                              </div>
+                            </div>
+                            {delivery.vehicleType && (
+                              <p className="text-xs text-muted-foreground mt-1.5 flex items-center gap-1">
+                                <span>
+                                  {VEHICLE_EMOJI[delivery.vehicleType] ?? "🚚"}
+                                </span>
+                                {delivery.vehicleType.replace("_", " ")}
+                              </p>
+                            )}
                           </TableCell>
-                          <TableCell className="py-3">
+
+                          {/* Sender */}
+                          <TableCell className="align-top">
+                            <p className="font-medium text-sm">
+                              {delivery.senderName || "Unknown"}
+                            </p>
+                            {delivery.senderPhone && (
+                              <p className="text-muted-foreground text-xs">
+                                {delivery.senderPhone}
+                              </p>
+                            )}
+                            {delivery.receiverName && (
+                              <p className="text-muted-foreground text-xs mt-0.5 truncate max-w-[140px]">
+                                to {delivery.receiverName}
+                              </p>
+                            )}
+                          </TableCell>
+
+                          {/* Amount */}
+                          <TableCell className="align-top">
+                            <p className="font-semibold text-sm tabular-nums">
+                              {formatCurrency(delivery.estimatedFee)}
+                            </p>
+                            {delivery.driverEarningAmount != null && (
+                              <p className="text-xs text-muted-foreground flex items-center gap-1 tabular-nums">
+                                <UserCheck className="h-2.5 w-2.5" />
+                                {formatCurrency(delivery.driverEarningAmount)}{" "}
+                                driver
+                              </p>
+                            )}
+                          </TableCell>
+
+                          {/* Status */}
+                          <TableCell className="align-top">
                             {status && (
                               <Badge
                                 variant="outline"
@@ -1204,27 +1279,30 @@ const ExpressDeliveryManagement: React.FC = () => {
                               </Badge>
                             )}
                           </TableCell>
-                          <TableCell className="py-3">
-                            <div className="flex flex-col gap-1">
-                              <span
-                                className={cn(
-                                  "inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium",
-                                  payment?.className,
-                                )}
-                              >
-                                {payment?.label ??
-                                  delivery.paymentStatus ??
-                                  "Unpaid"}
-                              </span>
-                              {!delivery.adminApprovedForPayment &&
-                                delivery.status === "PENDING" && (
-                                  <span className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
-                                    Needs review
-                                  </span>
-                                )}
-                            </div>
+
+                          {/* Payment */}
+                          <TableCell className="align-top">
+                            <Badge
+                              variant="outline"
+                              className={cn(
+                                "text-xs whitespace-nowrap",
+                                payment?.className,
+                              )}
+                            >
+                              {payment?.label ??
+                                delivery.paymentStatus ??
+                                "Unpaid"}
+                            </Badge>
+                            {!delivery.adminApprovedForPayment &&
+                              delivery.status === "PENDING" && (
+                                <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">
+                                  Needs review
+                                </p>
+                              )}
                           </TableCell>
-                          <TableCell className="py-3">
+
+                          {/* Driver */}
+                          <TableCell className="align-top">
                             {delivery.driverName ? (
                               <div className="flex items-center gap-1">
                                 <span className="text-sm">
@@ -1249,45 +1327,37 @@ const ExpressDeliveryManagement: React.FC = () => {
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                className="h-7 px-2 text-xs text-primary hover:text-primary hover:bg-primary/10"
                                 onClick={() => setAssignDialogDelivery(delivery)}
                                 disabled={
                                   delivery.status === "DELIVERED" ||
                                   delivery.status === "CANCELLED"
                                 }
                               >
-                                <UserCheck className="h-3 w-3 mr-1" />
+                                <UserCheck className="mr-1 h-3 w-3" />
                                 Assign
                               </Button>
                             )}
                           </TableCell>
-                          <TableCell className="py-3">
-                            <span className="text-xs text-muted-foreground tabular-nums whitespace-nowrap">
-                              {formatCreatedAt(delivery.createdAt)}
-                            </span>
+
+                          {/* Created */}
+                          <TableCell className="align-top">
+                            <p className="text-sm whitespace-nowrap">
+                              {formatCreatedDate(delivery.createdAt)}
+                            </p>
+                            <p className="text-xs text-muted-foreground whitespace-nowrap">
+                              {formatCreatedTime(delivery.createdAt)}
+                            </p>
                           </TableCell>
-                          <TableCell className="py-3 text-right pr-4">
-                            <span className="text-sm font-semibold tabular-nums">
-                              {formatCurrency(delivery.estimatedFee)}
-                            </span>
-                          </TableCell>
-                          <TableCell className="py-3 pr-4">
+
+                          {/* Actions */}
+                          <TableCell className="align-top text-right">
                             <div className="flex items-center justify-end gap-1">
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-7 w-7"
-                                onClick={() => openDetail(delivery)}
-                                title="View details"
-                              >
-                                <Eye className="h-3.5 w-3.5" />
-                              </Button>
                               {delivery.status === "PENDING" &&
                                 !delivery.adminApprovedForPayment && (
                                   <Button
                                     variant="ghost"
                                     size="sm"
-                                    className="h-7 px-2 text-xs text-amber-600 hover:text-amber-700 hover:bg-amber-50 dark:hover:bg-amber-900/20"
+                                    className="h-8 px-2 text-xs text-amber-600 hover:text-amber-700 hover:bg-amber-50 dark:hover:bg-amber-900/20"
                                     onClick={() =>
                                       approveForPaymentMutation.mutate(
                                         delivery.id,
@@ -1300,38 +1370,45 @@ const ExpressDeliveryManagement: React.FC = () => {
                                     Approve
                                   </Button>
                                 )}
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => openDetail(delivery)}
+                                title="View details"
+                              >
+                                <Eye className="h-4 w-4" />
+                              </Button>
                               {delivery.status !== "DELIVERED" &&
                                 delivery.status !== "CANCELLED" && (
                                   <Button
                                     variant="ghost"
                                     size="icon"
-                                    className="h-7 w-7 text-destructive/70 hover:text-destructive hover:bg-destructive/10"
+                                    className="text-destructive/70 hover:text-destructive hover:bg-destructive/10"
                                     onClick={() =>
                                       handleCancelFromRow(delivery.id)
                                     }
                                     disabled={cancelDeliveryMutation.isPending}
                                     title="Cancel delivery"
                                   >
-                                    <XCircle className="h-3.5 w-3.5" />
+                                    <XCircle className="h-4 w-4" />
                                   </Button>
                                 )}
                             </div>
                           </TableCell>
                         </TableRow>
                       );
-                    })
-                  )}
-                </TableBody>
-              </Table>
-            </div>
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
 
-            {/* Pagination */}
-            {totalMatching > 0 && (
+              {/* Pagination */}
               <div className="flex flex-wrap items-center justify-between gap-3 border-t px-4 py-3">
                 <p className="text-sm text-muted-foreground">
                   Showing{" "}
                   <span className="font-medium text-foreground tabular-nums">
-                    {(currentPage - 1) * PAGE_SIZE + 1}–
+                    {(currentPage - 1) * PAGE_SIZE + 1}
+                    {"-"}
                     {Math.min(currentPage * PAGE_SIZE, totalMatching)}
                   </span>{" "}
                   of{" "}
@@ -1365,11 +1442,10 @@ const ExpressDeliveryManagement: React.FC = () => {
                   </div>
                 )}
               </div>
-            )}
-          </Card>
-      </div>
-
-
+            </>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Detail dialog */}
       <DeliveryDetailDialog
