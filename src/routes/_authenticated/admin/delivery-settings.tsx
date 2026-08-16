@@ -52,6 +52,7 @@ import {
   Weight,
   Zap,
   Moon,
+  Bike,
 } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/admin/delivery-settings")(
@@ -108,6 +109,21 @@ interface SystemSettings {
   expressBookingFee: number;
   standardBookingFee: number;
 
+  // Unified driver-first rate card
+  driverBaseFeeBike: number;
+  driverBaseFeeKekeCargo: number;
+  driverBaseFeeCar: number;
+  driverBaseFeeVan: number;
+  driverBaseFeeLorry: number;
+  driverPerKmFeeBike: number;
+  driverPerKmFeeKekeCargo: number;
+  driverPerKmFeeCar: number;
+  driverPerKmFeeVan: number;
+  driverPerKmFeeLorry: number;
+  driverMinEarning: number;
+  platformMarginPercent: number;
+  unifiedPricingEnabled: boolean;
+
   // Third-party driver split rate
   thirdPartyDriverRate: number;
 
@@ -116,6 +132,16 @@ interface SystemSettings {
   noDriversStartHour: number;
   noDriversEndHour: number;
 }
+
+const RATE_CARD_VEHICLES = [
+  { key: "BIKE", emoji: "🏍️", label: "Motorbike", baseField: "driverBaseFeeBike", perKmField: "driverPerKmFeeBike" },
+  { key: "KEKE_CARGO", emoji: "🛺", label: "Keke Cargo", baseField: "driverBaseFeeKekeCargo", perKmField: "driverPerKmFeeKekeCargo" },
+  { key: "CAR", emoji: "🚗", label: "Car", baseField: "driverBaseFeeCar", perKmField: "driverPerKmFeeCar" },
+  { key: "VAN", emoji: "🚙", label: "Van", baseField: "driverBaseFeeVan", perKmField: "driverPerKmFeeVan" },
+  { key: "LORRY", emoji: "🚛", label: "Mini Truck", baseField: "driverBaseFeeLorry", perKmField: "driverPerKmFeeLorry" },
+] as const;
+
+const PREVIEW_KMS = [2, 5, 10, 20] as const;
 
 function DeliverySettingsPage() {
   const queryClient = useQueryClient();
@@ -181,7 +207,8 @@ function DeliverySettingsPage() {
     // Handle boolean fields
     if (
       field === "weightPricingEnabled" ||
-      field === "noDriversModeEnabled"
+      field === "noDriversModeEnabled" ||
+      field === "unifiedPricingEnabled"
     ) {
       return Boolean(settings?.[field]) || false;
     }
@@ -190,6 +217,28 @@ function DeliverySettingsPage() {
 
   const getNumericValue = (field: keyof SystemSettings): number => {
     return getValue(field) as number;
+  };
+
+  // Mirrors server/src/services/deliveryPricing.service.ts. Kept deliberately
+  // simple and in one place: an admin editing rates with no idea of the effect
+  // is how urgentPriorityMultiplier reached 0 and stayed there.
+  const marginPercent = getNumericValue("platformMarginPercent");
+  const previewFor = (
+    km: number,
+    v: (typeof RATE_CARD_VEHICLES)[number],
+  ) => {
+    const base = getNumericValue(v.baseField as keyof SystemSettings);
+    const perKm = getNumericValue(v.perKmField as keyof SystemSettings);
+    const min = getNumericValue("driverMinEarning");
+    const booking = getNumericValue("expressBookingFee");
+
+    const pay = Math.max(base + km * perKm, min);
+    const platform = pay * marginPercent;
+    return {
+      driver: Math.round(pay),
+      platform: Math.round(platform),
+      customer: Math.ceil(pay + platform) + booking,
+    };
   };
 
   if (isLoading) {
@@ -256,6 +305,215 @@ function DeliverySettingsPage() {
         </div>
 
         <div className="grid gap-6 md:grid-cols-2">
+          {/* ─── Driver Rate Card (the one that actually prices deliveries) ─── */}
+          <Card className="md:col-span-2 shadow-sm border-l-4 border-l-primary">
+            <CardHeader>
+              <div className="flex items-center gap-2">
+                <Bike className="h-5 w-5 text-primary" />
+                <CardTitle>Driver Rate Card</CardTitle>
+              </div>
+              <CardDescription>
+                The single rate card every Express delivery is priced from. You
+                set what the <strong>rider earns</strong>; the customer price is
+                derived from it, so nobody has to reverse-engineer a percentage
+                split. Weight is not priced here — it picks the vehicle, and the
+                vehicle already carries the cost.
+                <br />
+                <code className="text-xs">
+                  pay = max(minimum, base + km x per-km) &nbsp;·&nbsp; customer =
+                  pay + (pay x margin) + booking fee
+                </code>
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {RATE_CARD_VEHICLES.map((v) => (
+                  <div
+                    key={v.key}
+                    className="p-4 border rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors"
+                  >
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="text-2xl">{v.emoji}</div>
+                      <div className="font-medium">{v.label}</div>
+                    </div>
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <label className="text-sm font-medium w-16">Base:</label>
+                        <span className="text-muted-foreground">D</span>
+                        <Input
+                          type="number"
+                          value={getNumericValue(v.baseField as any)}
+                          onChange={(e) =>
+                            handleInputChange(v.baseField as any, e.target.value)
+                          }
+                          disabled={!isEditing}
+                          className="w-24"
+                        />
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <label className="text-sm font-medium w-16">
+                          Per km:
+                        </label>
+                        <span className="text-muted-foreground">D</span>
+                        <Input
+                          type="number"
+                          value={getNumericValue(v.perKmField as any)}
+                          onChange={(e) =>
+                            handleInputChange(v.perKmField as any, e.target.value)
+                          }
+                          disabled={!isEditing}
+                          className="w-24"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="grid gap-4 sm:grid-cols-3">
+                <div className="p-4 border rounded-lg">
+                  <label className="text-sm font-medium block mb-2">
+                    Driver minimum per delivery
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <span className="text-muted-foreground">D</span>
+                    <Input
+                      type="number"
+                      value={getNumericValue("driverMinEarning" as any)}
+                      onChange={(e) =>
+                        handleInputChange("driverMinEarning" as any, e.target.value)
+                      }
+                      disabled={!isEditing}
+                      className="w-24"
+                    />
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    No third-party rider is paid less than this on any single
+                    delivery. Salaried SYSTEM drivers are unaffected.
+                  </p>
+                </div>
+
+                <div className="p-4 border rounded-lg">
+                  <label className="text-sm font-medium block mb-2">
+                    Platform margin
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      type="number"
+                      step="0.01"
+                      value={getNumericValue("platformMarginPercent" as any)}
+                      onChange={(e) =>
+                        handleInputChange(
+                          "platformMarginPercent" as any,
+                          e.target.value,
+                        )
+                      }
+                      disabled={!isEditing}
+                      className="w-24"
+                    />
+                    <span className="text-muted-foreground text-sm">
+                      = {Math.round(marginPercent * 100)}%
+                    </span>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    A fraction, not a percentage: 0.25 means the app adds 25% on
+                    top of driver pay. Riders keep{" "}
+                    {Math.round((1 / (1 + marginPercent)) * 100)}% of transport.
+                  </p>
+                </div>
+
+                <div className="p-4 border rounded-lg">
+                  <label className="text-sm font-medium block mb-2">
+                    Use this card for normal orders too
+                  </label>
+                  <Switch
+                    checked={
+                      (formData.unifiedPricingEnabled ??
+                        settings?.unifiedPricingEnabled) ||
+                      false
+                    }
+                    onCheckedChange={(checked) =>
+                      handleInputChange("unifiedPricingEnabled" as any, checked)
+                    }
+                    disabled={!isEditing}
+                  />
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Off: food and shop orders still use the legacy weight-based
+                    fees below. On: everything is priced from this card. Turning
+                    it on <strong>will change normal-order prices</strong> —
+                    check the preview first.
+                  </p>
+                </div>
+              </div>
+
+              {/* Live preview — the thing that stops a setting like
+                  urgentPriorityMultiplier quietly reaching 0 */}
+              <div className="rounded-lg border overflow-hidden">
+                <div className="bg-muted/50 px-4 py-2 border-b">
+                  <p className="text-sm font-medium">
+                    Preview — what these numbers actually produce
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Updates as you type, before you save.
+                  </p>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b bg-muted/20">
+                        <th className="text-left px-4 py-2 font-medium">
+                          Vehicle
+                        </th>
+                        {PREVIEW_KMS.map((km) => (
+                          <th
+                            key={km}
+                            className="text-right px-4 py-2 font-medium"
+                          >
+                            {km} km
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {RATE_CARD_VEHICLES.map((v) => (
+                        <tr key={v.key} className="border-b last:border-0">
+                          <td className="px-4 py-2 whitespace-nowrap">
+                            {v.emoji} {v.label}
+                          </td>
+                          {PREVIEW_KMS.map((km) => {
+                            const p = previewFor(km, v);
+                            return (
+                              <td
+                                key={km}
+                                className="px-4 py-2 text-right tabular-nums"
+                              >
+                                <div className="font-semibold">
+                                  D{p.customer}
+                                </div>
+                                <div className="text-xs text-muted-foreground">
+                                  rider D{p.driver} · app D{p.platform}
+                                </div>
+                              </td>
+                            );
+                          })}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                <div className="px-4 py-2 border-t bg-muted/20">
+                  <p className="text-xs text-muted-foreground">
+                    Customer figures include the D
+                    {getNumericValue("expressBookingFee" as any) || 0} express
+                    booking fee and exclude the {""}
+                    {getNumericValue("serviceFeePercent" as any) || 0}% service
+                    fee, which is added at checkout.
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
           {/* Gift Order Zone Fees */}
           <Card className="shadow-sm">
             <CardHeader>
