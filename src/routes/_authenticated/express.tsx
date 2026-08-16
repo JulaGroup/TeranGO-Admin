@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { Card, CardContent } from "@/components/ui/card";
@@ -6,7 +6,6 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Select,
   SelectContent,
@@ -34,7 +33,6 @@ import {
   Clock,
   TrendingUp,
   Package,
-  AlertTriangle,
   CheckCircle2,
   MapPin,
   RefreshCw,
@@ -42,10 +40,10 @@ import {
   MessageSquare,
   Eye,
   UserCheck,
-  Timer,
   Search,
   XCircle,
-  ArrowUpRight,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -116,17 +114,16 @@ interface ExpressDelivery {
 const formatCurrency = (amount: number) =>
   `D${Math.round(amount).toLocaleString()}`;
 
-const formatTimeRemaining = (guaranteedTime?: string) => {
-  if (!guaranteedTime) return null;
-  const diffMins = Math.floor(
-    (new Date(guaranteedTime).getTime() - Date.now()) / 60_000,
-  );
-  if (diffMins <= 0) return { label: "OVERDUE", urgent: true };
-  if (diffMins < 60)
-    return { label: `${diffMins}m left`, urgent: diffMins < 15 };
-  const h = Math.floor(diffMins / 60);
-  const m = diffMins % 60;
-  return { label: `${h}h ${m}m`, urgent: false };
+const formatCreatedAt = (iso?: string) => {
+  if (!iso) return "—";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "—";
+  return d.toLocaleString("en-GB", {
+    day: "2-digit",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 };
 
 const PRIORITY_CONFIG = {
@@ -804,11 +801,13 @@ function AssignDriverDialog({
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 
+const PAGE_SIZE = 10;
+
 const ExpressDeliveryManagement: React.FC = () => {
-  const [activeTab, setActiveTab] = useState("deliveries");
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [priorityFilter, setPriorityFilter] = useState("ALL");
   const [searchQuery, setSearchQuery] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
   const [selectedDelivery, setSelectedDelivery] =
     useState<ExpressDelivery | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
@@ -827,35 +826,54 @@ const ExpressDeliveryManagement: React.FC = () => {
       retry: 1,
     });
 
+  // Search hits the server so it spans every page, but only after the typing
+  // settles — otherwise each keystroke is a query.
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(searchQuery.trim()), 350);
+    return () => clearTimeout(t);
+  }, [searchQuery]);
+
+  // Any filter change invalidates the page number you were on.
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [statusFilter, priorityFilter, debouncedSearch]);
+
   const {
-    data: deliveries,
+    data: deliveryPage,
     isLoading: deliveriesLoading,
+    isFetching: deliveriesFetching,
     refetch,
-  } = useQuery<ExpressDelivery[]>({
-    queryKey: ["express-deliveries", statusFilter, priorityFilter],
+  } = useQuery<{ items: ExpressDelivery[]; total: number; totalPages: number }>({
+    queryKey: [
+      "express-deliveries",
+      statusFilter,
+      priorityFilter,
+      debouncedSearch,
+      currentPage,
+    ],
     queryFn: () =>
       adminApi
         .getExpressDeliveries({
           isExpress: true,
           status: statusFilter !== "ALL" ? statusFilter : undefined,
           priorityLevel: priorityFilter !== "ALL" ? priorityFilter : undefined,
+          search: debouncedSearch || undefined,
+          page: currentPage,
+          limit: PAGE_SIZE,
         })
         .then((res) => {
-          const d = res.data?.data ?? res.data;
-          return Array.isArray(d) ? d : [];
+          const body = res.data ?? {};
+          const items = Array.isArray(body.data) ? body.data : [];
+          const p = body.pagination ?? {};
+          return {
+            items,
+            total: Number(p.total ?? items.length),
+            totalPages: Number(p.totalPages ?? 1),
+          };
         }),
     refetchInterval: 15_000,
-  });
-
-  const { data: urgentDeliveries } = useQuery<ExpressDelivery[]>({
-    queryKey: ["urgent-express-deliveries"],
-    queryFn: () =>
-      adminApi.getUrgentExpressDeliveries().then((res) => {
-        const d = res.data?.data ?? res.data;
-        return Array.isArray(d) ? d : [];
-      }),
-    refetchInterval: 10_000,
-    retry: 1,
+    placeholderData: (prev) => prev,
   });
 
   // ── Mutations ─────────────────────────────────────────────────────────────────
@@ -865,9 +883,6 @@ const ExpressDeliveryManagement: React.FC = () => {
     onSuccess: () => {
       toast.success("Approved for payment");
       queryClient.invalidateQueries({ queryKey: ["express-deliveries"] });
-      queryClient.invalidateQueries({
-        queryKey: ["urgent-express-deliveries"],
-      });
     },
     onError: (e: any) => toast.error(`Failed: ${e.message}`),
   });
@@ -888,7 +903,6 @@ const ExpressDeliveryManagement: React.FC = () => {
     onSuccess: () => {
       toast.success("Driver assigned");
       queryClient.invalidateQueries({ queryKey: ["express-deliveries"] });
-      queryClient.invalidateQueries({ queryKey: ["urgent-express-deliveries"] });
       setAssignDialogDelivery(null);
       setDetailOpen(false);
     },
@@ -918,9 +932,6 @@ const ExpressDeliveryManagement: React.FC = () => {
     onSuccess: () => {
       toast.success("Delivery cancelled");
       queryClient.invalidateQueries({ queryKey: ["express-deliveries"] });
-      queryClient.invalidateQueries({
-        queryKey: ["urgent-express-deliveries"],
-      });
       setDetailOpen(false);
     },
     onError: (e: any) => toast.error(`Failed: ${e.message}`),
@@ -928,17 +939,11 @@ const ExpressDeliveryManagement: React.FC = () => {
 
   // ── Derived ──────────────────────────────────────────────────────────────────
 
-  const filtered = (deliveries ?? []).filter((d) => {
-    if (!searchQuery) return true;
-    const q = searchQuery.toLowerCase();
-    return (
-      d.id.toLowerCase().includes(q) ||
-      d.pickupAddress.toLowerCase().includes(q) ||
-      d.dropoffAddress.toLowerCase().includes(q) ||
-      d.senderName?.toLowerCase().includes(q) ||
-      d.receiverName?.toLowerCase().includes(q)
-    );
-  });
+  const rows = deliveryPage?.items ?? [];
+  const totalMatching = deliveryPage?.total ?? 0;
+  const totalPages = deliveryPage?.totalPages ?? 1;
+  const hasFilters =
+    !!debouncedSearch || statusFilter !== "ALL" || priorityFilter !== "ALL";
 
   const today = metrics?.todayStats ?? {
     totalExpressDeliveries: 0,
@@ -947,9 +952,6 @@ const ExpressDeliveryManagement: React.FC = () => {
     onTimeRate: 0,
   };
 
-  const activeCount = (deliveries ?? []).filter(
-    (d) => !["DELIVERED", "CANCELLED"].includes(d.status),
-  ).length;
 
   const openDetail = (d: ExpressDelivery) => {
     setSelectedDelivery(d);
@@ -999,29 +1001,6 @@ const ExpressDeliveryManagement: React.FC = () => {
         </Button>
       </div>
 
-      {/* Urgent alert banner */}
-      {urgentDeliveries && urgentDeliveries.length > 0 && (
-        <div
-          className="flex items-center gap-3 rounded-xl border border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-950/40 px-4 py-3 cursor-pointer"
-          onClick={() => setActiveTab("urgent")}
-        >
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-red-100 dark:bg-red-900/40 shrink-0">
-            <AlertTriangle className="h-4 w-4 text-red-600 dark:text-red-400" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-semibold text-red-800 dark:text-red-300">
-              {urgentDeliveries.length} urgent{" "}
-              {urgentDeliveries.length === 1 ? "delivery" : "deliveries"} need
-              attention
-            </p>
-            <p className="text-xs text-red-600 dark:text-red-400">
-              Deadlines approaching — click to view urgent queue
-            </p>
-          </div>
-          <ArrowUpRight className="h-4 w-4 text-red-500 shrink-0" />
-        </div>
-      )}
-
       {/* Stat cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <StatCard
@@ -1034,9 +1013,9 @@ const ExpressDeliveryManagement: React.FC = () => {
         />
         <StatCard
           icon={Package}
-          label="Active"
-          value={activeCount}
-          sub="in progress"
+          label={hasFilters ? "Matching" : "All Deliveries"}
+          value={totalMatching}
+          sub={hasFilters ? "match your filters" : "all time"}
           iconClass="bg-blue-500/10 text-blue-600 dark:text-blue-400"
           loading={deliveriesLoading}
         />
@@ -1064,29 +1043,8 @@ const ExpressDeliveryManagement: React.FC = () => {
         />
       </div>
 
-      {/* Tabs */}
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="h-9">
-          <TabsTrigger value="deliveries" className="text-sm gap-1.5">
-            All Deliveries
-            {!deliveriesLoading && (
-              <span className="rounded-full bg-muted px-1.5 text-[11px] font-semibold tabular-nums">
-                {filtered.length}
-              </span>
-            )}
-          </TabsTrigger>
-          <TabsTrigger value="urgent" className="text-sm gap-1.5">
-            Urgent Queue
-            {urgentDeliveries && urgentDeliveries.length > 0 && (
-              <span className="rounded-full bg-red-500 text-white px-1.5 text-[11px] font-bold tabular-nums">
-                {urgentDeliveries.length}
-              </span>
-            )}
-          </TabsTrigger>
-        </TabsList>
-
-        {/* ─── All Deliveries ─── */}
-        <TabsContent value="deliveries" className="mt-4 space-y-4">
+      {/* Deliveries */}
+      <div className="space-y-4">
           {/* Filters */}
           <div className="flex flex-wrap gap-2">
             <div className="relative flex-1 min-w-48">
@@ -1150,8 +1108,8 @@ const ExpressDeliveryManagement: React.FC = () => {
                     <TableHead className="text-xs font-semibold uppercase tracking-wider w-28">
                       Driver
                     </TableHead>
-                    <TableHead className="text-xs font-semibold uppercase tracking-wider w-24">
-                      Deadline
+                    <TableHead className="text-xs font-semibold uppercase tracking-wider w-28">
+                      Created
                     </TableHead>
                     <TableHead className="text-xs font-semibold uppercase tracking-wider text-right pr-4 w-20">
                       Fee
@@ -1172,7 +1130,7 @@ const ExpressDeliveryManagement: React.FC = () => {
                         ))}
                       </TableRow>
                     ))
-                  ) : filtered.length === 0 ? (
+                  ) : rows.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={9} className="text-center py-12">
                         <div className="flex flex-col items-center gap-2">
@@ -1181,9 +1139,7 @@ const ExpressDeliveryManagement: React.FC = () => {
                             No deliveries found
                           </p>
                           <p className="text-xs text-muted-foreground/60">
-                            {searchQuery ||
-                            statusFilter !== "ALL" ||
-                            priorityFilter !== "ALL"
+                            {hasFilters
                               ? "Try adjusting your filters"
                               : "Express deliveries will appear here"}
                           </p>
@@ -1191,14 +1147,11 @@ const ExpressDeliveryManagement: React.FC = () => {
                       </TableCell>
                     </TableRow>
                   ) : (
-                    filtered.map((delivery) => {
+                    rows.map((delivery) => {
                       const priority =
                         PRIORITY_CONFIG[delivery.priorityLevel] ??
                         PRIORITY_CONFIG.STANDARD;
                       const status = STATUS_CONFIG[delivery.status];
-                      const timeInfo = formatTimeRemaining(
-                        delivery.guaranteedDeliveryTime,
-                      );
                       const payment =
                         PAYMENT_CONFIG[delivery.paymentStatus ?? "UNPAID"];
 
@@ -1309,22 +1262,9 @@ const ExpressDeliveryManagement: React.FC = () => {
                             )}
                           </TableCell>
                           <TableCell className="py-3">
-                            {timeInfo ? (
-                              <span
-                                className={cn(
-                                  "text-xs font-medium tabular-nums",
-                                  timeInfo.urgent
-                                    ? "text-red-600 dark:text-red-400"
-                                    : "text-muted-foreground",
-                                )}
-                              >
-                                {timeInfo.label}
-                              </span>
-                            ) : (
-                              <span className="text-xs text-muted-foreground">
-                                —
-                              </span>
-                            )}
+                            <span className="text-xs text-muted-foreground tabular-nums whitespace-nowrap">
+                              {formatCreatedAt(delivery.createdAt)}
+                            </span>
                           </TableCell>
                           <TableCell className="py-3 text-right pr-4">
                             <span className="text-sm font-semibold tabular-nums">
@@ -1384,136 +1324,52 @@ const ExpressDeliveryManagement: React.FC = () => {
                 </TableBody>
               </Table>
             </div>
-          </Card>
-        </TabsContent>
 
-        {/* ─── Urgent Queue ─── */}
-        <TabsContent value="urgent" className="mt-4 space-y-3">
-          {!urgentDeliveries || urgentDeliveries.length === 0 ? (
-            <Card>
-              <CardContent className="flex flex-col items-center justify-center py-16">
-                <div className="flex h-14 w-14 items-center justify-center rounded-full bg-emerald-100 dark:bg-emerald-900/30 mb-3">
-                  <CheckCircle2 className="h-7 w-7 text-emerald-600 dark:text-emerald-400" />
-                </div>
-                <h3 className="font-semibold">All clear!</h3>
-                <p className="text-sm text-muted-foreground mt-1">
-                  No urgent deliveries at the moment
+            {/* Pagination */}
+            {totalMatching > 0 && (
+              <div className="flex flex-wrap items-center justify-between gap-3 border-t px-4 py-3">
+                <p className="text-sm text-muted-foreground">
+                  Showing{" "}
+                  <span className="font-medium text-foreground tabular-nums">
+                    {(currentPage - 1) * PAGE_SIZE + 1}–
+                    {Math.min(currentPage * PAGE_SIZE, totalMatching)}
+                  </span>{" "}
+                  of{" "}
+                  <span className="font-medium text-foreground tabular-nums">
+                    {totalMatching}
+                  </span>
                 </p>
-              </CardContent>
-            </Card>
-          ) : (
-            urgentDeliveries.map((delivery) => {
-              const timeInfo = formatTimeRemaining(
-                delivery.guaranteedDeliveryTime,
-              );
-              return (
-                <Card
-                  key={delivery.id}
-                  className="border-red-200 dark:border-red-800 bg-red-50/50 dark:bg-red-950/20"
-                >
-                  <CardContent className="p-4">
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="font-mono text-sm font-semibold text-red-800 dark:text-red-300">
-                            {formatExpressDeliveryId(delivery.id)}
-                          </span>
-                          <Badge
-                            variant="outline"
-                            className="text-xs bg-red-100 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800"
-                          >
-                            {delivery.priorityLevel}
-                          </Badge>
-                          {timeInfo && (
-                            <span
-                              className={cn(
-                                "text-xs font-bold tabular-nums",
-                                timeInfo.urgent
-                                  ? "text-red-600 dark:text-red-400"
-                                  : "text-muted-foreground",
-                              )}
-                            >
-                              <Timer className="inline h-3 w-3 mr-0.5" />
-                              {timeInfo.label}
-                            </span>
-                          )}
-                        </div>
-                        <div className="flex items-center gap-1 text-xs text-red-700 dark:text-red-400">
-                          <MapPin className="h-3 w-3 shrink-0" />
-                          <span className="truncate">
-                            {delivery.pickupAddress} → {delivery.dropoffAddress}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-2 mt-2">
-                          {STATUS_CONFIG[delivery.status] && (
-                            <Badge
-                              variant="outline"
-                              className={cn(
-                                "text-xs",
-                                STATUS_CONFIG[delivery.status].className,
-                              )}
-                            >
-                              {STATUS_CONFIG[delivery.status].label}
-                            </Badge>
-                          )}
-                          <span
-                            className={cn(
-                              "inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium",
-                              PAYMENT_CONFIG[
-                                delivery.paymentStatus ?? "UNPAID"
-                              ]?.className,
-                            )}
-                          >
-                            {PAYMENT_CONFIG[delivery.paymentStatus ?? "UNPAID"]
-                              ?.label ?? "Unpaid"}
-                          </span>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2 shrink-0">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8"
-                          onClick={() => openDetail(delivery)}
-                        >
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                        {delivery.status === "PENDING" && (
-                          <>
-                            {!delivery.adminApprovedForPayment && (
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="h-8 text-xs border-red-300 dark:border-red-700"
-                                onClick={() =>
-                                  approveForPaymentMutation.mutate(delivery.id)
-                                }
-                                disabled={approveForPaymentMutation.isPending}
-                              >
-                                Approve
-                              </Button>
-                            )}
-                            {!delivery.driverName && (
-                              <Button
-                                size="sm"
-                                className="h-8 text-xs bg-red-600 hover:bg-red-700"
-                                onClick={() => setAssignDialogDelivery(delivery)}
-                              >
-                                <UserCheck className="h-3.5 w-3.5 mr-1.5" />
-                                Assign Now
-                              </Button>
-                            )}
-                          </>
-                        )}
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-            })
-          )}
-        </TabsContent>
-      </Tabs>
+                {totalPages > 1 && (
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={currentPage === 1 || deliveriesFetching}
+                      onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                    >
+                      <ChevronLeft className="h-4 w-4 mr-1" />
+                      Previous
+                    </Button>
+                    <span className="text-sm text-muted-foreground tabular-nums px-1">
+                      Page {currentPage} of {totalPages}
+                    </span>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={currentPage >= totalPages || deliveriesFetching}
+                      onClick={() => setCurrentPage((p) => p + 1)}
+                    >
+                      Next
+                      <ChevronRight className="h-4 w-4 ml-1" />
+                    </Button>
+                  </div>
+                )}
+              </div>
+            )}
+          </Card>
+      </div>
+
+
 
       {/* Detail dialog */}
       <DeliveryDetailDialog
