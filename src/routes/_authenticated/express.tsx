@@ -49,6 +49,7 @@ import {
   XCircle,
   ChevronLeft,
   ChevronRight,
+  ArrowRight,
 } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
@@ -158,6 +159,20 @@ const PRIORITY_CONFIG = {
   },
 };
 
+/**
+ * The one stage an admin may advance a delivery to from its current one.
+ * Deliberately a single step: offering the full list would let an admin mark a
+ * package delivered that was never picked up.
+ *
+ * PENDING is absent on purpose — leaving it means assigning a driver, which is
+ * its own action.
+ */
+const ADMIN_NEXT_STAGE: Record<string, { status: string; label: string } | undefined> = {
+  DRIVER_ASSIGNED: { status: "PICKED_UP", label: "Picked Up" },
+  PICKED_UP: { status: "IN_TRANSIT", label: "In Transit" },
+  IN_TRANSIT: { status: "ARRIVED", label: "Arrived" },
+};
+
 const STATUS_CONFIG: Record<string, { label: string; className: string }> = {
   PENDING: {
     label: "Pending",
@@ -227,6 +242,7 @@ function DeliveryDetailDialog({
   onCancel,
   onApprove,
   onAssignDriver,
+  onAdvanceStatus,
   confirmPending,
   cancelPending,
   approvePending,
@@ -238,6 +254,7 @@ function DeliveryDetailDialog({
   onCancel: () => void;
   onApprove: () => void;
   onAssignDriver: () => void;
+  onAdvanceStatus: (status: string) => void;
   confirmPending: boolean;
   cancelPending: boolean;
   approvePending: boolean;
@@ -482,6 +499,29 @@ function DeliveryDetailDialog({
               </Button>
             </div>
           )}
+          {/* Mark the delivery through its stages. Drivers normally advance
+              these from their own app, but a rider can forget, lose signal, or
+              hand over in person — without this an admin could only approve,
+              assign, confirm delivered or cancel, with no way to correct the
+              middle of the journey. Only the next stage is offered, so the
+              timeline cannot be pushed out of order. */}
+          {ADMIN_NEXT_STAGE[delivery.status] &&
+            delivery.driverName &&
+            delivery.status !== "DELIVERED" &&
+            delivery.status !== "CANCELLED" && (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() =>
+                  onAdvanceStatus(ADMIN_NEXT_STAGE[delivery.status]!.status)
+                }
+                className="w-full"
+              >
+                <ArrowRight className="h-3.5 w-3.5 mr-1.5" />
+                Mark as {ADMIN_NEXT_STAGE[delivery.status]!.label}
+              </Button>
+            )}
+
           {delivery.status !== "DELIVERED" &&
             delivery.status !== "CANCELLED" && (
               <Button
@@ -842,6 +882,22 @@ const ExpressDeliveryManagement: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ["express-deliveries"] });
     },
     onError: (e: any) => toast.error(`Failed: ${e.message}`),
+  });
+
+  const advanceStatusMutation = useMutation({
+    mutationFn: ({ id, status }: { id: string; status: string }) =>
+      adminApi.updateExpressDeliveryStatus(id, status, {
+        note: "Stage marked by admin",
+      }),
+    onSuccess: (_d, vars) => {
+      toast.success(`Marked as ${vars.status.replace("_", " ").toLowerCase()}`);
+      queryClient.invalidateQueries({ queryKey: ["express-deliveries"] });
+      queryClient.invalidateQueries({ queryKey: ["express-metrics"] });
+    },
+    onError: (e: any) =>
+      toast.error(
+        e?.response?.data?.message || e.message || "Could not update the stage",
+      ),
   });
 
   const assignDeliveryMutation = useMutation({
@@ -1470,6 +1526,10 @@ const ExpressDeliveryManagement: React.FC = () => {
         }
         onAssignDriver={() =>
           selectedDelivery && setAssignDialogDelivery(selectedDelivery)
+        }
+        onAdvanceStatus={(status) =>
+          selectedDelivery &&
+          advanceStatusMutation.mutate({ id: selectedDelivery.id, status })
         }
         confirmPending={confirmDeliveryMutation.isPending}
         cancelPending={cancelDeliveryMutation.isPending}
