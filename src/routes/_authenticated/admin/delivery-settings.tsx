@@ -120,6 +120,18 @@ interface SystemSettings {
   driverPerKmFeeCar: number;
   driverPerKmFeeVan: number;
   driverPerKmFeeLorry: number;
+
+  // Express-only overrides. Null/0 means "use the standard value above".
+  expressDriverBaseFeeBike: number | null;
+  expressDriverBaseFeeKekeCargo: number | null;
+  expressDriverBaseFeeCar: number | null;
+  expressDriverBaseFeeVan: number | null;
+  expressDriverBaseFeeLorry: number | null;
+  expressDriverPerKmFeeBike: number | null;
+  expressDriverPerKmFeeKekeCargo: number | null;
+  expressDriverPerKmFeeCar: number | null;
+  expressDriverPerKmFeeVan: number | null;
+  expressDriverPerKmFeeLorry: number | null;
   driverMinEarning: number;
   platformMarginPercent: number;
   unifiedPricingEnabled: boolean;
@@ -134,11 +146,11 @@ interface SystemSettings {
 }
 
 const RATE_CARD_VEHICLES = [
-  { key: "BIKE", emoji: "🏍️", label: "Motorbike", baseField: "driverBaseFeeBike", perKmField: "driverPerKmFeeBike" },
-  { key: "KEKE_CARGO", emoji: "🛺", label: "Keke Cargo", baseField: "driverBaseFeeKekeCargo", perKmField: "driverPerKmFeeKekeCargo" },
-  { key: "CAR", emoji: "🚗", label: "Car", baseField: "driverBaseFeeCar", perKmField: "driverPerKmFeeCar" },
-  { key: "VAN", emoji: "🚙", label: "Van", baseField: "driverBaseFeeVan", perKmField: "driverPerKmFeeVan" },
-  { key: "LORRY", emoji: "🚛", label: "Mini Truck", baseField: "driverBaseFeeLorry", perKmField: "driverPerKmFeeLorry" },
+  { key: "BIKE", emoji: "🏍️", label: "Motorbike", baseField: "driverBaseFeeBike", perKmField: "driverPerKmFeeBike", expressBaseField: "expressDriverBaseFeeBike", expressPerKmField: "expressDriverPerKmFeeBike" },
+  { key: "KEKE_CARGO", emoji: "🛺", label: "Keke Cargo", baseField: "driverBaseFeeKekeCargo", perKmField: "driverPerKmFeeKekeCargo", expressBaseField: "expressDriverBaseFeeKekeCargo", expressPerKmField: "expressDriverPerKmFeeKekeCargo" },
+  { key: "CAR", emoji: "🚗", label: "Car", baseField: "driverBaseFeeCar", perKmField: "driverPerKmFeeCar", expressBaseField: "expressDriverBaseFeeCar", expressPerKmField: "expressDriverPerKmFeeCar" },
+  { key: "VAN", emoji: "🚙", label: "Van", baseField: "driverBaseFeeVan", perKmField: "driverPerKmFeeVan", expressBaseField: "expressDriverBaseFeeVan", expressPerKmField: "expressDriverPerKmFeeVan" },
+  { key: "LORRY", emoji: "🚛", label: "Mini Truck", baseField: "driverBaseFeeLorry", perKmField: "driverPerKmFeeLorry", expressBaseField: "expressDriverBaseFeeLorry", expressPerKmField: "expressDriverPerKmFeeLorry" },
 ] as const;
 
 const PREVIEW_KMS = [2, 5, 10, 20] as const;
@@ -223,12 +235,23 @@ function DeliverySettingsPage() {
   // simple and in one place: an admin editing rates with no idea of the effect
   // is how urgentPriorityMultiplier reached 0 and stayed there.
   const marginPercent = getNumericValue("platformMarginPercent");
+  /**
+   * `express` mirrors the server: an Express override is used only when it is
+   * a real positive number, otherwise the standard value applies. Keeping the
+   * same rule here is what makes the preview trustworthy.
+   */
   const previewFor = (
     km: number,
     v: (typeof RATE_CARD_VEHICLES)[number],
+    express = false,
   ) => {
-    const base = getNumericValue(v.baseField as keyof SystemSettings);
-    const perKm = getNumericValue(v.perKmField as keyof SystemSettings);
+    const stdBase = getNumericValue(v.baseField as keyof SystemSettings);
+    const stdPerKm = getNumericValue(v.perKmField as keyof SystemSettings);
+    const xBase = getNumericValue(v.expressBaseField as keyof SystemSettings);
+    const xPerKm = getNumericValue(v.expressPerKmField as keyof SystemSettings);
+
+    const base = express && xBase > 0 ? xBase : stdBase;
+    const perKm = express && xPerKm > 0 ? xPerKm : stdPerKm;
     const min = getNumericValue("driverMinEarning");
     const booking = getNumericValue("expressBookingFee");
 
@@ -313,7 +336,9 @@ function DeliverySettingsPage() {
                 <CardTitle>Driver Rate Card</CardTitle>
               </div>
               <CardDescription>
-                The single rate card every Express delivery is priced from. You
+                The rate card food and shop deliveries are priced from — and
+                Express too, for any vehicle without an override in the card
+                below. You
                 set what the <strong>rider earns</strong>; the customer price is
                 derived from it, so nobody has to reverse-engineer a percentage
                 split. Weight is not priced here — it picks the vehicle, and the
@@ -508,6 +533,153 @@ function DeliverySettingsPage() {
                     booking fee and exclude the {""}
                     {getNumericValue("serviceFeePercent" as any) || 0}% service
                     fee, which is added at checkout.
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* ─── Express override card ───
+              Express is a long point-to-point courier run, not a hop from a
+              nearby vendor, so the food curve priced a 12.7km job at D471. A
+              higher base with a lower per-km is a distance taper written as
+              two numbers. */}
+          <Card className="md:col-span-2 shadow-sm border-l-4 border-l-orange-500">
+            <CardHeader>
+              <div className="flex items-center gap-2">
+                <Bike className="h-5 w-5 text-orange-500" />
+                <CardTitle>Express Rate Card</CardTitle>
+              </div>
+              <CardDescription>
+                Express only. Leave a field at <strong>0</strong> and that
+                vehicle falls back to the standard card above. Food and shop
+                orders are never affected by anything here.
+                <br />
+                Express wants a <strong>higher base and a lower per-km</strong>
+                {" "}than food delivery: these are long point-to-point runs, and
+                the food curve reached D471 on a 12.7km job. A high base with a
+                low per-km is a distance taper, in two numbers.
+                <br />
+                <strong>
+                  The platform margin is shared and is not set here.
+                </strong>{" "}
+                It is {Math.round(marginPercent * 100)}% because that makes 75%
+                of transport exactly equal rider pay — the split the earnings
+                service actually pays out. Change one without the other and a
+                rider is quoted one figure and paid another.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {RATE_CARD_VEHICLES.map((v) => (
+                  <div
+                    key={v.key}
+                    className="p-4 border rounded-lg bg-orange-50/40 hover:bg-orange-50/70 transition-colors"
+                  >
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="text-2xl">{v.emoji}</div>
+                      <div className="font-medium">{v.label}</div>
+                    </div>
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <label className="text-sm font-medium w-16">Base:</label>
+                        <span className="text-muted-foreground">D</span>
+                        <Input
+                          type="number"
+                          value={getNumericValue(v.expressBaseField as any)}
+                          onChange={(e) =>
+                            handleInputChange(
+                              v.expressBaseField as any,
+                              e.target.value,
+                            )
+                          }
+                          disabled={!isEditing}
+                          className="w-24"
+                        />
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <label className="text-sm font-medium w-16">
+                          Per km:
+                        </label>
+                        <span className="text-muted-foreground">D</span>
+                        <Input
+                          type="number"
+                          value={getNumericValue(v.expressPerKmField as any)}
+                          onChange={(e) =>
+                            handleInputChange(
+                              v.expressPerKmField as any,
+                              e.target.value,
+                            )
+                          }
+                          disabled={!isEditing}
+                          className="w-24"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="rounded-lg border overflow-hidden">
+                <div className="bg-orange-50/60 px-4 py-2 border-b">
+                  <p className="text-sm font-medium">
+                    Express preview — what a customer is actually quoted
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Updates as you type, before you save.
+                  </p>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b bg-muted/20">
+                        <th className="text-left px-4 py-2 font-medium">
+                          Vehicle
+                        </th>
+                        {PREVIEW_KMS.map((km) => (
+                          <th
+                            key={km}
+                            className="text-right px-4 py-2 font-medium"
+                          >
+                            {km} km
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {RATE_CARD_VEHICLES.map((v) => (
+                        <tr key={v.key} className="border-b last:border-0">
+                          <td className="px-4 py-2 whitespace-nowrap">
+                            {v.emoji} {v.label}
+                          </td>
+                          {PREVIEW_KMS.map((km) => {
+                            const p = previewFor(km, v, true);
+                            return (
+                              <td
+                                key={km}
+                                className="px-4 py-2 text-right tabular-nums"
+                              >
+                                <div className="font-semibold">
+                                  D{p.customer}
+                                </div>
+                                <div className="text-xs text-muted-foreground">
+                                  rider D{p.driver} · app D{p.platform}
+                                </div>
+                              </td>
+                            );
+                          })}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                <div className="px-4 py-2 border-t bg-muted/20">
+                  <p className="text-xs text-muted-foreground">
+                    Includes the D
+                    {getNumericValue("expressBookingFee" as any) || 0} express
+                    booking fee, excludes the{" "}
+                    {getNumericValue("serviceFeePercent" as any) || 0}% service
+                    fee added at checkout.
                   </p>
                 </div>
               </div>
