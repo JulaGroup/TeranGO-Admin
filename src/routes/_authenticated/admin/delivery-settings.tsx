@@ -132,6 +132,15 @@ interface SystemSettings {
   expressDriverPerKmFeeCar: number | null;
   expressDriverPerKmFeeVan: number | null;
   expressDriverPerKmFeeLorry: number | null;
+
+  // Long-distance taper and the platform take cap. Null/0 = off.
+  driverTaperAfterKm: number | null;
+  driverLongPerKmFeeBike: number | null;
+  driverLongPerKmFeeKekeCargo: number | null;
+  driverLongPerKmFeeCar: number | null;
+  driverLongPerKmFeeVan: number | null;
+  driverLongPerKmFeeLorry: number | null;
+  platformTakeCap: number | null;
   driverMinEarning: number;
   platformMarginPercent: number;
   unifiedPricingEnabled: boolean;
@@ -146,11 +155,11 @@ interface SystemSettings {
 }
 
 const RATE_CARD_VEHICLES = [
-  { key: "BIKE", emoji: "🏍️", label: "Motorbike", baseField: "driverBaseFeeBike", perKmField: "driverPerKmFeeBike", expressBaseField: "expressDriverBaseFeeBike", expressPerKmField: "expressDriverPerKmFeeBike" },
-  { key: "KEKE_CARGO", emoji: "🛺", label: "Keke Cargo", baseField: "driverBaseFeeKekeCargo", perKmField: "driverPerKmFeeKekeCargo", expressBaseField: "expressDriverBaseFeeKekeCargo", expressPerKmField: "expressDriverPerKmFeeKekeCargo" },
-  { key: "CAR", emoji: "🚗", label: "Car", baseField: "driverBaseFeeCar", perKmField: "driverPerKmFeeCar", expressBaseField: "expressDriverBaseFeeCar", expressPerKmField: "expressDriverPerKmFeeCar" },
-  { key: "VAN", emoji: "🚙", label: "Van", baseField: "driverBaseFeeVan", perKmField: "driverPerKmFeeVan", expressBaseField: "expressDriverBaseFeeVan", expressPerKmField: "expressDriverPerKmFeeVan" },
-  { key: "LORRY", emoji: "🚛", label: "Mini Truck", baseField: "driverBaseFeeLorry", perKmField: "driverPerKmFeeLorry", expressBaseField: "expressDriverBaseFeeLorry", expressPerKmField: "expressDriverPerKmFeeLorry" },
+  { key: "BIKE", emoji: "🏍️", label: "Motorbike", baseField: "driverBaseFeeBike", perKmField: "driverPerKmFeeBike", longPerKmField: "driverLongPerKmFeeBike", expressBaseField: "expressDriverBaseFeeBike", expressPerKmField: "expressDriverPerKmFeeBike" },
+  { key: "KEKE_CARGO", emoji: "🛺", label: "Keke Cargo", baseField: "driverBaseFeeKekeCargo", perKmField: "driverPerKmFeeKekeCargo", longPerKmField: "driverLongPerKmFeeKekeCargo", expressBaseField: "expressDriverBaseFeeKekeCargo", expressPerKmField: "expressDriverPerKmFeeKekeCargo" },
+  { key: "CAR", emoji: "🚗", label: "Car", baseField: "driverBaseFeeCar", perKmField: "driverPerKmFeeCar", longPerKmField: "driverLongPerKmFeeCar", expressBaseField: "expressDriverBaseFeeCar", expressPerKmField: "expressDriverPerKmFeeCar" },
+  { key: "VAN", emoji: "🚙", label: "Van", baseField: "driverBaseFeeVan", perKmField: "driverPerKmFeeVan", longPerKmField: "driverLongPerKmFeeVan", expressBaseField: "expressDriverBaseFeeVan", expressPerKmField: "expressDriverPerKmFeeVan" },
+  { key: "LORRY", emoji: "🚛", label: "Mini Truck", baseField: "driverBaseFeeLorry", perKmField: "driverPerKmFeeLorry", longPerKmField: "driverLongPerKmFeeLorry", expressBaseField: "expressDriverBaseFeeLorry", expressPerKmField: "expressDriverPerKmFeeLorry" },
 ] as const;
 
 const PREVIEW_KMS = [2, 5, 10, 20] as const;
@@ -255,12 +264,30 @@ function DeliverySettingsPage() {
     const min = getNumericValue("driverMinEarning");
     const booking = getNumericValue("expressBookingFee");
 
-    const pay = Math.max(base + km * perKm, min);
-    const platform = pay * marginPercent;
+    // Taper and cap are standard-order only, exactly as in the engine.
+    const taperAfter = express ? 0 : getNumericValue("driverTaperAfterKm");
+    const longPerKm = express
+      ? 0
+      : getNumericValue(v.longPerKmField as keyof SystemSettings);
+    const takeCap = express ? 0 : getNumericValue("platformTakeCap");
+
+    const distanceFee =
+      taperAfter > 0 && longPerKm > 0 && km > taperAfter
+        ? taperAfter * perKm + (km - taperAfter) * longPerKm
+        : km * perKm;
+
+    const pay = Math.max(base + distanceFee, min);
+    const uncapped = pay * marginPercent;
+    const platform =
+      takeCap > 0 && uncapped + booking > takeCap
+        ? Math.max(0, takeCap - booking)
+        : uncapped;
+
     return {
       driver: Math.round(pay),
       platform: Math.round(platform),
       customer: Math.ceil(pay + platform) + booking,
+      capped: platform !== uncapped,
     };
   };
 
@@ -390,6 +417,24 @@ function DeliverySettingsPage() {
                           className="w-24"
                         />
                       </div>
+                      <div className="flex items-center gap-2">
+                        <label className="text-sm font-medium w-16">
+                          Long km:
+                        </label>
+                        <span className="text-muted-foreground">D</span>
+                        <Input
+                          type="number"
+                          value={getNumericValue(v.longPerKmField as any)}
+                          onChange={(e) =>
+                            handleInputChange(
+                              v.longPerKmField as any,
+                              e.target.value,
+                            )
+                          }
+                          disabled={!isEditing}
+                          className="w-24"
+                        />
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -444,6 +489,59 @@ function DeliverySettingsPage() {
                     A fraction, not a percentage: 0.25 means the app adds 25% on
                     top of driver pay. Riders keep{" "}
                     {Math.round((1 / (1 + marginPercent)) * 100)}% of transport.
+                  </p>
+                </div>
+
+                <div className="p-4 border rounded-lg">
+                  <label className="text-sm font-medium block mb-2">
+                    Long-distance starts after
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      type="number"
+                      value={getNumericValue("driverTaperAfterKm" as any)}
+                      onChange={(e) =>
+                        handleInputChange(
+                          "driverTaperAfterKm" as any,
+                          e.target.value,
+                        )
+                      }
+                      disabled={!isEditing}
+                      className="w-24"
+                    />
+                    <span className="text-muted-foreground text-sm">km</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Past this point each km bills at the vehicle's{" "}
+                    <strong>Long km</strong> rate instead of Per km. Set either
+                    to 0 to switch the taper off. A flat rate that suits a hop
+                    to a nearby vendor priced a 22km run at D681.
+                  </p>
+                </div>
+
+                <div className="p-4 border rounded-lg">
+                  <label className="text-sm font-medium block mb-2">
+                    Most TeranGO keeps per delivery
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <span className="text-muted-foreground">D</span>
+                    <Input
+                      type="number"
+                      value={getNumericValue("platformTakeCap" as any)}
+                      onChange={(e) =>
+                        handleInputChange("platformTakeCap" as any, e.target.value)
+                      }
+                      disabled={!isEditing}
+                      className="w-24"
+                    />
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Margin and booking fee together — this is what the business
+                    actually earns on a job. 0 = no cap. Below it the split is
+                    exactly {Math.round((1 / (1 + marginPercent)) * 100)}/
+                    {Math.round((marginPercent / (1 + marginPercent)) * 100)};
+                    above it the rider keeps the rest, which is how a long run
+                    can pay a rider D450 while TeranGO takes D100.
                   </p>
                 </div>
 
@@ -517,6 +615,7 @@ function DeliverySettingsPage() {
                                 </div>
                                 <div className="text-xs text-muted-foreground">
                                   rider D{p.driver} · app D{p.platform}
+                                  {p.capped ? " (capped)" : ""}
                                 </div>
                               </td>
                             );
