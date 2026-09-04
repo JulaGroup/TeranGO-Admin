@@ -123,6 +123,7 @@ interface VendorDetail {
   id: string;
   isActive: boolean;
   multiUserEnabled?: boolean;
+  autoPayoutEnabled?: boolean;
   waveNumber?: string | null;
   businessLicense?: string | null;
   user?: {
@@ -396,6 +397,26 @@ function VendorDetailPage() {
     onError: (error: any) => {
       toast.error(
         error?.response?.data?.message || "Failed to update multi-user setting",
+      );
+    },
+  });
+
+  const toggleAutoPayoutMutation = useMutation({
+    mutationFn: async (enabled: boolean) => {
+      const res = await adminApi.setVendorAutoPayout(vendorId, enabled);
+      return res.data;
+    },
+    onSuccess: (_data, enabled) => {
+      queryClient.invalidateQueries({ queryKey: ["admin-vendor", vendorId] });
+      toast.success(
+        enabled
+          ? "Auto payout enabled — vendor is paid via Wave right after each order's payment"
+          : "Auto payout disabled — vendor goes back to manual settlement requests",
+      );
+    },
+    onError: (error: any) => {
+      toast.error(
+        error?.response?.data?.message || "Failed to update auto-payout setting",
       );
     },
   });
@@ -757,6 +778,21 @@ function VendorDetailPage() {
                       onCheckedChange={(checked) => toggleMultiUserMutation.mutate(checked)}
                     />
                     <span className="text-sm font-medium">Multiple users</span>
+                  </div>
+                  <div
+                    className="flex items-center gap-2 rounded-full border bg-muted/40 px-3.5 py-1.5"
+                    title={
+                      vendor.waveNumber
+                        ? "Automatically pay this vendor via Wave right after each order's payment succeeds"
+                        : "Add a Wave number before enabling auto payout"
+                    }
+                  >
+                    <Switch
+                      checked={!!vendor.autoPayoutEnabled}
+                      disabled={toggleAutoPayoutMutation.isPending || !vendor.waveNumber}
+                      onCheckedChange={(checked) => toggleAutoPayoutMutation.mutate(checked)}
+                    />
+                    <span className="text-sm font-medium">Auto payout</span>
                   </div>
                   <Button variant="outline" size="sm" onClick={openEditDialog} className="shadow-sm">
                     <Edit className="mr-2 h-4 w-4" />

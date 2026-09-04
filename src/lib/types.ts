@@ -31,6 +31,8 @@ export interface Vendor {
    * Stored as string to accomodate leading zeros and country codes.
    */
   waveNumber?: string;
+  /** Auto-pay this vendor via Wave right after each order's payment succeeds. */
+  autoPayoutEnabled?: boolean;
 
   // User info
   user?: {

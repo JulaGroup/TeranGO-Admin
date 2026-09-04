@@ -134,6 +134,10 @@ export const adminApi = {
   // Toggle whether a vendor can have up to 3 staff users (multi-user mode)
   setVendorMultiUser: (id: string, enabled: boolean) =>
     api.patch(`/api/admin/vendors/${id}/multi-user`, { enabled }),
+  // Toggle whether a vendor is paid automatically via Wave right after each
+  // order's payment succeeds, instead of the manual settlement queue
+  setVendorAutoPayout: (id: string, enabled: boolean) =>
+    api.patch(`/api/admin/vendors/${id}/auto-payout`, { enabled }),
 
   // Experiences (bookable activities)
   getExperiences: () => api.get("/api/admin/experiences"),
