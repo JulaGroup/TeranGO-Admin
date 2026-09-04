@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { api } from "@/lib/api";
+import { api, vendorApi } from "@/lib/api";
 import {
   Card,
   CardContent,
@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Clock, RotateCw, Wallet } from "lucide-react";
+import { Clock, RotateCw, Wallet, Zap } from "lucide-react";
 import { toast } from "sonner";
 import { useVendorProfile } from "@/hooks/use-vendor-profile";
 import { isExperienceVendor } from "@/lib/vendor";
@@ -69,6 +69,16 @@ function VendorPayouts() {
       return res.data as any;
     },
     placeholderData: (prev) => prev,
+  });
+
+  // Instant Wave payouts (auto-payout vendors only). Vendors still on manual
+  // settlement have none, and the card below stays hidden for them.
+  const { data: instantPayouts } = useQuery({
+    queryKey: ["vendor-instant-payouts"],
+    queryFn: async () => {
+      const res = await vendorApi.getPayouts({ limit: 20 });
+      return res.data as { data: any[]; total: number };
+    },
   });
 
   const settleMutation = useMutation({
@@ -167,7 +177,7 @@ function VendorPayouts() {
       </div>
       <Card>
         <CardHeader>
-          <CardTitle>Payout History</CardTitle>
+          <CardTitle>Withdrawal Requests</CardTitle>
           <CardDescription>
             Track all your previous withdrawal requests.
           </CardDescription>
@@ -256,6 +266,64 @@ function VendorPayouts() {
           </div>
         </div>
       </Card>
+
+      {/* Only shown to vendors on instant payout — everyone else sees the
+          withdrawal-request flow above exactly as before. */}
+      {!!instantPayouts?.data?.length && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Zap className="h-5 w-5 text-amber-500" />
+              Instant Payouts
+            </CardTitle>
+            <CardDescription>
+              Sent to your Wave account automatically after each order is paid
+              — no request needed.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Order</TableHead>
+                  <TableHead>Amount</TableHead>
+                  <TableHead>Sent At</TableHead>
+                  <TableHead>Status</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {instantPayouts.data.map((p: any) => (
+                  <TableRow key={p.id}>
+                    <TableCell className="font-mono text-xs">
+                      #{(p.orderId || "").slice(-8).toUpperCase()}
+                    </TableCell>
+                    <TableCell className="font-bold">
+                      {formatGMD(p.amount)}
+                    </TableCell>
+                    <TableCell className="text-sm">
+                      {formatDate(p.createdAt)}
+                    </TableCell>
+                    <TableCell>
+                      <Badge
+                        variant={
+                          p.status === "FAILED" || p.status === "REVERSED"
+                            ? "destructive"
+                            : p.status === "COMPLETED"
+                              ? "default"
+                              : "outline"
+                        }
+                        className={p.status === "COMPLETED" ? "bg-green-600" : ""}
+                      >
+                        {p.status === "COMPLETED" ? "PAID" : p.status}
+                      </Badge>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }
