@@ -326,7 +326,6 @@ function PaymentsPage() {
               <SelectContent>
                 <SelectItem value="all">All Networks</SelectItem>
                 <SelectItem value="wave">Wave</SelectItem>
-                <SelectItem value="wave_payout">Wave Payout</SelectItem>
                 <SelectItem value="modempay">Modempay</SelectItem>
               </SelectContent>
             </Select>

@@ -57,6 +57,7 @@ import { Route as AuthenticatedAdminSettingsIndexRouteImport } from './routes/_a
 import { Route as AuthenticatedAdminRestaurantsIndexRouteImport } from './routes/_authenticated/admin/restaurants/index'
 import { Route as AuthenticatedAdminReportsIndexRouteImport } from './routes/_authenticated/admin/reports/index'
 import { Route as AuthenticatedAdminPromocodesIndexRouteImport } from './routes/_authenticated/admin/promocodes/index'
+import { Route as AuthenticatedAdminPayoutsIndexRouteImport } from './routes/_authenticated/admin/payouts/index'
 import { Route as AuthenticatedAdminPaymentsIndexRouteImport } from './routes/_authenticated/admin/payments/index'
 import { Route as AuthenticatedAdminOrdersIndexRouteImport } from './routes/_authenticated/admin/orders/index'
 import { Route as AuthenticatedAdminNotificationsIndexRouteImport } from './routes/_authenticated/admin/notifications/index'
@@ -344,6 +345,12 @@ const AuthenticatedAdminPromocodesIndexRoute =
     path: '/admin/promocodes/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedAdminPayoutsIndexRoute =
+  AuthenticatedAdminPayoutsIndexRouteImport.update({
+    id: '/admin/payouts/',
+    path: '/admin/payouts/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedAdminPaymentsIndexRoute =
   AuthenticatedAdminPaymentsIndexRouteImport.update({
     id: '/admin/payments/',
@@ -536,6 +543,7 @@ export interface FileRoutesByFullPath {
   '/admin/notifications/': typeof AuthenticatedAdminNotificationsIndexRoute
   '/admin/orders/': typeof AuthenticatedAdminOrdersIndexRoute
   '/admin/payments/': typeof AuthenticatedAdminPaymentsIndexRoute
+  '/admin/payouts/': typeof AuthenticatedAdminPayoutsIndexRoute
   '/admin/promocodes/': typeof AuthenticatedAdminPromocodesIndexRoute
   '/admin/reports/': typeof AuthenticatedAdminReportsIndexRoute
   '/admin/restaurants/': typeof AuthenticatedAdminRestaurantsIndexRoute
@@ -607,6 +615,7 @@ export interface FileRoutesByTo {
   '/admin/notifications': typeof AuthenticatedAdminNotificationsIndexRoute
   '/admin/orders': typeof AuthenticatedAdminOrdersIndexRoute
   '/admin/payments': typeof AuthenticatedAdminPaymentsIndexRoute
+  '/admin/payouts': typeof AuthenticatedAdminPayoutsIndexRoute
   '/admin/promocodes': typeof AuthenticatedAdminPromocodesIndexRoute
   '/admin/reports': typeof AuthenticatedAdminReportsIndexRoute
   '/admin/restaurants': typeof AuthenticatedAdminRestaurantsIndexRoute
@@ -681,6 +690,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/notifications/': typeof AuthenticatedAdminNotificationsIndexRoute
   '/_authenticated/admin/orders/': typeof AuthenticatedAdminOrdersIndexRoute
   '/_authenticated/admin/payments/': typeof AuthenticatedAdminPaymentsIndexRoute
+  '/_authenticated/admin/payouts/': typeof AuthenticatedAdminPayoutsIndexRoute
   '/_authenticated/admin/promocodes/': typeof AuthenticatedAdminPromocodesIndexRoute
   '/_authenticated/admin/reports/': typeof AuthenticatedAdminReportsIndexRoute
   '/_authenticated/admin/restaurants/': typeof AuthenticatedAdminRestaurantsIndexRoute
@@ -754,6 +764,7 @@ export interface FileRouteTypes {
     | '/admin/notifications/'
     | '/admin/orders/'
     | '/admin/payments/'
+    | '/admin/payouts/'
     | '/admin/promocodes/'
     | '/admin/reports/'
     | '/admin/restaurants/'
@@ -825,6 +836,7 @@ export interface FileRouteTypes {
     | '/admin/notifications'
     | '/admin/orders'
     | '/admin/payments'
+    | '/admin/payouts'
     | '/admin/promocodes'
     | '/admin/reports'
     | '/admin/restaurants'
@@ -898,6 +910,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/notifications/'
     | '/_authenticated/admin/orders/'
     | '/_authenticated/admin/payments/'
+    | '/_authenticated/admin/payouts/'
     | '/_authenticated/admin/promocodes/'
     | '/_authenticated/admin/reports/'
     | '/_authenticated/admin/restaurants/'
@@ -1267,6 +1280,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminPromocodesIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/admin/payouts/': {
+      id: '/_authenticated/admin/payouts/'
+      path: '/admin/payouts'
+      fullPath: '/admin/payouts/'
+      preLoaderRoute: typeof AuthenticatedAdminPayoutsIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/admin/payments/': {
       id: '/_authenticated/admin/payments/'
       path: '/admin/payments'
@@ -1466,6 +1486,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdminNotificationsIndexRoute: typeof AuthenticatedAdminNotificationsIndexRoute
   AuthenticatedAdminOrdersIndexRoute: typeof AuthenticatedAdminOrdersIndexRoute
   AuthenticatedAdminPaymentsIndexRoute: typeof AuthenticatedAdminPaymentsIndexRoute
+  AuthenticatedAdminPayoutsIndexRoute: typeof AuthenticatedAdminPayoutsIndexRoute
   AuthenticatedAdminPromocodesIndexRoute: typeof AuthenticatedAdminPromocodesIndexRoute
   AuthenticatedAdminReportsIndexRoute: typeof AuthenticatedAdminReportsIndexRoute
   AuthenticatedAdminRestaurantsIndexRoute: typeof AuthenticatedAdminRestaurantsIndexRoute
@@ -1532,6 +1553,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
     AuthenticatedAdminNotificationsIndexRoute,
   AuthenticatedAdminOrdersIndexRoute: AuthenticatedAdminOrdersIndexRoute,
   AuthenticatedAdminPaymentsIndexRoute: AuthenticatedAdminPaymentsIndexRoute,
+  AuthenticatedAdminPayoutsIndexRoute: AuthenticatedAdminPayoutsIndexRoute,
   AuthenticatedAdminPromocodesIndexRoute:
     AuthenticatedAdminPromocodesIndexRoute,
   AuthenticatedAdminReportsIndexRoute: AuthenticatedAdminReportsIndexRoute,

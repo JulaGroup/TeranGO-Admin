@@ -103,6 +103,11 @@ export const sidebarData: SidebarData = {
           icon: TrendingUp,
         },
         {
+          title: "Payouts",
+          url: "/admin/payouts",
+          icon: Zap,
+        },
+        {
           title: "Settlements",
           icon: ArrowLeftRight,
           items: [
