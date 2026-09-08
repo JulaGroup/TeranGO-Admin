@@ -82,6 +82,9 @@ export interface DataTableProps<TData, TValue> {
   containerClassName?: string
   showPagination?: boolean
   showToolbar?: boolean
+
+  // Row interaction
+  onRowClick?: (row: TData) => void
 }
 
 export function DataTable<TData, TValue>({
@@ -105,6 +108,7 @@ export function DataTable<TData, TValue>({
   containerClassName,
   showPagination = true,
   showToolbar = true,
+  onRowClick,
 }: DataTableProps<TData, TValue>) {
   const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({})
   const [columnVisibility, setColumnVisibility] =
@@ -270,7 +274,14 @@ export function DataTable<TData, TValue>({
               <TableRow key={headerGroup.id}>
                 {headerGroup.headers.map((header) => {
                   return (
-                    <TableHead key={header.id} colSpan={header.colSpan}>
+                    <TableHead
+                      key={header.id}
+                      colSpan={header.colSpan}
+                      className={cn(
+                        header.column.columnDef.meta?.className,
+                        header.column.columnDef.meta?.thClassName
+                      )}
+                    >
                       {header.isPlaceholder
                         ? null
                         : flexRender(
@@ -305,9 +316,21 @@ export function DataTable<TData, TValue>({
                 <TableRow
                   key={row.id}
                   data-state={row.getIsSelected() && 'selected'}
+                  onClick={
+                    onRowClick ? () => onRowClick(row.original) : undefined
+                  }
+                  className={cn(
+                    onRowClick && 'cursor-pointer hover:bg-muted/30'
+                  )}
                 >
                   {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id}>
+                    <TableCell
+                      key={cell.id}
+                      className={cn(
+                        cell.column.columnDef.meta?.className,
+                        cell.column.columnDef.meta?.tdClassName
+                      )}
+                    >
                       {flexRender(
                         cell.column.columnDef.cell,
                         cell.getContext()

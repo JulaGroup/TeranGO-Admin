@@ -79,7 +79,6 @@ import { Route as AuthenticatedAdminVendorsVendorIdRouteImport } from './routes/
 import { Route as AuthenticatedAdminTerangoStoreSettingsRouteImport } from './routes/_authenticated/admin/terango-store/settings'
 import { Route as AuthenticatedAdminTerangoStoreOrdersRouteImport } from './routes/_authenticated/admin/terango-store/orders'
 import { Route as AuthenticatedAdminDriversDriverIdRouteImport } from './routes/_authenticated/admin/drivers/$driverId'
-import { Route as AuthenticatedAdminVendorsIndexMODERNRouteImport } from './routes/_authenticated/admin/vendors/index.MODERN'
 import { Route as AuthenticatedAdminAnalyticsAnalyticsIndexRouteImport } from './routes/_authenticated/admin/analytics/analytics/index'
 
 const VendorRoute = VendorRouteImport.update({
@@ -477,12 +476,6 @@ const AuthenticatedAdminDriversDriverIdRoute =
     path: '/admin/drivers/$driverId',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
-const AuthenticatedAdminVendorsIndexMODERNRoute =
-  AuthenticatedAdminVendorsIndexMODERNRouteImport.update({
-    id: '/admin/vendors/index/MODERN',
-    path: '/admin/vendors/index/MODERN',
-    getParentRoute: () => AuthenticatedRouteRoute,
-  } as any)
 const AuthenticatedAdminAnalyticsAnalyticsIndexRoute =
   AuthenticatedAdminAnalyticsAnalyticsIndexRouteImport.update({
     id: '/admin/analytics/analytics/',
@@ -560,7 +553,6 @@ export interface FileRoutesByFullPath {
   '/admin/vendor-settlements/': typeof AuthenticatedAdminVendorSettlementsIndexRoute
   '/admin/vendors/': typeof AuthenticatedAdminVendorsIndexRoute
   '/admin/analytics/analytics/': typeof AuthenticatedAdminAnalyticsAnalyticsIndexRoute
-  '/admin/vendors/index/MODERN': typeof AuthenticatedAdminVendorsIndexMODERNRoute
 }
 export interface FileRoutesByTo {
   '/': typeof AuthenticatedIndexRoute
@@ -632,7 +624,6 @@ export interface FileRoutesByTo {
   '/admin/vendor-settlements': typeof AuthenticatedAdminVendorSettlementsIndexRoute
   '/admin/vendors': typeof AuthenticatedAdminVendorsIndexRoute
   '/admin/analytics/analytics': typeof AuthenticatedAdminAnalyticsAnalyticsIndexRoute
-  '/admin/vendors/index/MODERN': typeof AuthenticatedAdminVendorsIndexMODERNRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -707,7 +698,6 @@ export interface FileRoutesById {
   '/_authenticated/admin/vendor-settlements/': typeof AuthenticatedAdminVendorSettlementsIndexRoute
   '/_authenticated/admin/vendors/': typeof AuthenticatedAdminVendorsIndexRoute
   '/_authenticated/admin/analytics/analytics/': typeof AuthenticatedAdminAnalyticsAnalyticsIndexRoute
-  '/_authenticated/admin/vendors/index/MODERN': typeof AuthenticatedAdminVendorsIndexMODERNRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -781,7 +771,6 @@ export interface FileRouteTypes {
     | '/admin/vendor-settlements/'
     | '/admin/vendors/'
     | '/admin/analytics/analytics/'
-    | '/admin/vendors/index/MODERN'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -853,7 +842,6 @@ export interface FileRouteTypes {
     | '/admin/vendor-settlements'
     | '/admin/vendors'
     | '/admin/analytics/analytics'
-    | '/admin/vendors/index/MODERN'
   id:
     | '__root__'
     | '/_authenticated'
@@ -927,7 +915,6 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/vendor-settlements/'
     | '/_authenticated/admin/vendors/'
     | '/_authenticated/admin/analytics/analytics/'
-    | '/_authenticated/admin/vendors/index/MODERN'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -1434,13 +1421,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminDriversDriverIdRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/admin/vendors/index/MODERN': {
-      id: '/_authenticated/admin/vendors/index/MODERN'
-      path: '/admin/vendors/index/MODERN'
-      fullPath: '/admin/vendors/index/MODERN'
-      preLoaderRoute: typeof AuthenticatedAdminVendorsIndexMODERNRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
     '/_authenticated/admin/analytics/analytics/': {
       id: '/_authenticated/admin/analytics/analytics/'
       path: '/admin/analytics/analytics'
@@ -1503,7 +1483,6 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdminVendorSettlementsIndexRoute: typeof AuthenticatedAdminVendorSettlementsIndexRoute
   AuthenticatedAdminVendorsIndexRoute: typeof AuthenticatedAdminVendorsIndexRoute
   AuthenticatedAdminAnalyticsAnalyticsIndexRoute: typeof AuthenticatedAdminAnalyticsAnalyticsIndexRoute
-  AuthenticatedAdminVendorsIndexMODERNRoute: typeof AuthenticatedAdminVendorsIndexMODERNRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
@@ -1581,8 +1560,6 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAdminVendorsIndexRoute: AuthenticatedAdminVendorsIndexRoute,
   AuthenticatedAdminAnalyticsAnalyticsIndexRoute:
     AuthenticatedAdminAnalyticsAnalyticsIndexRoute,
-  AuthenticatedAdminVendorsIndexMODERNRoute:
-    AuthenticatedAdminVendorsIndexMODERNRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =
