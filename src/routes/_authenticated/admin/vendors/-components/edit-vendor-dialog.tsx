@@ -304,7 +304,7 @@ export function EditVendorDialog({ vendor, isOpen, onClose, onSave, isSaving }: 
                       name="phone"
                       value={formData.phone}
                       onChange={handleChange}
-                      placeholder="+220 XXX XXXX"
+                      placeholder="+220 XX XXX XXXX"
                       required
                     />
                   </div>
@@ -315,7 +315,7 @@ export function EditVendorDialog({ vendor, isOpen, onClose, onSave, isSaving }: 
                       name="waveNumber"
                       value={formData.waveNumber}
                       onChange={handleChange}
-                      placeholder="+220 XXX XXXX"
+                      placeholder="+220 XX XXX XXXX"
                     />
                   </div>
                 </div>
@@ -529,7 +529,7 @@ export function EditVendorDialog({ vendor, isOpen, onClose, onSave, isSaving }: 
                               name="phone"
                               value={businessFormData.phone}
                               onChange={handleBusinessChange}
-                              placeholder="+220 XXX XXXX"
+                              placeholder="+220 XX XXX XXXX"
                             />
                           </div>
 

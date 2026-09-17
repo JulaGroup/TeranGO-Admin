@@ -126,7 +126,7 @@ function LoginPage() {
                 </Select>
                 <Input
                   id='phone'
-                  placeholder='Enter phone number'
+                  placeholder='87 712 3456'
                   type='tel'
                   value={phone}
                   onChange={(e) => setPhone(e.target.value.replace(/\D/g, ''))}

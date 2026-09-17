@@ -1486,7 +1486,7 @@ function DriversPage() {
                     <Label htmlFor="create-phone">Phone *</Label>
                     <Input
                       id="create-phone"
-                      placeholder="+220 123 4567"
+                      placeholder="+220 87 712 3456"
                       value={createForm.phone}
                       onChange={(e) =>
                         setCreateForm((prev) => ({

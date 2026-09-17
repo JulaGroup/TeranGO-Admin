@@ -872,7 +872,7 @@ function DriverDetailPage() {
                   onChange={(e) =>
                     setEditForm((p) => ({ ...p, phoneNumber: e.target.value }))
                   }
-                  placeholder="+2207xxxxxx"
+                  placeholder="+22087xxxxxxx"
                 />
               </div>
               <div className="space-y-2">

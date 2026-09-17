@@ -129,7 +129,7 @@ export function CreateVendorDialog({
                   <Label htmlFor="create-phone">Phone Number *</Label>
                   <Input
                     id="create-phone"
-                    placeholder="e.g. +2203001234"
+                    placeholder="e.g. +220833001234"
                     value={createForm.phone}
                     onChange={(e) =>
                       setCreateForm((f) => ({ ...f, phone: e.target.value }))

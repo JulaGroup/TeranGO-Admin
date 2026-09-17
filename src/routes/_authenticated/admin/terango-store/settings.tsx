@@ -592,7 +592,7 @@ function TerangoStoreSettings() {
                         }))
                       }
                       disabled={!isEditing}
-                      placeholder='+220 1234567'
+                      placeholder='+220 877123456'
                     />
                   </div>
                   <div className='space-y-2'>

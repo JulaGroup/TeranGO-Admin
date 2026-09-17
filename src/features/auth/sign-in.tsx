@@ -87,14 +87,16 @@ export function SignIn() {
                 </div>
                 <Input
                   id='phone'
-                  placeholder='Enter phone number'
+                  placeholder='87 712 3456'
                   type='tel'
                   value={phone}
                   onChange={(e) => setPhone(e.target.value.replace(/\D/g, ''))}
                   disabled={loading}
                   className='flex-1 text-lg'
                   autoFocus
-                  maxLength={7}
+                  // 9 digits since PURA's migration; old 7-digit numbers still
+                  // work and the server finds the account either way.
+                  maxLength={9}
                 />
               </div>
               <p className='text-muted-foreground text-xs'>
