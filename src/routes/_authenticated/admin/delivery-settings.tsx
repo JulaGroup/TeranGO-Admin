@@ -143,6 +143,7 @@ interface SystemSettings {
   platformTakeCap: number | null;
   driverMinEarning: number;
   platformMarginPercent: number;
+  expressPlatformMarginPercent: number | null;
   unifiedPricingEnabled: boolean;
 
   // Third-party driver split rate
@@ -277,7 +278,10 @@ function DeliverySettingsPage() {
         : km * perKm;
 
     const pay = Math.max(base + distanceFee, min);
-    const uncapped = pay * marginPercent;
+    // Express uses its own margin when set (>0), matching the engine.
+    const xMargin = getNumericValue("expressPlatformMarginPercent");
+    const marginPct = express && xMargin > 0 ? xMargin : marginPercent;
+    const uncapped = pay * marginPct;
     const platform =
       takeCap > 0 && uncapped + booking > takeCap
         ? Math.max(0, takeCap - booking)
@@ -489,6 +493,44 @@ function DeliverySettingsPage() {
                     A fraction, not a percentage: 0.25 means the app adds 25% on
                     top of driver pay. Riders keep{" "}
                     {Math.round((1 / (1 + marginPercent)) * 100)}% of transport.
+                  </p>
+                </div>
+
+                <div className="p-4 border rounded-lg">
+                  <label className="text-sm font-medium block mb-2">
+                    Express margin
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      type="number"
+                      step="0.005"
+                      value={getNumericValue(
+                        "expressPlatformMarginPercent" as any,
+                      )}
+                      onChange={(e) =>
+                        handleInputChange(
+                          "expressPlatformMarginPercent" as any,
+                          e.target.value,
+                        )
+                      }
+                      disabled={!isEditing}
+                      className="w-24"
+                    />
+                    <span className="text-muted-foreground text-sm">
+                      ={" "}
+                      {Math.round(
+                        getNumericValue(
+                          "expressPlatformMarginPercent" as any,
+                        ) * 100,
+                      )}
+                      %
+                    </span>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Express only. Much lower than the shared margin so
+                    TeranGO's cut on a courier run stays small and scales with
+                    the trip. Set 0 to fall back to the shared margin. The 1.2×
+                    priority premium and the take cap do not apply to Express.
                   </p>
                 </div>
 
