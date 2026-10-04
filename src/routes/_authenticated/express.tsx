@@ -22,9 +22,13 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Table,
   TableBody,
@@ -50,6 +54,8 @@ import {
   ChevronLeft,
   ChevronRight,
   ArrowRight,
+  Banknote,
+  RotateCcw,
 } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
@@ -243,6 +249,9 @@ function DeliveryDetailDialog({
   onApprove,
   onAssignDriver,
   onAdvanceStatus,
+  onNotify,
+  onMarkPaid,
+  onRefund,
   confirmPending,
   cancelPending,
   approvePending,
@@ -255,6 +264,9 @@ function DeliveryDetailDialog({
   onApprove: () => void;
   onAssignDriver: () => void;
   onAdvanceStatus: (status: string) => void;
+  onNotify: () => void;
+  onMarkPaid: () => void;
+  onRefund: () => void;
   confirmPending: boolean;
   cancelPending: boolean;
   approvePending: boolean;
@@ -548,6 +560,40 @@ function DeliveryDetailDialog({
                 Cancel Delivery
               </Button>
             )}
+
+          {/* Customer-facing admin actions — parity with the Orders page. */}
+          <div className="grid grid-cols-1 gap-2 pt-1 border-t sm:grid-cols-2">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={onNotify}
+              className="w-full"
+            >
+              <MessageSquare className="h-3.5 w-3.5 mr-1.5" />
+              Notify Customer
+            </Button>
+            {delivery.paymentStatus !== "PAID" ? (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={onMarkPaid}
+                className="w-full"
+              >
+                <Banknote className="h-3.5 w-3.5 mr-1.5" />
+                Mark as Paid
+              </Button>
+            ) : (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={onRefund}
+                className="w-full text-destructive border-destructive/30 hover:bg-destructive/5"
+              >
+                <RotateCcw className="h-3.5 w-3.5 mr-1.5" />
+                Refund
+              </Button>
+            )}
+          </div>
         </div>
       </DialogContent>
     </Dialog>
@@ -950,6 +996,110 @@ const ExpressDeliveryManagement: React.FC = () => {
     onError: (e: any) => toast.error(`Failed: ${e.message}`),
   });
 
+  // ── Notify customer / Mark paid / Refund (parity with the Orders page) ──────
+  const [notifyTarget, setNotifyTarget] = useState<ExpressDelivery | null>(null);
+  const [notifyTitle, setNotifyTitle] = useState("Delivery Update");
+  const [notifyMessage, setNotifyMessage] = useState("");
+
+  const [markPaidTarget, setMarkPaidTarget] =
+    useState<ExpressDelivery | null>(null);
+  const [markPaidReference, setMarkPaidReference] = useState("");
+  const [markPaidNote, setMarkPaidNote] = useState("");
+
+  const [refundTarget, setRefundTarget] = useState<ExpressDelivery | null>(null);
+  const [refundAmount, setRefundAmount] = useState("");
+  const [refundReason, setRefundReason] = useState("");
+  const [refundCancel, setRefundCancel] = useState(false);
+
+  const notifyCustomerMutation = useMutation({
+    mutationFn: ({
+      id,
+      title,
+      message,
+    }: {
+      id: string;
+      title: string;
+      message: string;
+    }) => adminApi.notifyExpressCustomer(id, title, message),
+    onSuccess: () => {
+      toast.success("Notification sent to the customer");
+      setNotifyTarget(null);
+      setNotifyMessage("");
+    },
+    onError: (e: any) =>
+      toast.error(
+        e?.response?.data?.message || e.message || "Failed to send notification",
+      ),
+  });
+
+  const markPaidMutation = useMutation({
+    mutationFn: ({
+      id,
+      reference,
+      note,
+    }: {
+      id: string;
+      reference?: string;
+      note?: string;
+    }) => adminApi.markExpressPaid(id, reference, note),
+    onSuccess: () => {
+      toast.success("Delivery marked as paid — customer notified");
+      queryClient.invalidateQueries({ queryKey: ["express-deliveries"] });
+      queryClient.invalidateQueries({ queryKey: ["express-metrics"] });
+      setMarkPaidTarget(null);
+      setMarkPaidReference("");
+      setMarkPaidNote("");
+    },
+    onError: (e: any) =>
+      toast.error(
+        e?.response?.data?.message || e.message || "Failed to mark as paid",
+      ),
+  });
+
+  const refundMutation = useMutation({
+    mutationFn: ({
+      id,
+      amount,
+      reason,
+      cancelDelivery,
+    }: {
+      id: string;
+      amount?: number;
+      reason?: string;
+      cancelDelivery?: boolean;
+    }) => adminApi.refundExpress(id, amount, reason, undefined, undefined, cancelDelivery),
+    onSuccess: () => {
+      toast.success("Refund recorded — customer notified");
+      queryClient.invalidateQueries({ queryKey: ["express-deliveries"] });
+      queryClient.invalidateQueries({ queryKey: ["express-metrics"] });
+      setRefundTarget(null);
+      setRefundAmount("");
+      setRefundReason("");
+      setRefundCancel(false);
+    },
+    onError: (e: any) =>
+      toast.error(
+        e?.response?.data?.message || e.message || "Failed to record refund",
+      ),
+  });
+
+  const openNotify = (d: ExpressDelivery) => {
+    setNotifyTitle("Delivery Update");
+    setNotifyMessage("");
+    setNotifyTarget(d);
+  };
+  const openMarkPaid = (d: ExpressDelivery) => {
+    setMarkPaidReference("");
+    setMarkPaidNote("");
+    setMarkPaidTarget(d);
+  };
+  const openRefund = (d: ExpressDelivery) => {
+    setRefundAmount(String(Math.round((d as any).estimatedFee ?? 0)));
+    setRefundReason("");
+    setRefundCancel(false);
+    setRefundTarget(d);
+  };
+
   // ── Derived ──────────────────────────────────────────────────────────────────
 
   const rows = deliveryPage?.items ?? [];
@@ -1137,18 +1287,18 @@ const ExpressDeliveryManagement: React.FC = () => {
       {/* Deliveries table with integrated filters */}
       <Card className="shadow-sm overflow-hidden">
         <CardHeader className="border-b pb-4">
-          <div className="flex flex-wrap items-center gap-3">
-            <div className="relative">
+          <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+            <div className="relative w-full sm:w-[260px]">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
               <Input
-                className="pl-9 h-9 w-[260px]"
+                className="pl-9 h-9 w-full"
                 placeholder="Search TGEX ref, address, sender..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
             </div>
             <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="h-9 w-[160px]">
+              <SelectTrigger className="h-9 w-full sm:w-[160px]">
                 <SelectValue placeholder="Filter by status" />
               </SelectTrigger>
               <SelectContent>
@@ -1163,7 +1313,7 @@ const ExpressDeliveryManagement: React.FC = () => {
               </SelectContent>
             </Select>
             <Select value={priorityFilter} onValueChange={setPriorityFilter}>
-              <SelectTrigger className="h-9 w-[160px]">
+              <SelectTrigger className="h-9 w-full sm:w-[160px]">
                 <SelectValue placeholder="Filter by priority" />
               </SelectTrigger>
               <SelectContent>
@@ -1211,7 +1361,86 @@ const ExpressDeliveryManagement: React.FC = () => {
             </div>
           ) : (
             <>
-              <div className="overflow-x-auto">
+              {/* Mobile: stacked cards (the table scrolls awkwardly on a
+                  phone). Tap a card to open the detail sheet with every action. */}
+              <div className="divide-y md:hidden">
+                {rows.map((delivery) => {
+                  const priority =
+                    PRIORITY_CONFIG[delivery.priorityLevel] ??
+                    PRIORITY_CONFIG.STANDARD;
+                  const status = STATUS_CONFIG[delivery.status];
+                  const payment =
+                    PAYMENT_CONFIG[delivery.paymentStatus ?? "UNPAID"];
+                  return (
+                    <button
+                      key={delivery.id}
+                      onClick={() => openDetail(delivery)}
+                      className="w-full px-4 py-3 text-left transition-colors hover:bg-muted/30"
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="font-medium">
+                            {formatExpressDeliveryId(delivery.id)}
+                          </p>
+                          <p className="mt-0.5 text-xs text-muted-foreground">
+                            {delivery.createdAt
+                              ? format(new Date(delivery.createdAt), "d MMM, HH:mm")
+                              : ""}
+                          </p>
+                        </div>
+                        <p className="shrink-0 font-semibold">
+                          {formatCurrency(delivery.estimatedFee)}
+                        </p>
+                      </div>
+                      <div className="mt-2 flex items-start gap-2">
+                        <div className="flex flex-col items-center pt-1">
+                          <span className="h-2 w-2 shrink-0 rounded-full bg-emerald-500" />
+                          <span className="my-0.5 w-px flex-1 bg-border" />
+                          <span className="h-2 w-2 shrink-0 rounded-full bg-red-500" />
+                        </div>
+                        <div className="min-w-0 space-y-0.5 text-sm">
+                          <p className="truncate">{delivery.pickupAddress}</p>
+                          <p className="truncate">{delivery.dropoffAddress}</p>
+                        </div>
+                      </div>
+                      <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                        {status && (
+                          <Badge
+                            variant="outline"
+                            className={cn("text-xs", status.className)}
+                          >
+                            {status.label}
+                          </Badge>
+                        )}
+                        {payment && (
+                          <Badge
+                            variant="outline"
+                            className={cn("text-xs", payment.className)}
+                          >
+                            {payment.label}
+                          </Badge>
+                        )}
+                        <Badge
+                          variant="outline"
+                          className={cn("text-xs gap-1", priority.className)}
+                        >
+                          <span
+                            className={cn("h-1.5 w-1.5 rounded-full", priority.dot)}
+                          />
+                          {priority.label}
+                        </Badge>
+                        {delivery.driverName && (
+                          <span className="text-xs text-muted-foreground">
+                            · {delivery.driverName}
+                          </span>
+                        )}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div className="hidden overflow-x-auto md:block">
                 <Table>
                   <TableHeader>
                     <TableRow className="bg-muted/50 hover:bg-muted/50">
@@ -1531,6 +1760,9 @@ const ExpressDeliveryManagement: React.FC = () => {
           selectedDelivery &&
           advanceStatusMutation.mutate({ id: selectedDelivery.id, status })
         }
+        onNotify={() => selectedDelivery && openNotify(selectedDelivery)}
+        onMarkPaid={() => selectedDelivery && openMarkPaid(selectedDelivery)}
+        onRefund={() => selectedDelivery && openRefund(selectedDelivery)}
         confirmPending={confirmDeliveryMutation.isPending}
         cancelPending={cancelDeliveryMutation.isPending}
         approvePending={approveForPaymentMutation.isPending}
@@ -1550,6 +1782,188 @@ const ExpressDeliveryManagement: React.FC = () => {
         }
         assignPending={assignDeliveryMutation.isPending}
       />
+
+      {/* Notify customer dialog */}
+      <Dialog
+        open={!!notifyTarget}
+        onOpenChange={(v) => !v && setNotifyTarget(null)}
+      >
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Notify Customer</DialogTitle>
+            <DialogDescription>
+              Send a push notification to the customer of{" "}
+              {notifyTarget ? formatExpressDeliveryId(notifyTarget.id) : ""}.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 py-1">
+            <div className="space-y-1.5">
+              <Label htmlFor="notify-title">Title</Label>
+              <Input
+                id="notify-title"
+                value={notifyTitle}
+                onChange={(e) => setNotifyTitle(e.target.value)}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="notify-message">Message</Label>
+              <Textarea
+                id="notify-message"
+                rows={4}
+                placeholder="What should the customer know?"
+                value={notifyMessage}
+                onChange={(e) => setNotifyMessage(e.target.value)}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setNotifyTarget(null)}>
+              Cancel
+            </Button>
+            <Button
+              disabled={
+                !notifyMessage.trim() || notifyCustomerMutation.isPending
+              }
+              onClick={() =>
+                notifyTarget &&
+                notifyCustomerMutation.mutate({
+                  id: notifyTarget.id,
+                  title: notifyTitle,
+                  message: notifyMessage,
+                })
+              }
+            >
+              {notifyCustomerMutation.isPending ? "Sending…" : "Send"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Mark as paid dialog */}
+      <Dialog
+        open={!!markPaidTarget}
+        onOpenChange={(v) => !v && setMarkPaidTarget(null)}
+      >
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Mark as Paid</DialogTitle>
+            <DialogDescription>
+              Record a manual/remote payment for{" "}
+              {markPaidTarget
+                ? formatExpressDeliveryId(markPaidTarget.id)
+                : ""}
+              . The customer will be notified their payment is confirmed.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 py-1">
+            <div className="space-y-1.5">
+              <Label htmlFor="paid-ref">Reference (optional)</Label>
+              <Input
+                id="paid-ref"
+                placeholder="e.g. Wave transfer ID"
+                value={markPaidReference}
+                onChange={(e) => setMarkPaidReference(e.target.value)}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="paid-note">Note (optional)</Label>
+              <Textarea
+                id="paid-note"
+                rows={2}
+                value={markPaidNote}
+                onChange={(e) => setMarkPaidNote(e.target.value)}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setMarkPaidTarget(null)}>
+              Cancel
+            </Button>
+            <Button
+              disabled={markPaidMutation.isPending}
+              onClick={() =>
+                markPaidTarget &&
+                markPaidMutation.mutate({
+                  id: markPaidTarget.id,
+                  reference: markPaidReference || undefined,
+                  note: markPaidNote || undefined,
+                })
+              }
+            >
+              {markPaidMutation.isPending ? "Saving…" : "Mark as Paid"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Refund dialog */}
+      <Dialog
+        open={!!refundTarget}
+        onOpenChange={(v) => !v && setRefundTarget(null)}
+      >
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Refund Delivery</DialogTitle>
+            <DialogDescription>
+              Record a refund for{" "}
+              {refundTarget ? formatExpressDeliveryId(refundTarget.id) : ""}.
+              The customer will be notified.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 py-1">
+            <div className="space-y-1.5">
+              <Label htmlFor="refund-amount">Amount (GMD)</Label>
+              <Input
+                id="refund-amount"
+                type="number"
+                value={refundAmount}
+                onChange={(e) => setRefundAmount(e.target.value)}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="refund-reason">Reason</Label>
+              <Textarea
+                id="refund-reason"
+                rows={2}
+                placeholder="Why is this being refunded?"
+                value={refundReason}
+                onChange={(e) => setRefundReason(e.target.value)}
+              />
+            </div>
+            <label className="flex items-center gap-2 text-sm">
+              <Checkbox
+                checked={refundCancel}
+                onCheckedChange={(v) => setRefundCancel(!!v)}
+              />
+              Also cancel this delivery
+            </label>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRefundTarget(null)}>
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              disabled={
+                !refundAmount ||
+                Number(refundAmount) <= 0 ||
+                refundMutation.isPending
+              }
+              onClick={() =>
+                refundTarget &&
+                refundMutation.mutate({
+                  id: refundTarget.id,
+                  amount: Number(refundAmount),
+                  reason: refundReason || undefined,
+                  cancelDelivery: refundCancel,
+                })
+              }
+            >
+              {refundMutation.isPending ? "Processing…" : "Refund"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
       </Main>
     </>

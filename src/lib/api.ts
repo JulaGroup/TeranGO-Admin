@@ -395,6 +395,28 @@ export const adminApi = {
     api.post(`/api/express-delivery/${id}/admin-cancel`, { reason }),
   reassignExpressDelivery: (id: string, driverId: string) =>
     api.post(`/api/express-delivery/${id}/reassign`, { driverId }),
+  // Send a one-off push notification to an express delivery's customer.
+  notifyExpressCustomer: (id: string, title: string, message: string) =>
+    api.post(`/api/express-delivery/${id}/notify-customer`, { title, message }),
+  // Mark an express delivery as paid (manual/remote payment).
+  markExpressPaid: (id: string, reference?: string, note?: string) =>
+    api.post(`/api/express-delivery/${id}/mark-paid`, { reference, note }),
+  // Refund an express delivery (optionally cancelling it too).
+  refundExpress: (
+    id: string,
+    amount?: number,
+    reason?: string,
+    reference?: string,
+    note?: string,
+    cancelDelivery?: boolean,
+  ) =>
+    api.post(`/api/express-delivery/${id}/refund`, {
+      amount,
+      reason,
+      reference,
+      note,
+      cancelDelivery,
+    }),
   getExpressMetrics: () => api.get("/api/express-delivery/metrics/dashboard"),
 
   // Express Delivery Tracking

@@ -805,18 +805,18 @@ function OrdersPage() {
       {/* Orders Table with integrated filters */}
       <Card className="shadow-sm overflow-hidden">
         <CardHeader className="border-b pb-4">
-          <div className="flex flex-wrap items-center gap-3">
-            <div className="relative">
+          <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+            <div className="relative w-full sm:w-[260px]">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
               <Input
-                className="pl-9 h-9 w-[260px]"
+                className="pl-9 h-9 w-full"
                 placeholder="Search orders, customer, vendor..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
             </div>
             <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="h-9 w-[160px]">
+              <SelectTrigger className="h-9 w-full sm:w-[160px]">
                 <SelectValue placeholder="Filter by status" />
               </SelectTrigger>
               <SelectContent>
@@ -838,7 +838,65 @@ function OrdersPage() {
             </div>
           ) : filteredOrders.length > 0 ? (
             <>
-              <div className="overflow-x-auto">
+              {/* Mobile: stacked cards. Tap to open the full order detail. */}
+              <div className="divide-y md:hidden">
+                {filteredOrders.map((order) => (
+                  <button
+                    key={order.id}
+                    onClick={() => handleViewDetails(order)}
+                    className="w-full px-4 py-3 text-left transition-colors hover:bg-muted/30"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="font-medium">
+                          TG{order.id?.slice(-4).toUpperCase()}
+                          {order.isGiftOrder ? " 🎁" : ""}
+                        </p>
+                        <p className="mt-0.5 truncate text-sm">
+                          {order.user?.name || "Guest"}
+                        </p>
+                        <p className="truncate text-xs text-muted-foreground">
+                          {order.vendor?.shopName ||
+                            order.vendor?.businessName ||
+                            "N/A"}
+                        </p>
+                      </div>
+                      <div className="shrink-0 text-right">
+                        <p className="font-semibold">
+                          D{order.totalAmount?.toFixed(2) || "0.00"}
+                        </p>
+                        <p className="mt-0.5 text-xs text-muted-foreground">
+                          {order.createdAt
+                            ? format(new Date(order.createdAt), "d MMM, HH:mm")
+                            : ""}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                      {getStatusBadge(order.status)}
+                      <Badge
+                        variant="outline"
+                        className={`text-xs ${
+                          order.paymentStatus === "PAID"
+                            ? "border-emerald-300 bg-emerald-50 text-emerald-700 dark:bg-emerald-950/20"
+                            : order.paymentStatus === "REFUNDED"
+                              ? "border-slate-300 bg-slate-50 text-slate-700 dark:bg-slate-900/20"
+                              : "border-amber-300 bg-amber-50 text-amber-700 dark:bg-amber-950/20"
+                        }`}
+                      >
+                        {order.paymentStatus || "PENDING"}
+                      </Badge>
+                      {order.driver?.name && (
+                        <span className="text-xs text-muted-foreground">
+                          · {order.driver.name}
+                        </span>
+                      )}
+                    </div>
+                  </button>
+                ))}
+              </div>
+
+              <div className="hidden overflow-x-auto md:block">
                 <Table>
                   <TableHeader>
                     <TableRow className="bg-muted/50 hover:bg-muted/50">
