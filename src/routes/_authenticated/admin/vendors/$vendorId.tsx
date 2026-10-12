@@ -124,6 +124,7 @@ interface VendorDetail {
   isActive: boolean;
   multiUserEnabled?: boolean;
   autoPayoutEnabled?: boolean;
+  absorbsServiceFee?: boolean;
   waveNumber?: string | null;
   businessLicense?: string | null;
   user?: {
@@ -417,6 +418,27 @@ function VendorDetailPage() {
     onError: (error: any) => {
       toast.error(
         error?.response?.data?.message || "Failed to update auto-payout setting",
+      );
+    },
+  });
+
+  const toggleAbsorbServiceFeeMutation = useMutation({
+    mutationFn: async (enabled: boolean) => {
+      const res = await adminApi.setVendorAbsorbServiceFee(vendorId, enabled);
+      return res.data;
+    },
+    onSuccess: (_data, enabled) => {
+      queryClient.invalidateQueries({ queryKey: ["admin-vendor", vendorId] });
+      toast.success(
+        enabled
+          ? "Service fee absorbed — customers pay the bare item price; the 5% comes out of this vendor's share"
+          : "Service fee added on top — customers pay the 5% as before",
+      );
+    },
+    onError: (error: any) => {
+      toast.error(
+        error?.response?.data?.message ||
+          "Failed to update service-fee setting",
       );
     },
   });
@@ -793,6 +815,19 @@ function VendorDetailPage() {
                       onCheckedChange={(checked) => toggleAutoPayoutMutation.mutate(checked)}
                     />
                     <span className="text-sm font-medium">Auto payout</span>
+                  </div>
+                  <div
+                    className="flex items-center gap-2 rounded-full border bg-muted/40 px-3.5 py-1.5"
+                    title="Vendor absorbs TeranGO's 5% service fee: the customer pays the bare item price and the fee comes out of the vendor's share instead of being added on top"
+                  >
+                    <Switch
+                      checked={!!vendor.absorbsServiceFee}
+                      disabled={toggleAbsorbServiceFeeMutation.isPending}
+                      onCheckedChange={(checked) =>
+                        toggleAbsorbServiceFeeMutation.mutate(checked)
+                      }
+                    />
+                    <span className="text-sm font-medium">Absorb service fee</span>
                   </div>
                   <Button variant="outline" size="sm" onClick={openEditDialog} className="shadow-sm">
                     <Edit className="mr-2 h-4 w-4" />

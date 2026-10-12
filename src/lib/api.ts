@@ -138,6 +138,11 @@ export const adminApi = {
   // order's payment succeeds, instead of the manual settlement queue
   setVendorAutoPayout: (id: string, enabled: boolean) =>
     api.patch(`/api/admin/vendors/${id}/auto-payout`, { enabled }),
+  // Toggle whether a vendor absorbs TeranGO's service fee (customer pays the
+  // bare item price; the fee comes out of the vendor's share) instead of it
+  // being added on top of the customer's total.
+  setVendorAbsorbServiceFee: (id: string, enabled: boolean) =>
+    api.patch(`/api/admin/vendors/${id}/absorb-service-fee`, { enabled }),
 
   // Experiences (bookable activities)
   getExperiences: () => api.get("/api/admin/experiences"),

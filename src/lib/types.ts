@@ -33,6 +33,8 @@ export interface Vendor {
   waveNumber?: string;
   /** Auto-pay this vendor via Wave right after each order's payment succeeds. */
   autoPayoutEnabled?: boolean;
+  /** Vendor absorbs the 5% service fee instead of it being added to the customer. */
+  absorbsServiceFee?: boolean;
 
   // User info
   user?: {
