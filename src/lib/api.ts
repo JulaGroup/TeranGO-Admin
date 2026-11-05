@@ -576,6 +576,32 @@ export const kerspaceApi = {
     api.get("/api/admin/kerspace/appointments", { params }),
   updateAppointmentStatus: (id: string, status: string) =>
     api.patch(`/api/admin/kerspace/appointments/${id}/status`, { status }),
+
+  // Property moderation (approve/reject agent-submitted listings)
+  reviewProperty: (
+    id: string,
+    data: { reviewStatus: string; reviewNotes?: string },
+  ) => api.patch(`/api/admin/kerspace/properties/${id}/review`, data),
+
+  // Agents
+  getAgents: (params?: Record<string, unknown>) =>
+    api.get("/api/admin/kerspace/agents", { params }),
+  createAgent: (data: Record<string, unknown>) =>
+    api.post("/api/admin/kerspace/agents", data),
+  updateAgentStatus: (
+    id: string,
+    data: { isActive?: boolean; isVerified?: boolean },
+  ) => api.patch(`/api/admin/kerspace/agents/${id}/status`, data),
+
+  // Agent applications
+  getAgentApplications: (params?: Record<string, unknown>) =>
+    api.get("/api/admin/kerspace/agent-applications", { params }),
+  getAgentApplicationStats: () =>
+    api.get("/api/admin/kerspace/agent-applications/stats"),
+  updateAgentApplicationStatus: (
+    id: string,
+    data: { status: string; reviewNotes?: string },
+  ) => api.patch(`/api/admin/kerspace/agent-applications/${id}/status`, data),
 };
 
 export const teranProApi = {

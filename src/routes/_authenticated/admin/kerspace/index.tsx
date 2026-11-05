@@ -31,7 +31,11 @@ import {
   Image as ImageIcon,
   Tag,
   SquareArrowOutUpRight,
+  Users,
+  ListChecks,
 } from "lucide-react";
+import { AgentsTab } from "./-components/agents-tab";
+import { AgentApplicationsTab } from "./-components/agent-applications-tab";
 import { toast } from "sonner";
 import { kerspaceApi } from "@/lib/api";
 import { Badge } from "@/components/ui/badge";
@@ -874,6 +878,20 @@ function KerSpacePage() {
     [updateMutation],
   );
 
+  // Approve / reject an agent-submitted listing.
+  const reviewMutation = useMutation({
+    mutationFn: ({ id, reviewStatus }: { id: string; reviewStatus: string }) =>
+      kerspaceApi.reviewProperty(id, { reviewStatus }),
+    onSuccess: (_d, v) => {
+      toast.success(
+        v.reviewStatus === "APPROVED" ? "Listing approved" : "Listing rejected",
+      );
+      queryClient.invalidateQueries({ queryKey: ["kerspace-properties"] });
+      queryClient.invalidateQueries({ queryKey: ["kerspace-stats"] });
+    },
+    onError: () => toast.error("Failed to update listing"),
+  });
+
   const properties: Property[] = propertiesData?.data || [];
   const meta = propertiesData?.meta;
   const inquiries: Inquiry[] = inquiriesData?.data || [];
@@ -1002,6 +1020,18 @@ function KerSpacePage() {
                     {stats.pendingAppointments}
                   </Badge>
                 )}
+              </TabsTrigger>
+              <TabsTrigger
+                value="agents"
+                className="flex items-center gap-1.5"
+              >
+                <Users className="h-4 w-4" /> Agents
+              </TabsTrigger>
+              <TabsTrigger
+                value="applications"
+                className="flex items-center gap-1.5"
+              >
+                <ListChecks className="h-4 w-4" /> Applications
               </TabsTrigger>
             </TabsList>
             {activeTab === "properties" && (
@@ -1150,6 +1180,16 @@ function KerSpacePage() {
                               ★ Featured
                             </span>
                           )}
+                          {p.reviewStatus === "PENDING_REVIEW" && (
+                            <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-amber-500 text-white flex items-center gap-1">
+                              <Clock className="h-3 w-3" /> Pending review
+                            </span>
+                          )}
+                          {p.reviewStatus === "REJECTED" && (
+                            <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-red-600 text-white">
+                              Rejected
+                            </span>
+                          )}
                         </div>
                         {p.isVerified && (
                           <div className="absolute top-2 right-2">
@@ -1273,6 +1313,33 @@ function KerSpacePage() {
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
                               <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                              <DropdownMenuSeparator />
+                              {p.reviewStatus !== "APPROVED" && (
+                                <DropdownMenuItem
+                                  onClick={() =>
+                                    reviewMutation.mutate({
+                                      id: p.id,
+                                      reviewStatus: "APPROVED",
+                                    })
+                                  }
+                                >
+                                  <CheckCircle className="h-4 w-4 mr-2 text-green-600" />{" "}
+                                  Approve listing
+                                </DropdownMenuItem>
+                              )}
+                              {p.reviewStatus !== "REJECTED" && (
+                                <DropdownMenuItem
+                                  onClick={() =>
+                                    reviewMutation.mutate({
+                                      id: p.id,
+                                      reviewStatus: "REJECTED",
+                                    })
+                                  }
+                                >
+                                  <X className="h-4 w-4 mr-2 text-amber-600" />{" "}
+                                  Reject listing
+                                </DropdownMenuItem>
+                              )}
                               <DropdownMenuSeparator />
                               <DropdownMenuItem
                                 onClick={() => setEditProperty(p)}
@@ -1549,6 +1616,16 @@ function KerSpacePage() {
                 ))}
               </div>
             )}
+          </TabsContent>
+
+          {/* ── Agents Tab ──────────────────────────────────────────────────── */}
+          <TabsContent value="agents" className="mt-4">
+            <AgentsTab />
+          </TabsContent>
+
+          {/* ── Agent Applications Tab ──────────────────────────────────────── */}
+          <TabsContent value="applications" className="mt-4">
+            <AgentApplicationsTab />
           </TabsContent>
         </Tabs>
         </div>
