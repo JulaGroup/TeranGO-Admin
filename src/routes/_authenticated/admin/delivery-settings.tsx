@@ -287,10 +287,23 @@ function DeliverySettingsPage() {
         ? Math.max(0, takeCap - booking)
         : uncapped;
 
+    // Mirror the engine's customer-facing rounding exactly
+    // (server/src/services/expressDelivery.service.ts): transport and booking
+    // are ceil'd, the service fee % is added on top, then the whole total
+    // rounds UP to the nearest D10. Matching this here is what makes the
+    // preview equal to what the customer is actually charged — previously it
+    // showed transport+booking only, understating the price.
+    const serviceFeePercent = getNumericValue("serviceFeePercent");
+    const transportCeil = Math.ceil(pay + platform);
+    const bookingCeil = Math.ceil(booking);
+    const subtotal = transportCeil + bookingCeil;
+    const total = subtotal * (1 + serviceFeePercent / 100);
+    const customer = Math.ceil(total / 10) * 10;
+
     return {
       driver: Math.round(pay),
       platform: Math.round(platform),
-      customer: Math.ceil(pay + platform) + booking,
+      customer,
       capped: platform !== uncapped,
     };
   };
@@ -646,7 +659,9 @@ function DeliverySettingsPage() {
                             {v.emoji} {v.label}
                           </td>
                           {PREVIEW_KMS.map((km) => {
-                            const p = previewFor(km, v);
+                            // Express path: uses the Express margin + rate
+                            // overrides, matching the live Express engine.
+                            const p = previewFor(km, v, true);
                             return (
                               <td
                                 key={km}
@@ -669,11 +684,12 @@ function DeliverySettingsPage() {
                 </div>
                 <div className="px-4 py-2 border-t bg-muted/20">
                   <p className="text-xs text-muted-foreground">
-                    Customer figures include the D
-                    {getNumericValue("expressBookingFee" as any) || 0} express
-                    booking fee and exclude the {""}
+                    Express customer price — includes the D
+                    {getNumericValue("expressBookingFee" as any) || 0} booking
+                    fee and the{" "}
                     {getNumericValue("serviceFeePercent" as any) || 0}% service
-                    fee, which is added at checkout.
+                    fee, rounded up to the nearest D10. This is exactly what the
+                    customer is charged.
                   </p>
                 </div>
               </div>
