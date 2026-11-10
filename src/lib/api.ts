@@ -156,6 +156,11 @@ export const adminApi = {
     fullName?: string;
     logoUrl?: string;
   }) => api.post("/api/admin/organizers", data),
+  // Edit an organiser's branding (logo/name) after creation.
+  updateOrganizer: (
+    id: string,
+    data: { displayName?: string; logoUrl?: string },
+  ) => api.patch(`/api/admin/organizers/${id}`, data),
   updateExperience: (id: string, data: Record<string, unknown>) =>
     api.patch(`/api/admin/experiences/${id}`, data),
   deleteExperience: (id: string) =>

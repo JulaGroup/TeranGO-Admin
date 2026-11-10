@@ -234,6 +234,26 @@ function ExperiencesPage() {
     logoUrl: "",
   });
   const [creatingOrg, setCreatingOrg] = useState(false);
+  const [editingBrand, setEditingBrand] = useState(false);
+  const [brandDraft, setBrandDraft] = useState({ displayName: "", logoUrl: "" });
+  const [savingBrand, setSavingBrand] = useState(false);
+
+  const saveBrand = async () => {
+    if (!form.vendorId) return;
+    setSavingBrand(true);
+    try {
+      await adminApi.updateOrganizer(form.vendorId, brandDraft);
+      await queryClient.invalidateQueries({
+        queryKey: ["admin-vendors-for-experiences"],
+      });
+      setEditingBrand(false);
+      toast.success("Organiser branding updated");
+    } catch (e: any) {
+      toast.error(e?.response?.data?.error || "Failed to update branding");
+    } finally {
+      setSavingBrand(false);
+    }
+  };
 
   const createOrg = async () => {
     if (!newOrg.displayName || !newOrg.phone) {
@@ -1059,6 +1079,105 @@ function ExperiencesPage() {
                         They see bookings & earnings in their dashboard. Set once
                         — it can't be changed later.
                       </p>
+                      {form.vendorId &&
+                        (() => {
+                          const sv: any = vendors.find(
+                            (v: any) => v.id === form.vendorId,
+                          );
+                          return (
+                            <div className="rounded-lg border p-3 bg-muted/20">
+                              {!editingBrand ? (
+                                <div className="flex items-center gap-3">
+                                  {sv?.logoUrl ? (
+                                    <img
+                                      src={sv.logoUrl}
+                                      alt=""
+                                      className="h-9 w-9 rounded object-cover"
+                                    />
+                                  ) : (
+                                    <div className="flex h-9 w-9 items-center justify-center rounded bg-muted text-xs text-muted-foreground">
+                                      ?
+                                    </div>
+                                  )}
+                                  <div className="min-w-0 flex-1">
+                                    <p className="truncate text-sm font-medium">
+                                      {sv?.displayName ||
+                                        vendorName(sv) ||
+                                        "Organiser"}
+                                    </p>
+                                    <p className="text-xs text-muted-foreground">
+                                      Shown on tickets
+                                    </p>
+                                  </div>
+                                  <Button
+                                    type="button"
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => {
+                                      setBrandDraft({
+                                        displayName: sv?.displayName || "",
+                                        logoUrl: sv?.logoUrl || "",
+                                      });
+                                      setEditingBrand(true);
+                                    }}
+                                  >
+                                    Edit branding
+                                  </Button>
+                                </div>
+                              ) : (
+                                <div className="space-y-2">
+                                  <div className="space-y-1">
+                                    <Label className="text-xs">Brand name</Label>
+                                    <Input
+                                      value={brandDraft.displayName}
+                                      placeholder="e.g. Open Space Events"
+                                      onChange={(e) =>
+                                        setBrandDraft({
+                                          ...brandDraft,
+                                          displayName: e.target.value,
+                                        })
+                                      }
+                                    />
+                                  </div>
+                                  <div className="space-y-1">
+                                    <Label className="text-xs">Logo URL</Label>
+                                    <Input
+                                      value={brandDraft.logoUrl}
+                                      placeholder="https://…"
+                                      onChange={(e) =>
+                                        setBrandDraft({
+                                          ...brandDraft,
+                                          logoUrl: e.target.value,
+                                        })
+                                      }
+                                    />
+                                  </div>
+                                  <div className="flex gap-2">
+                                    <Button
+                                      type="button"
+                                      size="sm"
+                                      onClick={saveBrand}
+                                      disabled={savingBrand}
+                                    >
+                                      {savingBrand && (
+                                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                      )}
+                                      Save
+                                    </Button>
+                                    <Button
+                                      type="button"
+                                      size="sm"
+                                      variant="ghost"
+                                      onClick={() => setEditingBrand(false)}
+                                    >
+                                      Cancel
+                                    </Button>
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })()}
                     </>
                   ) : (
                     <div className="rounded-lg border p-3 space-y-3 bg-muted/20">
@@ -1555,6 +1674,19 @@ function ExperienceCard({
               <MapPin className="h-3 w-3 shrink-0" />
               {exp.city || exp.address || "The Gambia"}
             </p>
+            <div className="mt-1 flex flex-wrap gap-1">
+              {exp.capacityType === "FIXED_EVENT" && (
+                <Badge className="bg-indigo-600 hover:bg-indigo-600">Event</Badge>
+              )}
+              {exp.isPublished === false && (
+                <Badge
+                  variant="outline"
+                  className="border-amber-300 text-amber-600"
+                >
+                  Draft
+                </Badge>
+              )}
+            </div>
           </div>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
