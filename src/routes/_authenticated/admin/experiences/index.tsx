@@ -237,6 +237,97 @@ function ExperiencesPage() {
   const [editingBrand, setEditingBrand] = useState(false);
   const [brandDraft, setBrandDraft] = useState({ displayName: "", logoUrl: "" });
   const [savingBrand, setSavingBrand] = useState(false);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
+
+  // Upload an organiser logo to Cloudinary and return its URL.
+  const uploadLogo = async (file: File): Promise<string | null> => {
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please select an image file");
+      return null;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Image must be under 5MB");
+      return null;
+    }
+    setUploadingLogo(true);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      fd.append("upload_preset", CLOUDINARY_UPLOAD_PRESET);
+      const res = await fetch(
+        `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`,
+        { method: "POST", body: fd },
+      );
+      if (!res.ok) throw new Error("Upload failed");
+      const data = await res.json();
+      return data.secure_url || null;
+    } catch {
+      toast.error("Failed to upload logo");
+      return null;
+    } finally {
+      setUploadingLogo(false);
+    }
+  };
+
+  // Reusable logo picker (preview + upload button). Returns JSX, not a
+  // component, so the hidden file input is not remounted on each render.
+  const logoUploadUI = (
+    value: string,
+    onChange: (url: string) => void,
+    id: string,
+  ) => (
+    <div className="flex items-center gap-3">
+      {value ? (
+        <img
+          src={value}
+          alt=""
+          className="h-12 w-12 rounded-lg object-cover border"
+        />
+      ) : (
+        <div className="flex h-12 w-12 items-center justify-center rounded-lg border-2 border-dashed text-muted-foreground">
+          <Upload className="h-4 w-4" />
+        </div>
+      )}
+      <div className="flex flex-col gap-1">
+        <input
+          id={id}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={async (e) => {
+            const f = e.target.files?.[0];
+            if (f) {
+              const url = await uploadLogo(f);
+              if (url) onChange(url);
+            }
+          }}
+        />
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={() => document.getElementById(id)?.click()}
+          disabled={uploadingLogo}
+        >
+          {uploadingLogo ? (
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+          ) : (
+            <Upload className="mr-2 h-4 w-4" />
+          )}
+          {value ? "Change logo" : "Upload logo"}
+        </Button>
+        {value && (
+          <button
+            type="button"
+            className="text-left text-xs text-destructive"
+            onClick={() => onChange("")}
+          >
+            Remove
+          </button>
+        )}
+      </div>
+    </div>
+  );
 
   const saveBrand = async () => {
     if (!form.vendorId) return;
@@ -1140,17 +1231,16 @@ function ExperiencesPage() {
                                     />
                                   </div>
                                   <div className="space-y-1">
-                                    <Label className="text-xs">Logo URL</Label>
-                                    <Input
-                                      value={brandDraft.logoUrl}
-                                      placeholder="https://…"
-                                      onChange={(e) =>
+                                    <Label className="text-xs">Logo</Label>
+                                    {logoUploadUI(
+                                      brandDraft.logoUrl,
+                                      (url) =>
                                         setBrandDraft({
                                           ...brandDraft,
-                                          logoUrl: e.target.value,
-                                        })
-                                      }
-                                    />
+                                          logoUrl: url,
+                                        }),
+                                      "brand-logo-input",
+                                    )}
                                   </div>
                                   <div className="flex gap-2">
                                     <Button
@@ -1206,14 +1296,12 @@ function ExperiencesPage() {
                         </p>
                       </div>
                       <div className="space-y-1">
-                        <Label className="text-xs">Logo URL (optional)</Label>
-                        <Input
-                          placeholder="https://… (shown on tickets)"
-                          value={newOrg.logoUrl}
-                          onChange={(e) =>
-                            setNewOrg({ ...newOrg, logoUrl: e.target.value })
-                          }
-                        />
+                        <Label className="text-xs">Logo (shown on tickets)</Label>
+                        {logoUploadUI(
+                          newOrg.logoUrl,
+                          (url) => setNewOrg({ ...newOrg, logoUrl: url }),
+                          "neworg-logo-input",
+                        )}
                       </div>
                       <Button
                         type="button"
