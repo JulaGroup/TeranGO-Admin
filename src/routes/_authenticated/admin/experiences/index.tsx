@@ -42,6 +42,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
+import { EventLocationPicker } from "@/components/event-location-picker";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -193,6 +194,8 @@ const emptyForm = () => ({
   totalUnits: 1,
   unitLabel: "kart",
   slotMinutes: 5,
+  latitude: null as number | null,
+  longitude: null as number | null,
   options: [
     { label: "", durationMins: 5, price: 0, maxUnits: "" as string | number },
   ],
@@ -440,6 +443,8 @@ function ExperiencesPage() {
         totalUnits: Number(form.totalUnits),
         unitLabel: form.unitLabel,
         slotMinutes: Number(form.slotMinutes),
+        latitude: form.latitude,
+        longitude: form.longitude,
         openHours: hoursToRaw(hours),
         // Event fields — only meaningful when isEvent; harmless otherwise.
         capacityType: form.isEvent ? "FIXED_EVENT" : "TIME_SLOT",
@@ -536,6 +541,8 @@ function ExperiencesPage() {
       totalUnits: exp.totalUnits || 1,
       unitLabel: exp.unitLabel || "spot",
       slotMinutes: exp.slotMinutes || 5,
+      latitude: exp.latitude ?? null,
+      longitude: exp.longitude ?? null,
       options: exp.options?.length
         ? exp.options.map((o: any) => ({
             label: o.label,
@@ -1341,9 +1348,25 @@ function ExperiencesPage() {
                   />
                 </div>
                 <div className="space-y-1 sm:col-span-2">
+                  <Label>Venue location</Label>
+                  <EventLocationPicker
+                    lat={form.latitude}
+                    lng={form.longitude}
+                    onPick={({ lat, lng, address }) =>
+                      setForm((f) => ({
+                        ...f,
+                        latitude: lat,
+                        longitude: lng,
+                        address: address || f.address,
+                      }))
+                    }
+                  />
+                </div>
+                <div className="space-y-1 sm:col-span-2">
                   <Label>Address</Label>
                   <Input
                     value={form.address}
+                    placeholder="Tap the map above, or type the address"
                     onChange={(e) =>
                       setForm({ ...form, address: e.target.value })
                     }
