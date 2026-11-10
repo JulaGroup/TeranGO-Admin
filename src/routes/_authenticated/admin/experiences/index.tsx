@@ -225,6 +225,38 @@ function ExperiencesPage() {
   const [filterStatus, setFilterStatus] = useState<
     "all" | "active" | "archived"
   >("all");
+  // Inline organiser (event owner) creation, so an admin needn't pick from the
+  // list of existing food/shop vendors.
+  const [orgMode, setOrgMode] = useState<"existing" | "new">("existing");
+  const [newOrg, setNewOrg] = useState({
+    displayName: "",
+    phone: "",
+    logoUrl: "",
+  });
+  const [creatingOrg, setCreatingOrg] = useState(false);
+
+  const createOrg = async () => {
+    if (!newOrg.displayName || !newOrg.phone) {
+      toast.error("Organiser name and owner phone are required");
+      return;
+    }
+    setCreatingOrg(true);
+    try {
+      const res = await adminApi.createOrganizer(newOrg);
+      const org = res.data as { id: string; displayName: string };
+      await queryClient.invalidateQueries({
+        queryKey: ["admin-vendors-for-experiences"],
+      });
+      setForm((f) => ({ ...f, vendorId: org.id }));
+      setOrgMode("existing");
+      setNewOrg({ displayName: "", phone: "", logoUrl: "" });
+      toast.success(`Organiser "${org.displayName}" created`);
+    } catch (e: any) {
+      toast.error(e?.response?.data?.error || "Failed to create organiser");
+    } finally {
+      setCreatingOrg(false);
+    }
+  };
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -982,28 +1014,108 @@ function ExperiencesPage() {
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="space-y-1 sm:col-span-2">
-                  <Label>Owner (vendor account) *</Label>
-                  <Select
-                    value={form.vendorId}
-                    onValueChange={(v) => setForm({ ...form, vendorId: v })}
-                    disabled={!!editingId}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select the vendor that owns this" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {vendors.map((v: any) => (
-                        <SelectItem key={v.id} value={v.id}>
-                          {vendorName(v)}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <p className="text-xs text-muted-foreground">
-                    This vendor sees bookings & earnings in their dashboard. Set
-                    once — it can't be changed later.
-                  </p>
+                <div className="space-y-2 sm:col-span-2">
+                  <div className="flex items-center justify-between">
+                    <Label>Organiser (owner) *</Label>
+                    {!editingId && (
+                      <div className="flex gap-1 text-xs">
+                        <button
+                          type="button"
+                          onClick={() => setOrgMode("existing")}
+                          className={`rounded px-2 py-1 ${orgMode === "existing" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted"}`}
+                        >
+                          Existing
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setOrgMode("new")}
+                          className={`rounded px-2 py-1 ${orgMode === "new" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted"}`}
+                        >
+                          + New organiser
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
+                  {orgMode === "existing" || editingId ? (
+                    <>
+                      <Select
+                        value={form.vendorId}
+                        onValueChange={(v) => setForm({ ...form, vendorId: v })}
+                        disabled={!!editingId}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select the organiser that owns this" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {vendors.map((v: any) => (
+                            <SelectItem key={v.id} value={v.id}>
+                              {v.displayName || vendorName(v)}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <p className="text-xs text-muted-foreground">
+                        They see bookings & earnings in their dashboard. Set once
+                        — it can't be changed later.
+                      </p>
+                    </>
+                  ) : (
+                    <div className="rounded-lg border p-3 space-y-3 bg-muted/20">
+                      <div className="space-y-1">
+                        <Label className="text-xs">Organiser name (brand) *</Label>
+                        <Input
+                          placeholder="e.g. Open Space Events"
+                          value={newOrg.displayName}
+                          onChange={(e) =>
+                            setNewOrg({ ...newOrg, displayName: e.target.value })
+                          }
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs">Owner phone *</Label>
+                        <Input
+                          placeholder="+220..."
+                          value={newOrg.phone}
+                          onChange={(e) =>
+                            setNewOrg({ ...newOrg, phone: e.target.value })
+                          }
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          The owner signs into the app/panel with this number to
+                          manage the event, staff and scanners.
+                        </p>
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs">Logo URL (optional)</Label>
+                        <Input
+                          placeholder="https://… (shown on tickets)"
+                          value={newOrg.logoUrl}
+                          onChange={(e) =>
+                            setNewOrg({ ...newOrg, logoUrl: e.target.value })
+                          }
+                        />
+                      </div>
+                      <Button
+                        type="button"
+                        size="sm"
+                        onClick={createOrg}
+                        disabled={creatingOrg}
+                      >
+                        {creatingOrg ? (
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        ) : (
+                          <Plus className="mr-2 h-4 w-4" />
+                        )}
+                        Create organiser
+                      </Button>
+                      {form.vendorId && (
+                        <p className="text-xs text-green-600">
+                          ✓ Organiser created and selected.
+                        </p>
+                      )}
+                    </div>
+                  )}
                 </div>
                 <div className="space-y-1">
                   <Label>Phone</Label>

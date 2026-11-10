@@ -149,6 +149,13 @@ export const adminApi = {
   getExperienceById: (id: string) => api.get(`/api/admin/experiences/${id}`),
   createExperience: (data: Record<string, unknown>) =>
     api.post("/api/admin/experiences", data),
+  // Create a brand-new organiser (event owner) inline.
+  createOrganizer: (data: {
+    displayName: string;
+    phone: string;
+    fullName?: string;
+    logoUrl?: string;
+  }) => api.post("/api/admin/organizers", data),
   updateExperience: (id: string, data: Record<string, unknown>) =>
     api.patch(`/api/admin/experiences/${id}`, data),
   deleteExperience: (id: string) =>
