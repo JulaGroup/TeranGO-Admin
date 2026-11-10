@@ -251,6 +251,20 @@ function AdvertisementsPage() {
     },
   })
 
+  // Events to link an ad to (opens the event in the app).
+  const { data: eventOptions = [], isLoading: eventsLoading } = useQuery({
+    queryKey: ['ad-event-options'],
+    enabled: formData.vendorType === 'EXPERIENCE',
+    queryFn: async () => {
+      const res = await api.get('/api/admin/experiences')
+      const list = res.data?.data ?? res.data ?? []
+      return (Array.isArray(list) ? list : []).map((e: any) => ({
+        id: e.id as string,
+        name: (e.name as string) || 'Untitled event',
+      }))
+    },
+  })
+
   // Create advertisement
   const createMutation = useMutation({
     mutationFn: async (data: typeof emptyFormState) => {
@@ -822,7 +836,7 @@ function AdvertisementsPage() {
             {/* Link to an in-app vendor (adds a "Visit Shop" button on the ad) */}
             <div className='grid gap-4 md:grid-cols-2 rounded-lg border p-3'>
               <div className='space-y-2'>
-                <Label>Link to Vendor (optional)</Label>
+                <Label>Link to (optional)</Label>
                 <Select
                   value={formData.vendorType || 'NONE'}
                   onValueChange={(value) =>
@@ -834,16 +848,18 @@ function AdvertisementsPage() {
                   }
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder='No vendor link' />
+                    <SelectValue placeholder='No link' />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value='NONE'>No vendor link</SelectItem>
+                    <SelectItem value='NONE'>No link</SelectItem>
                     <SelectItem value='SHOP'>Shop</SelectItem>
                     <SelectItem value='RESTAURANT'>Restaurant</SelectItem>
+                    <SelectItem value='EXPERIENCE'>Event</SelectItem>
                   </SelectContent>
                 </Select>
                 <p className='text-xs text-muted-foreground'>
-                  Adds a "Visit Shop" button that opens the vendor in the app.
+                  Adds a button that opens the shop, restaurant or event in the
+                  app.
                 </p>
               </div>
               {(formData.vendorType === 'SHOP' ||
@@ -873,6 +889,33 @@ function AdvertisementsPage() {
                       {vendorOptions.map((v) => (
                         <SelectItem key={v.id} value={v.id}>
                           {v.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+              {formData.vendorType === 'EXPERIENCE' && (
+                <div className='space-y-2'>
+                  <Label>Select Event</Label>
+                  <Select
+                    value={formData.vendorId || ''}
+                    onValueChange={(value) =>
+                      setFormData({ ...formData, vendorId: value })
+                    }
+                    disabled={eventsLoading}
+                  >
+                    <SelectTrigger>
+                      <SelectValue
+                        placeholder={
+                          eventsLoading ? 'Loading…' : 'Choose an event'
+                        }
+                      />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {eventOptions.map((e) => (
+                        <SelectItem key={e.id} value={e.id}>
+                          {e.name}
                         </SelectItem>
                       ))}
                     </SelectContent>
