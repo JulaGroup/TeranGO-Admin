@@ -204,6 +204,8 @@ const emptyForm = () => ({
   ticketCap: "" as string | number,
   absorbsServiceFee: false,
   autoConfirmLocation: true,
+  // Published = visible/bookable in the app. New events start as drafts.
+  isPublished: true,
 });
 
 function ExperiencesPage() {
@@ -304,6 +306,7 @@ function ExperiencesPage() {
           form.isEvent && form.ticketCap ? Number(form.ticketCap) : null,
         absorbsServiceFee: form.absorbsServiceFee,
         autoConfirmLocation: form.autoConfirmLocation,
+        isPublished: form.isPublished,
       };
       if (editingId) return adminApi.updateExperience(editingId, payload);
       return adminApi.createExperience({
@@ -406,6 +409,7 @@ function ExperiencesPage() {
       ticketCap: exp.ticketCap ?? "",
       absorbsServiceFee: !!exp.absorbsServiceFee,
       autoConfirmLocation: exp.autoConfirmLocation ?? true,
+      isPublished: exp.isPublished ?? true,
     });
     setHours(hoursFromRaw(exp.openHours));
     setFormTab("basics");
@@ -798,6 +802,9 @@ function ExperiencesPage() {
                           : f.unitLabel === "ticket"
                             ? "spot"
                             : f.unitLabel,
+                        // A brand-new event starts hidden (draft) so it can be
+                        // set up before it appears in the app.
+                        isPublished: v && !editingId ? false : f.isPublished,
                       }))
                     }
                   />
@@ -805,6 +812,24 @@ function ExperiencesPage() {
 
                 {form.isEvent && (
                   <div className="space-y-4 pt-1">
+                    <div className="flex items-center justify-between gap-4 rounded-md border bg-background p-3">
+                      <div>
+                        <Label>
+                          {form.isPublished ? "Published" : "Draft (hidden)"}
+                        </Label>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          {form.isPublished
+                            ? "Live in the app — customers can see and buy tickets."
+                            : "Hidden from the app. Flip this on when you're ready to sell."}
+                        </p>
+                      </div>
+                      <Switch
+                        checked={form.isPublished}
+                        onCheckedChange={(v) =>
+                          setForm((f) => ({ ...f, isPublished: v }))
+                        }
+                      />
+                    </div>
                     <div className="grid gap-4 sm:grid-cols-2">
                       <div className="space-y-1">
                         <Label>Event starts *</Label>
