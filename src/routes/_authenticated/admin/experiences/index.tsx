@@ -193,7 +193,17 @@ const emptyForm = () => ({
   totalUnits: 1,
   unitLabel: "kart",
   slotMinutes: 5,
-  options: [{ label: "", durationMins: 5, price: 0 }],
+  options: [
+    { label: "", durationMins: 5, price: 0, maxUnits: "" as string | number },
+  ],
+  // Ticketed-event mode (a single dated event with a hard cap) vs the default
+  // rolling time-slot activity.
+  isEvent: false,
+  eventStartAt: "",
+  eventEndAt: "",
+  ticketCap: "" as string | number,
+  absorbsServiceFee: false,
+  autoConfirmLocation: true,
 });
 
 function ExperiencesPage() {
@@ -286,6 +296,14 @@ function ExperiencesPage() {
         unitLabel: form.unitLabel,
         slotMinutes: Number(form.slotMinutes),
         openHours: hoursToRaw(hours),
+        // Event fields — only meaningful when isEvent; harmless otherwise.
+        capacityType: form.isEvent ? "FIXED_EVENT" : "TIME_SLOT",
+        eventStartAt: form.isEvent && form.eventStartAt ? form.eventStartAt : null,
+        eventEndAt: form.isEvent && form.eventEndAt ? form.eventEndAt : null,
+        ticketCap:
+          form.isEvent && form.ticketCap ? Number(form.ticketCap) : null,
+        absorbsServiceFee: form.absorbsServiceFee,
+        autoConfirmLocation: form.autoConfirmLocation,
       };
       if (editingId) return adminApi.updateExperience(editingId, payload);
       return adminApi.createExperience({
@@ -296,6 +314,7 @@ function ExperiencesPage() {
             label: o.label,
             durationMins: Number(o.durationMins),
             price: Number(o.price),
+            maxUnits: o.maxUnits ? Number(o.maxUnits) : null,
             sortOrder: i,
           })),
       });
@@ -376,8 +395,17 @@ function ExperiencesPage() {
             label: o.label,
             durationMins: o.durationMins,
             price: o.price,
+            maxUnits: o.maxUnits ?? "",
           }))
-        : [{ label: "", durationMins: 5, price: 0 }],
+        : [{ label: "", durationMins: 5, price: 0, maxUnits: "" }],
+      isEvent: exp.capacityType === "FIXED_EVENT",
+      eventStartAt: exp.eventStartAt
+        ? String(exp.eventStartAt).slice(0, 16)
+        : "",
+      eventEndAt: exp.eventEndAt ? String(exp.eventEndAt).slice(0, 16) : "",
+      ticketCap: exp.ticketCap ?? "",
+      absorbsServiceFee: !!exp.absorbsServiceFee,
+      autoConfirmLocation: exp.autoConfirmLocation ?? true,
     });
     setHours(hoursFromRaw(exp.openHours));
     setFormTab("basics");
@@ -747,6 +775,108 @@ function ExperiencesPage() {
 
             {/* ---- Details ---- */}
             <TabsContent value="basics" className="space-y-5 py-4">
+              {/* Event mode — turns this listing into a single dated ticketed
+                  event (a match, a concert) with a hard ticket cap, instead of
+                  the rolling time-slot activity default. */}
+              <div className="rounded-lg border p-4 space-y-4 bg-muted/20">
+                <div className="flex items-center justify-between gap-4">
+                  <div>
+                    <Label className="text-base">Ticketed event</Label>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      A single dated event with a fixed number of tickets (e.g. a
+                      match). Off = a rolling time-slot activity.
+                    </p>
+                  </div>
+                  <Switch
+                    checked={form.isEvent}
+                    onCheckedChange={(v) =>
+                      setForm((f) => ({
+                        ...f,
+                        isEvent: v,
+                        unitLabel: v
+                          ? "ticket"
+                          : f.unitLabel === "ticket"
+                            ? "spot"
+                            : f.unitLabel,
+                      }))
+                    }
+                  />
+                </div>
+
+                {form.isEvent && (
+                  <div className="space-y-4 pt-1">
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      <div className="space-y-1">
+                        <Label>Event starts *</Label>
+                        <Input
+                          type="datetime-local"
+                          value={form.eventStartAt}
+                          onChange={(e) =>
+                            setForm({ ...form, eventStartAt: e.target.value })
+                          }
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <Label>Event ends</Label>
+                        <Input
+                          type="datetime-local"
+                          value={form.eventEndAt}
+                          onChange={(e) =>
+                            setForm({ ...form, eventEndAt: e.target.value })
+                          }
+                        />
+                      </div>
+                    </div>
+                    <div className="space-y-1">
+                      <Label>Total ticket cap</Label>
+                      <Input
+                        type="number"
+                        min={0}
+                        placeholder="e.g. 20000 (leave blank for no overall cap)"
+                        value={form.ticketCap}
+                        onChange={(e) =>
+                          setForm({ ...form, ticketCap: e.target.value })
+                        }
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Hard limit across all tiers. Per-tier caps are set on each
+                        package below.
+                      </p>
+                    </div>
+                    <div className="flex items-center justify-between gap-4">
+                      <div>
+                        <Label>Add 5% service fee on top</Label>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          On = the customer pays ticket price + 5%. Off = the
+                          organiser absorbs the 5% (ticket price is all-in).
+                        </p>
+                      </div>
+                      <Switch
+                        checked={!form.absorbsServiceFee}
+                        onCheckedChange={(v) =>
+                          setForm((f) => ({ ...f, absorbsServiceFee: !v }))
+                        }
+                      />
+                    </div>
+                    <div className="flex items-center justify-between gap-4">
+                      <div>
+                        <Label>App confirms the venue</Label>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          On = the app shows the fixed event + venue as the
+                          confirmation. Off = the customer confirms a location.
+                        </p>
+                      </div>
+                      <Switch
+                        checked={form.autoConfirmLocation}
+                        onCheckedChange={(v) =>
+                          setForm((f) => ({ ...f, autoConfirmLocation: v }))
+                        }
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+
               {/* Image */}
               <div className="space-y-2">
                 <Label>Cover image</Label>
@@ -1030,19 +1160,36 @@ function ExperiencesPage() {
                           }}
                         />
                       </div>
-                      <div className="space-y-1">
-                        <Label className="text-xs">Minutes</Label>
-                        <Input
-                          className="w-24"
-                          type="number"
-                          value={o.durationMins}
-                          onChange={(e) => {
-                            const next = [...form.options];
-                            next[i] = { ...o, durationMins: e.target.value };
-                            setForm({ ...form, options: next });
-                          }}
-                        />
-                      </div>
+                      {!form.isEvent ? (
+                        <div className="space-y-1">
+                          <Label className="text-xs">Minutes</Label>
+                          <Input
+                            className="w-24"
+                            type="number"
+                            value={o.durationMins}
+                            onChange={(e) => {
+                              const next = [...form.options];
+                              next[i] = { ...o, durationMins: e.target.value };
+                              setForm({ ...form, options: next });
+                            }}
+                          />
+                        </div>
+                      ) : (
+                        <div className="space-y-1">
+                          <Label className="text-xs">Tickets</Label>
+                          <Input
+                            className="w-24"
+                            type="number"
+                            placeholder="cap"
+                            value={o.maxUnits}
+                            onChange={(e) => {
+                              const next = [...form.options];
+                              next[i] = { ...o, maxUnits: e.target.value };
+                              setForm({ ...form, options: next });
+                            }}
+                          />
+                        </div>
+                      )}
                       <div className="space-y-1">
                         <Label className="text-xs">Price (D)</Label>
                         <Input
@@ -1079,7 +1226,7 @@ function ExperiencesPage() {
                         ...form,
                         options: [
                           ...form.options,
-                          { label: "", durationMins: 5, price: 0 },
+                          { label: "", durationMins: 5, price: 0, maxUnits: "" },
                         ],
                       })
                     }
