@@ -275,6 +275,7 @@ function PropertyForm({
     contactPhone: initial?.contactPhone || "",
     contactEmail: initial?.contactEmail || "",
     commissionRate: initial?.commissionRate?.toString() || "0.07",
+    agentId: (initial as any)?.agentId || "",
   });
   const [features, setFeatures] = useState<string[]>(initial?.features || []);
   const [featureInput, setFeatureInput] = useState("");
@@ -285,6 +286,26 @@ function PropertyForm({
 
   const set = (field: string, value: any) =>
     setForm((f) => ({ ...f, [field]: value }));
+
+  // Agents the admin can assign a listing to (so it posts on their behalf).
+  const { data: agents = [] } = useQuery({
+    queryKey: ["kerspace-agents-assign"],
+    queryFn: async () => {
+      const res = await kerspaceApi.getAgents({ limit: 500 });
+      const list = res.data?.data ?? res.data?.agents ?? res.data ?? [];
+      return (Array.isArray(list) ? list : []).map((a: any) => ({
+        id: a.id as string,
+        name:
+          a.displayName ||
+          a.businessName ||
+          a.user?.fullName ||
+          a.name ||
+          "Agent",
+        phone: a.phone || a.user?.phone || "",
+        email: a.email || a.user?.email || "",
+      }));
+    },
+  });
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
@@ -572,6 +593,46 @@ function PropertyForm({
       </div>
 
       {/* Contact */}
+      {/* Assign to an agent — the listing posts on their behalf and shows in
+          their dashboard. Leave as "None" for a platform/admin listing. */}
+      <div className="space-y-1">
+        <Label>Post on behalf of (agent)</Label>
+        <Select
+          value={form.agentId || "NONE"}
+          onValueChange={(value) => {
+            if (value === "NONE") {
+              set("agentId", "");
+              return;
+            }
+            const a = agents.find((x) => x.id === value);
+            setForm((f) => ({
+              ...f,
+              agentId: value,
+              contactName: a?.name || f.contactName,
+              contactPhone: a?.phone || f.contactPhone,
+              contactEmail: a?.email || f.contactEmail,
+            }));
+          }}
+        >
+          <SelectTrigger>
+            <SelectValue placeholder="None (platform listing)" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="NONE">None (platform listing)</SelectItem>
+            {agents.map((a) => (
+              <SelectItem key={a.id} value={a.id}>
+                {a.name}
+                {a.phone ? ` · ${a.phone}` : ""}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <p className="text-xs text-muted-foreground">
+          The listing appears in this agent's app dashboard and earns their
+          commission.
+        </p>
+      </div>
+
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-1">
           <Label>Contact Name *</Label>
