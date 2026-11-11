@@ -167,6 +167,9 @@ export const adminApi = {
     api.delete(`/api/admin/experiences/${id}`),
   getExperienceBookings: (id: string) =>
     api.get(`/api/admin/experiences/${id}/bookings`),
+  // Super-admin: all event tickets across every event.
+  getAllEventTickets: (params?: { paid?: boolean; experienceId?: string }) =>
+    api.get("/api/admin/event-tickets", { params }),
   addExperienceOption: (id: string, data: Record<string, unknown>) =>
     api.post(`/api/admin/experiences/${id}/options`, data),
   updateExperienceOption: (
