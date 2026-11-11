@@ -11,6 +11,7 @@ import {
   Loader2,
   ShieldCheck,
   ShieldOff,
+  Pencil,
 } from "lucide-react";
 import { toast } from "sonner";
 import { kerspaceApi } from "@/lib/api";
@@ -49,6 +50,31 @@ export function AgentsTab() {
     licenseNo: "",
     city: "",
   });
+  const [editId, setEditId] = useState<string | null>(null);
+  const [editForm, setEditForm] = useState({
+    fullName: "",
+    phone: "",
+    email: "",
+    type: "INDIVIDUAL",
+    companyName: "",
+    licenseNo: "",
+    city: "",
+    bio: "",
+  });
+
+  const openEdit = (a: any) => {
+    setEditId(a.id);
+    setEditForm({
+      fullName: a.user?.fullName || "",
+      phone: a.phone || "",
+      email: a.email || "",
+      type: a.type || "INDIVIDUAL",
+      companyName: a.companyName || "",
+      licenseNo: a.licenseNo || "",
+      city: a.city || "",
+      bio: a.bio || "",
+    });
+  };
 
   const { data, isLoading } = useQuery({
     queryKey: ["kerspace-agents"],
@@ -84,6 +110,17 @@ export function AgentsTab() {
       qc.invalidateQueries({ queryKey: ["kerspace-agents"] });
     },
     onError: () => toast.error("Failed to update agent"),
+  });
+
+  const editMutation = useMutation({
+    mutationFn: () => kerspaceApi.updateAgent(editId!, editForm),
+    onSuccess: () => {
+      toast.success("Agent details saved");
+      setEditId(null);
+      qc.invalidateQueries({ queryKey: ["kerspace-agents"] });
+    },
+    onError: (e: any) =>
+      toast.error(e?.response?.data?.error || "Failed to save agent"),
   });
 
   const filtered = agents.filter((a: any) => {
@@ -210,6 +247,14 @@ export function AgentsTab() {
                   >
                     {a.isVerified ? "Unverify" : "Verify"}
                   </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-8 text-xs"
+                    onClick={() => openEdit(a)}
+                  >
+                    <Pencil className="h-3.5 w-3.5" />
+                  </Button>
                 </div>
               </CardContent>
             </Card>
@@ -315,6 +360,121 @@ export function AgentsTab() {
                 <Loader2 className="h-4 w-4 mr-1 animate-spin" />
               )}
               Add agent
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit agent dialog */}
+      <Dialog open={!!editId} onOpenChange={(o) => !o && setEditId(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit agent</DialogTitle>
+            <DialogDescription>
+              Update this agent's contact and profile details.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label>Full name</Label>
+                <Input
+                  value={editForm.fullName}
+                  onChange={(e) =>
+                    setEditForm({ ...editForm, fullName: e.target.value })
+                  }
+                />
+              </div>
+              <div>
+                <Label>Phone</Label>
+                <Input
+                  value={editForm.phone}
+                  onChange={(e) =>
+                    setEditForm({ ...editForm, phone: e.target.value })
+                  }
+                  placeholder="3xxxxxx"
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label>Type</Label>
+                <Select
+                  value={editForm.type}
+                  onValueChange={(v) => setEditForm({ ...editForm, type: v })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="INDIVIDUAL">Individual</SelectItem>
+                    <SelectItem value="COMPANY">Company</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>City</Label>
+                <Input
+                  value={editForm.city}
+                  onChange={(e) =>
+                    setEditForm({ ...editForm, city: e.target.value })
+                  }
+                />
+              </div>
+            </div>
+            {editForm.type === "COMPANY" && (
+              <div>
+                <Label>Company name</Label>
+                <Input
+                  value={editForm.companyName}
+                  onChange={(e) =>
+                    setEditForm({ ...editForm, companyName: e.target.value })
+                  }
+                />
+              </div>
+            )}
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label>Email</Label>
+                <Input
+                  value={editForm.email}
+                  onChange={(e) =>
+                    setEditForm({ ...editForm, email: e.target.value })
+                  }
+                />
+              </div>
+              <div>
+                <Label>License no.</Label>
+                <Input
+                  value={editForm.licenseNo}
+                  onChange={(e) =>
+                    setEditForm({ ...editForm, licenseNo: e.target.value })
+                  }
+                />
+              </div>
+            </div>
+            <div>
+              <Label>Bio</Label>
+              <Input
+                value={editForm.bio}
+                onChange={(e) =>
+                  setEditForm({ ...editForm, bio: e.target.value })
+                }
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditId(null)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={() => editMutation.mutate()}
+              disabled={!editForm.phone || editMutation.isPending}
+            >
+              {editMutation.isPending && (
+                <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+              )}
+              Save changes
             </Button>
           </DialogFooter>
         </DialogContent>

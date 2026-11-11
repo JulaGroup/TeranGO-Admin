@@ -45,6 +45,7 @@ import {
   Sofa,
   UtensilsCrossed,
   ShoppingBag,
+  Ticket,
 } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/admin/maintenance/")({
@@ -60,6 +61,7 @@ interface MaintenanceSettings {
   furnitureMaintenanceMode: boolean;
   restaurantMaintenanceMode: boolean;
   shopMaintenanceMode: boolean;
+  eventsMaintenanceMode: boolean;
   maintenanceMessage: string;
 }
 
@@ -110,6 +112,12 @@ const SERVICE_CONFIG: {
     label: "Furniture Marketplace",
     description: "Buy and sell furniture listings",
     icon: Sofa,
+  },
+  {
+    key: "eventsMaintenanceMode",
+    label: "TeranGO Events",
+    description: "Event discovery and ticket bookings",
+    icon: Ticket,
   },
 ];
 

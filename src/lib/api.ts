@@ -607,6 +607,8 @@ export const kerspaceApi = {
     id: string,
     data: { isActive?: boolean; isVerified?: boolean },
   ) => api.patch(`/api/admin/kerspace/agents/${id}/status`, data),
+  updateAgent: (id: string, data: Record<string, unknown>) =>
+    api.patch(`/api/admin/kerspace/agents/${id}`, data),
 
   // Agent applications
   getAgentApplications: (params?: Record<string, unknown>) =>

@@ -125,6 +125,7 @@ interface Property {
   type: PropertyType;
   listingType: ListingType;
   price: number;
+  rentPeriod?: string | null;
   currency: string;
   negotiable: boolean;
   bedrooms: number | null;
@@ -206,6 +207,15 @@ const STATUS_COLORS: Record<PropertyStatus, string> = {
 const formatPrice = (price: number, currency = "GMD") =>
   `${currency} ${price.toLocaleString()}`;
 
+// Rental listings carry a period ("MONTH" | "NIGHT"); show it as a suffix so a
+// nightly short-let isn't mistaken for a monthly rent. Sales have no suffix.
+const rentSuffix = (p: { listingType: string; rentPeriod?: string | null }) =>
+  p.listingType === "FOR_RENT"
+    ? p.rentPeriod === "NIGHT"
+      ? " /night"
+      : " /month"
+    : "";
+
 // ─── Stat Card ────────────────────────────────────────────────────────────────
 function StatCard({
   title,
@@ -257,6 +267,7 @@ function PropertyForm({
     type: initial?.type || "HOUSE",
     listingType: initial?.listingType || "FOR_SALE",
     price: initial?.price?.toString() || "",
+    rentPeriod: (initial as any)?.rentPeriod || "MONTH",
     currency: initial?.currency || "GMD",
     negotiable: initial?.negotiable ?? false,
     bedrooms: initial?.bedrooms?.toString() || "",
@@ -344,6 +355,7 @@ function PropertyForm({
     onSubmit({
       ...form,
       price: parseFloat(form.price),
+      rentPeriod: form.listingType === "FOR_RENT" ? form.rentPeriod : null,
       bedrooms: form.bedrooms ? parseInt(form.bedrooms) : null,
       bathrooms: form.bathrooms ? parseInt(form.bathrooms) : null,
       area: form.area ? parseFloat(form.area) : null,
@@ -407,7 +419,13 @@ function PropertyForm({
 
       {/* Price */}
       <div className="grid grid-cols-3 gap-4">
-        <div className="col-span-2 space-y-1">
+        <div
+          className={
+            form.listingType === "FOR_RENT"
+              ? "space-y-1"
+              : "col-span-2 space-y-1"
+          }
+        >
           <Label>Price *</Label>
           <Input
             type="number"
@@ -418,6 +436,23 @@ function PropertyForm({
             required
           />
         </div>
+        {form.listingType === "FOR_RENT" && (
+          <div className="space-y-1">
+            <Label>Rent Period *</Label>
+            <Select
+              value={form.rentPeriod}
+              onValueChange={(v) => set("rentPeriod", v)}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="MONTH">Per month</SelectItem>
+                <SelectItem value="NIGHT">Per night</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        )}
         <div className="space-y-1">
           <Label>Currency</Label>
           <Select
@@ -1284,6 +1319,9 @@ function KerSpacePage() {
                           </div>
                           <p className="font-bold text-primary text-sm whitespace-nowrap">
                             {formatPrice(p.price, p.currency)}
+                            <span className="text-[10px] font-medium text-muted-foreground">
+                              {rentSuffix(p)}
+                            </span>
                           </p>
                         </div>
 
@@ -1838,6 +1876,9 @@ function KerSpacePage() {
                   <span className="text-muted-foreground">Price</span>
                   <p className="font-bold text-primary">
                     {formatPrice(viewProperty.price, viewProperty.currency)}
+                    <span className="text-xs font-medium text-muted-foreground">
+                      {rentSuffix(viewProperty)}
+                    </span>
                   </p>
                 </div>
                 <div>
