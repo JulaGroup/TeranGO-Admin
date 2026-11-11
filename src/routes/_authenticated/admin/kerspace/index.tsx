@@ -1306,6 +1306,47 @@ function KerSpacePage() {
                           {p.area && <span>{p.area}m²</span>}
                         </div>
 
+                        {/* Amenities / furnished / agent */}
+                        {(p.furnished ||
+                          (p.features && p.features.length > 0) ||
+                          (p as any).agent) && (
+                          <div className="flex flex-wrap items-center gap-1.5 mt-2">
+                            {p.furnished && (
+                              <Badge
+                                variant="secondary"
+                                className="text-[10px]"
+                              >
+                                Furnished
+                              </Badge>
+                            )}
+                            {(p.features || []).slice(0, 3).map((f) => (
+                              <Badge
+                                key={f}
+                                variant="outline"
+                                className="text-[10px]"
+                              >
+                                {f}
+                              </Badge>
+                            ))}
+                            {p.features && p.features.length > 3 && (
+                              <span className="text-[10px] text-muted-foreground">
+                                +{p.features.length - 3} more
+                              </span>
+                            )}
+                            {(p as any).agent && (
+                              <Badge
+                                variant="outline"
+                                className="text-[10px] border-orange-300 text-orange-600"
+                              >
+                                {(p as any).agent.displayName ||
+                                  (p as any).agent.businessName ||
+                                  (p as any).agent.user?.fullName ||
+                                  "Agent"}
+                              </Badge>
+                            )}
+                          </div>
+                        )}
+
                         {/* Stats row */}
                         <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
                           <span>
